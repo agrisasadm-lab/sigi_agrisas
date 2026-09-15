@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Skeleton } from "../../../_components/atoms/Skeleton/Skeleton";
-import { getPermissionGroupLabel } from "../_logic/labels";
+import { getPermissionGroupLabel } from "../../../_lib/rbacLabels";
 import type { Permission } from "../_logic/types/domain";
 
 interface RolePermissionsEditorProps {

@@ -6,6 +6,7 @@ import { Icon } from "../../../_components/atoms/Icon/Icon";
 import { Skeleton } from "../../../_components/atoms/Skeleton/Skeleton";
 import { ConfirmDialog } from "../../../_components/molecules/ConfirmDialog";
 import { useBranchesOptions } from "../../../_hooks/useBranchesOptions";
+import { getRoleNameLabel } from "../../../_lib/rbacLabels";
 import { updateUserSchema } from "../_logic/schemas/updateUser.schema";
 import { createUserSchema } from "../_logic/schemas/createUser.schema";
 import type { User } from "../_logic/types/domain";
@@ -350,7 +351,7 @@ export function UserEditModal({
                     onChange={() => toggleRole(role.id)}
                     className="w-4 h-4 accent-primary"
                   />
-                  <span className="text-body-md text-on-surface">{role.name}</span>
+                  <span className="text-body-md text-on-surface">{getRoleNameLabel(role.name)}</span>
                 </label>
               ))}
             </div>

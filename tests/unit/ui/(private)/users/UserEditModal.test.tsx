@@ -63,9 +63,9 @@ describe("UserEditModal", () => {
 
     it("marca el rol actual del usuario en la lista", () => {
       setup();
-      const viewerCheckbox = screen.getByRole("checkbox", { name: "viewer" });
+      const viewerCheckbox = screen.getByRole("checkbox", { name: "Visor" });
       expect(viewerCheckbox).toBeChecked();
-      const adminCheckbox = screen.getByRole("checkbox", { name: "admin" });
+      const adminCheckbox = screen.getByRole("checkbox", { name: "Administrador" });
       expect(adminCheckbox).not.toBeChecked();
     });
 
