@@ -1,6 +1,7 @@
 import { Skeleton } from "../../../_components/atoms/Skeleton/Skeleton";
 import { EmptyState } from "../../../_components/molecules/EmptyState/EmptyState";
 import { cn } from "../../../_lib/cn";
+import { getRoleNameLabel } from "../../../_lib/rbacLabels";
 import type { Role } from "../_logic/types/domain";
 
 interface RolesListProps {
@@ -45,7 +46,7 @@ export function RolesList({ roles, selectedRoleId, onSelect, isLoading }: RolesL
                   : "hover:bg-surface-container-high text-on-surface"
               )}
             >
-              <p className="text-label-lg font-medium capitalize">{role.name}</p>
+              <p className="text-label-lg font-medium">{getRoleNameLabel(role.name)}</p>
               {role.description && (
                 <p className={cn("text-body-md truncate", isActive ? "text-on-primary-container/70" : "text-on-surface-variant")}>
                   {role.description}

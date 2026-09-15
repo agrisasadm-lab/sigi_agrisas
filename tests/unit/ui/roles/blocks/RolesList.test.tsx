@@ -24,7 +24,7 @@ describe("RolesList", () => {
   it("calls onSelect with role.id when clicking a role", () => {
     const onSelect = jest.fn();
     render(<RolesList roles={roles} selectedRoleId={null} onSelect={onSelect} isLoading={false} />);
-    fireEvent.click(screen.getByText("admin"));
+    fireEvent.click(screen.getByText("Administrador"));
     expect(onSelect).toHaveBeenCalledWith("1");
   });
 
@@ -32,7 +32,15 @@ describe("RolesList", () => {
     render(
       <RolesList roles={roles} selectedRoleId="1" onSelect={jest.fn()} isLoading={false} />
     );
-    const adminButton = screen.getByText("admin").closest("button");
+    const adminButton = screen.getByText("Administrador").closest("button");
     expect(adminButton?.className).toContain("bg-primary-container");
+  });
+
+  it("humanizes a custom snake_case role name", () => {
+    const customRoles = [
+      { id: "3", name: "supervisor_almacen", description: null, createdAt: "", updatedAt: "" },
+    ];
+    render(<RolesList roles={customRoles} selectedRoleId={null} onSelect={jest.fn()} isLoading={false} />);
+    expect(screen.getByText("Supervisor Almacen")).toBeInTheDocument();
   });
 });

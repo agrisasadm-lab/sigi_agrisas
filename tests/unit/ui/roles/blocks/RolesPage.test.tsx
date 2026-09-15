@@ -66,7 +66,7 @@ describe("RolesPage", () => {
     setupAuth(true);
     render(<RolesPage />);
     await waitFor(() => {
-      const elements = screen.getAllByText("admin");
+      const elements = screen.getAllByText("Administrador");
       expect(elements.length).toBeGreaterThanOrEqual(1);
     });
   });
@@ -137,7 +137,7 @@ describe("RolesPage", () => {
     mockCreateRole.mockResolvedValueOnce(newRole);
 
     render(<RolesPage />);
-    await waitFor(() => expect(screen.getAllByText("admin").length).toBeGreaterThanOrEqual(1));
+    await waitFor(() => expect(screen.getAllByText("Administrador").length).toBeGreaterThanOrEqual(1));
 
     fireEvent.click(screen.getByRole("button", { name: /Nuevo rol/i }));
     fireEvent.change(screen.getByLabelText("Nombre"), { target: { value: "supervisor_almacen" } });
@@ -154,7 +154,7 @@ describe("RolesPage", () => {
     mockCreateRole.mockRejectedValueOnce(new RoleAlreadyExistsError());
 
     render(<RolesPage />);
-    await waitFor(() => expect(screen.getAllByText("admin").length).toBeGreaterThanOrEqual(1));
+    await waitFor(() => expect(screen.getAllByText("Administrador").length).toBeGreaterThanOrEqual(1));
 
     fireEvent.click(screen.getByRole("button", { name: /Nuevo rol/i }));
     fireEvent.change(screen.getByLabelText("Nombre"), { target: { value: "admin" } });
