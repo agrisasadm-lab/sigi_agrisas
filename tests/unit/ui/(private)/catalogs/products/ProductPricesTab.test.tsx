@@ -15,14 +15,17 @@ jest.mock(
   () => ({ useProductPrices: jest.fn() })
 );
 jest.mock("../../../../../../app/_hooks/useBranchesOptions");
+jest.mock("../../../../../../app/_hooks/useCurrentUser");
 
 import { useProductPrices } from "../../../../../../app/(private)/catalogs/products/_logic/hooks/useProductPrices";
 import { useBranchesOptions } from "../../../../../../app/_hooks/useBranchesOptions";
+import { useCurrentUser } from "../../../../../../app/_hooks/useCurrentUser";
 import { ProductPricesTab } from "../../../../../../app/(private)/catalogs/products/_blocks/ProductPricesTab";
 import type { ProductPrice } from "../../../../../../app/(private)/catalogs/products/_logic/types/domain";
 
 const mockUseProductPrices = useProductPrices as jest.Mock;
 const mockUseBranchesOptions = useBranchesOptions as jest.MockedFunction<typeof useBranchesOptions>;
+const mockUseCurrentUser = useCurrentUser as jest.MockedFunction<typeof useCurrentUser>;
 
 const BASE_HOOK = {
   prices: [] as ProductPrice[],
@@ -73,6 +76,16 @@ beforeEach(() => {
   mockUseBranchesOptions.mockReturnValue({
     options: [{ id: "b-zarioz", name: "Zarioz" }, { id: "b-huajuapan", name: "Huajuapan" }],
     isLoading: false,
+    refresh: jest.fn(),
+  });
+  // Default: usuario con branches:access_all (ej. admin) — comportamiento previo sin filtrar.
+  mockUseCurrentUser.mockReturnValue({
+    userId: "u1",
+    email: "admin@example.com",
+    roles: ["admin"],
+    branchId: null,
+    isLoading: false,
+    can: () => true,
     refresh: jest.fn(),
   });
 });
@@ -186,5 +199,64 @@ describe("ProductPricesTab — precio por sucursal", () => {
     expect(screen.getByText(/nuevo override de sucursal/i)).toBeInTheDocument();
     expect(screen.getByText(/sólo aplica a zarioz/i)).toBeInTheDocument();
     expect(screen.getByDisplayValue("Precio Publico")).toBeInTheDocument();
+  });
+});
+
+describe("ProductPricesTab — filtrado del selector de sucursal por branch scope", () => {
+  it("usuario sin branches:access_all y con sucursal propia ve solo esa sucursal + Precio base", () => {
+    mockUseCurrentUser.mockReturnValue({
+      userId: "u2",
+      email: "operador@example.com",
+      roles: ["tienda_zarioz"],
+      branchId: "b-zarioz",
+      isLoading: false,
+      can: () => false,
+      refresh: jest.fn(),
+    });
+    mockUseProductPrices.mockReturnValue({ ...BASE_HOOK, prices: makePrices() });
+
+    render(<ProductPricesTab productId="p1" canWrite={true} />);
+
+    const options = screen.getAllByRole("option", { name: /.+/ });
+    const optionLabels = options.map((o) => o.textContent);
+    expect(optionLabels).toEqual(["Precio base (todas)", "Zarioz"]);
+  });
+
+  it("usuario con branches:access_all sigue viendo todas las sucursales activas", () => {
+    mockUseCurrentUser.mockReturnValue({
+      userId: "u1",
+      email: "admin@example.com",
+      roles: ["admin"],
+      branchId: null,
+      isLoading: false,
+      can: () => true,
+      refresh: jest.fn(),
+    });
+    mockUseProductPrices.mockReturnValue({ ...BASE_HOOK, prices: makePrices() });
+
+    render(<ProductPricesTab productId="p1" canWrite={true} />);
+
+    const options = screen.getAllByRole("option", { name: /.+/ });
+    const optionLabels = options.map((o) => o.textContent);
+    expect(optionLabels).toEqual(["Precio base (todas)", "Zarioz", "Huajuapan"]);
+  });
+
+  it("usuario sin branches:access_all y sin sucursal asignada ve solo Precio base", () => {
+    mockUseCurrentUser.mockReturnValue({
+      userId: "u3",
+      email: "sinsucursal@example.com",
+      roles: ["viewer"],
+      branchId: null,
+      isLoading: false,
+      can: () => false,
+      refresh: jest.fn(),
+    });
+    mockUseProductPrices.mockReturnValue({ ...BASE_HOOK, prices: makePrices() });
+
+    render(<ProductPricesTab productId="p1" canWrite={true} />);
+
+    const options = screen.getAllByRole("option", { name: /.+/ });
+    const optionLabels = options.map((o) => o.textContent);
+    expect(optionLabels).toEqual(["Precio base (todas)"]);
   });
 });
