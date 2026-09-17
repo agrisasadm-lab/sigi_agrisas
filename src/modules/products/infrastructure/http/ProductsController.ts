@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { parseListQuery } from "@/shared/infrastructure/http/parseListQuery";
 import { resolveScopedBranchId } from "@/modules/rbac/infrastructure/http/enforceBranchScope";
+import { rbacContainer } from "@/modules/rbac/infrastructure/di/container";
 import { isBranchScopedInventory } from "@/shared/infrastructure/config/inventoryScope";
 import { ListProductsUseCase } from "../../application/use-cases/ListProductsUseCase";
 import { GetProductUseCase } from "../../application/use-cases/GetProductUseCase";
@@ -196,9 +197,16 @@ export class ProductsController {
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
     }
+    const userId = req.headers.get("x-user-id") ?? "";
+    const userBranchId = req.headers.get("x-user-branch-id") ?? "";
+    let autoAssignBranchId: string | undefined;
+    if (isBranchScopedInventory() && userId && userBranchId) {
+      const hasAccessAll = await rbacContainer.authorizationService.userCan(userId, "branches:access_all");
+      if (!hasAccessAll) autoAssignBranchId = userBranchId;
+    }
     try {
-      const product = await this.createUseCase.execute(parsed.data);
-      return NextResponse.json(product, { status: 201 });
+      const product = await this.createUseCase.execute(parsed.data, autoAssignBranchId);
+      return NextResponse.json({ ...product, autoAssignedBranchId: autoAssignBranchId ?? null }, { status: 201 });
     } catch (err) {
       const mapped = mapDomainError(err, [
         [ProductCodeAlreadyInUseError, 409],

@@ -35,6 +35,7 @@ const createdProduct = {
   taxRateCode: null, providerId: null, providerName: null, ivaRate: null, iepsRate: null,
   imageUrl: null, manufactureDate: null, acquisitionPrice: null, isTaxable: false,
   isActive: true, createdAt: new Date("2026-01-01"), updatedAt: new Date("2026-01-01"),
+  autoAssignedBranchId: null as string | null,
 };
 
 function setup(mode: "general" | "branch", overrides: { can?: (perm: string) => boolean | "loading"; createOne?: jest.Mock } = {}) {
@@ -83,6 +84,20 @@ describe("ProductsPage — banner de éxito post-creación", () => {
     const link = await screen.findByRole("link", { name: /asignar a sucursal/i });
     expect(link).toHaveAttribute("href", "/inventory");
     expect(screen.getByText(/PROD1/)).toBeInTheDocument();
+  });
+
+  it("en modo branch con autoAssignedBranchId presente, muestra el banner con link 'Gestionar producto' y no 'Asignar a sucursal'", async () => {
+    setup("branch", {
+      createOne: jest.fn().mockResolvedValue({ ...createdProduct, autoAssignedBranchId: "branch-1" }),
+    });
+    render(<ProductsPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: /nuevo producto/i }));
+    fireEvent.click(screen.getByRole("button", { name: /guardar \(mock, create\)/i }));
+
+    const link = await screen.findByRole("link", { name: /gestionar producto/i });
+    expect(link).toHaveAttribute("href", "/catalogs/products/p1");
+    expect(screen.queryByRole("link", { name: /asignar a sucursal/i })).not.toBeInTheDocument();
   });
 
   it("en modo branch sin inventory:write, muestra el banner sin el link", async () => {

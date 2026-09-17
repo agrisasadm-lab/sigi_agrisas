@@ -5,6 +5,7 @@ import { PrismaProductRepository } from "@/modules/products/infrastructure/repos
 import { PrismaProductPriceRepository } from "@/modules/products/infrastructure/repositories/PrismaProductPriceRepository";
 import { PrismaProductDosificationRepository } from "@/modules/products/infrastructure/repositories/PrismaProductDosificationRepository";
 import { PrismaPricingSettingsRepository } from "@/modules/settings/infrastructure/repositories/PrismaPricingSettingsRepository";
+import { PrismaBranchInventoryRepository } from "@/modules/inventory/infrastructure/repositories/PrismaBranchInventoryRepository";
 import { ListProductsUseCase } from "@/modules/products/application/use-cases/ListProductsUseCase";
 import { GetProductUseCase } from "@/modules/products/application/use-cases/GetProductUseCase";
 import { CreateProductUseCase } from "@/modules/products/application/use-cases/CreateProductUseCase";
@@ -33,11 +34,12 @@ const priceRepo = new PrismaProductPriceRepository(prisma);
 const dosificationRepo = new PrismaProductDosificationRepository(prisma);
 const pricingSettingsRepo = new PrismaPricingSettingsRepository(prisma);
 const imageStorage = new SupabaseProductImageStorage();
+const branchInventoryRepo = new PrismaBranchInventoryRepository(prisma);
 
 export const productsController = new ProductsController(
   new ListProductsUseCase(productRepo),
   new GetProductUseCase(productRepo),
-  new CreateProductUseCase(productRepo, departmentRepo, taxRateRepo),
+  new CreateProductUseCase(productRepo, departmentRepo, taxRateRepo, branchInventoryRepo),
   new UpdateProductUseCase(productRepo, departmentRepo, taxRateRepo),
   new SoftDeleteProductUseCase(productRepo),
   new UploadProductImageUseCase(productRepo, imageStorage),
