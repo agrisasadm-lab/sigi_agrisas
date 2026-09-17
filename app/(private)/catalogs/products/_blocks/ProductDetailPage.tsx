@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCurrentUser } from "../../../../_hooks/useCurrentUser";
 import { getProduct } from "../_logic/services/products";
 import { useDepartmentsOptions } from "../../../../_hooks/useDepartmentsOptions";
@@ -15,6 +16,7 @@ import { ProductNotFoundError } from "../_logic/errors";
 import type { Product } from "../_logic/types/domain";
 
 type Tab = "general" | "prices" | "dosifications";
+const VALID_TABS: readonly Tab[] = ["general", "prices", "dosifications"];
 
 interface ProductDetailPageProps {
   productId: string;
@@ -22,10 +24,13 @@ interface ProductDetailPageProps {
 
 export function ProductDetailPage({ productId }: ProductDetailPageProps) {
   const { can } = useCurrentUser();
+  const searchParams = useSearchParams();
+  const requestedTab = searchParams.get("tab") as Tab | null;
+  const initialTab: Tab = requestedTab && VALID_TABS.includes(requestedTab) ? requestedTab : "general";
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [tab, setTab] = useState<Tab>("general");
+  const [tab, setTab] = useState<Tab>(initialTab);
   const { options: deptOptions } = useDepartmentsOptions();
 
   useEffect(() => {

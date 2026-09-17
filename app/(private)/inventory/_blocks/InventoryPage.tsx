@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import Link from "next/link";
 import { useCurrentUser } from "../../../_hooks/useCurrentUser";
 import { useDebounce } from "../../../_hooks/useDebounce";
 import { useBranchInventory } from "../_logic/hooks/useBranchInventory";
@@ -34,6 +35,7 @@ import type { InventoryItem } from "../_logic/types/domain";
 
 type ModalType = "assign" | "adjust" | "edit" | null;
 interface ActiveModal { type: ModalType; item: InventoryItem | null; }
+interface AssignSuccess { productId: string; productName: string; productCode: string; }
 
 export function InventoryPage() {
   const { can, branchId: myBranchId } = useCurrentUser();
@@ -58,6 +60,7 @@ export function InventoryPage() {
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [assignError, setAssignError] = useState<string | null>(null);
   const [adjustError, setAdjustError] = useState<string | null>(null);
+  const [assignSuccess, setAssignSuccess] = useState<AssignSuccess | null>(null);
 
   const { items, total, isLoading, error, refresh } = useBranchInventory({
     branchId,
@@ -72,11 +75,13 @@ export function InventoryPage() {
   const canRead = can("inventory:read");
   const canWrite = can("inventory:write");
   const canViewKardex = can("inventory:kardex_read");
+  const canWriteProducts = can("products:write");
 
   const handleBranchChange = (val: string) => {
     setBranchId(val || undefined);
     setPage(1);
     setSearchInput("");
+    setAssignSuccess(null);
   };
 
   const handleSearchChange = useCallback((val: string) => {
@@ -93,7 +98,10 @@ export function InventoryPage() {
     if (!branchId) return;
     setAssignError(null);
     try {
-      await assignOne(branchId, { productId, quantity, reorderPoint });
+      const item = await assignOne(branchId, { productId, quantity, reorderPoint });
+      if (item) {
+        setAssignSuccess({ productId: item.productId, productName: item.productName, productCode: item.productCode });
+      }
       setModal({ type: null, item: null });
       refresh();
     } catch (err) {
@@ -188,7 +196,7 @@ export function InventoryPage() {
                 {canWrite === true && isOnline && (
                   <CreateButton
                     label="Asignar producto"
-                    onClick={() => { clearError(); setAssignError(null); setModal({ type: "assign", item: null }); }}
+                    onClick={() => { clearError(); setAssignError(null); setAssignSuccess(null); setModal({ type: "assign", item: null }); }}
                   />
                 )}
               </>
@@ -201,6 +209,23 @@ export function InventoryPage() {
       <div className="px-6 pt-4">
         <OfflineBanner isOnline={isOnline} catalogStalenessMs={catalogStalenessMs} />
       </div>
+
+      {assignSuccess && (
+        <div className="mx-6 mt-4 flex items-center justify-between gap-3 rounded-md bg-primary-container px-4 py-3 text-label-lg text-on-primary-container">
+          <span>
+            <strong>{assignSuccess.productCode}</strong> — {assignSuccess.productName} asignado a la sucursal.
+            {canWriteProducts === true && (
+              <>
+                {" "}
+                <Link href={`/catalogs/products/${assignSuccess.productId}?tab=prices`} className="underline font-medium">
+                  Asignar precio de venta
+                </Link>
+              </>
+            )}
+          </span>
+          <Button variant="text" size="sm" icon="close" onClick={() => setAssignSuccess(null)} className="shrink-0 p-1" aria-label="Descartar" title="Descartar" />
+        </div>
+      )}
 
       {!branchId ? (
         <div className="p-6">
@@ -227,10 +252,10 @@ export function InventoryPage() {
             items={items}
             canWrite={canWrite === true && isOnline}
             canViewKardex={canViewKardex === true}
-            onAdjust={(item) => { setAdjustError(null); setModal({ type: "adjust", item }); }}
-            onEdit={(item) => setModal({ type: "edit", item })}
+            onAdjust={(item) => { setAdjustError(null); setAssignSuccess(null); setModal({ type: "adjust", item }); }}
+            onEdit={(item) => { setAssignSuccess(null); setModal({ type: "edit", item }); }}
             onRemove={(item) => setConfirmRemoveId(item.productId)}
-            onEnter={canWrite === true && isOnline ? (item) => { setAdjustError(null); setModal({ type: "adjust", item }); } : undefined}
+            onEnter={canWrite === true && isOnline ? (item) => { setAdjustError(null); setAssignSuccess(null); setModal({ type: "adjust", item }); } : undefined}
           />
           <CatalogPagination
             page={page}
