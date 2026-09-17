@@ -6,7 +6,7 @@ import type {
   CreateProductBody,
   UpdateProductBody,
 } from "../types/api";
-import type { Product } from "../types/domain";
+import type { Product, CreatedProduct } from "../types/domain";
 import {
   ProductNotFoundError,
   ProductCodeAlreadyInUseError,
@@ -97,7 +97,7 @@ export async function getProduct(
 export async function createProduct(
   { body }: { body: CreateProductBody },
   fetchImpl = authFetch,
-): Promise<Product> {
+): Promise<CreatedProduct> {
   let res: Response;
   try {
     res = await fetchImpl(`/api/v1/admin/products`, {
@@ -119,8 +119,8 @@ export async function createProduct(
     throw new NetworkError();
   }
   if (!res.ok) throw new NetworkError();
-  const dto = (await res.json()) as ProductDto;
-  return toProduct(dto);
+  const dto = (await res.json()) as ProductDto & { autoAssignedBranchId: string | null };
+  return { ...toProduct(dto), autoAssignedBranchId: dto.autoAssignedBranchId };
 }
 
 export async function updateProduct(

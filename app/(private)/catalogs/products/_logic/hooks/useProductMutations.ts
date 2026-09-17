@@ -7,13 +7,13 @@ import {
   ProductDepartmentInvalidError,
 } from "../errors";
 import type { CreateProductBody, UpdateProductBody } from "../types/api";
-import type { Product } from "../types/domain";
+import type { Product, CreatedProduct } from "../types/domain";
 
 interface UseProductMutationsResult {
   isSaving: boolean;
   mutationError: string | null;
   clearError: () => void;
-  createOne: (body: CreateProductBody) => Promise<Product | null>;
+  createOne: (body: CreateProductBody) => Promise<CreatedProduct | null>;
   updateOne: (id: string, body: UpdateProductBody) => Promise<Product | null>;
   softDeleteOne: (id: string) => Promise<boolean>;
   reactivateOne: (id: string) => Promise<Product | null>;
@@ -25,7 +25,7 @@ export function useProductMutations(): UseProductMutationsResult {
 
   const clearError = useCallback(() => setMutationError(null), []);
 
-  const createOne = useCallback(async (body: CreateProductBody): Promise<Product | null> => {
+  const createOne = useCallback(async (body: CreateProductBody): Promise<CreatedProduct | null> => {
     setIsSaving(true);
     setMutationError(null);
     try {

@@ -37,6 +37,7 @@ interface CreateSuccess {
   productId: string;
   productCode: string;
   productName: string;
+  autoAssignedBranchId: string | null;
 }
 
 export function ProductsPage() {
@@ -131,8 +132,13 @@ export function ProductsPage() {
     try {
       if (modalState?.mode === "create") {
         const product = await createOne(data as CreateProductBody);
-        if (product && inventoryScopeMode === "branch") {
-          setCreateSuccess({ productId: product.id, productCode: product.code, productName: product.name });
+        if (product) {
+          setCreateSuccess({
+            productId: product.id,
+            productCode: product.code,
+            productName: product.name,
+            autoAssignedBranchId: product.autoAssignedBranchId,
+          });
         }
         if (product && stagedImage) {
           try {
@@ -237,17 +243,26 @@ export function ProductsPage() {
             </p>
           </div>
         )}
-        {createSuccess && (
+        {createSuccess && inventoryScopeMode === "branch" && (
           <div className="mx-6 mt-4 flex items-center justify-between gap-3 rounded-md bg-primary-container px-4 py-3 text-label-lg text-on-primary-container">
             <span>
               <strong>{createSuccess.productCode}</strong> — {createSuccess.productName} creado.
-              {canWriteInventory === true && (
+              {createSuccess.autoAssignedBranchId !== null ? (
                 <>
                   {" "}
-                  <Link href="/inventory" className="underline font-medium">
-                    Asignar a sucursal
+                  <Link href={`/catalogs/products/${createSuccess.productId}`} className="underline font-medium">
+                    Gestionar producto
                   </Link>
                 </>
+              ) : (
+                canWriteInventory === true && (
+                  <>
+                    {" "}
+                    <Link href="/inventory" className="underline font-medium">
+                      Asignar a sucursal
+                    </Link>
+                  </>
+                )
               )}
             </span>
             <button type="button" onClick={() => setCreateSuccess(null)} className="shrink-0 p-1 rounded hover:bg-black/10" title="Descartar">
