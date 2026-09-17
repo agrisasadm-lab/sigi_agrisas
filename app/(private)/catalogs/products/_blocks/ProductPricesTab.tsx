@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useProductPrices } from "../_logic/hooks/useProductPrices";
 import { useBranchesOptions } from "../../../../_hooks/useBranchesOptions";
 import { useTableKeyboard } from "../../../../_hooks/useTableKeyboard";
+import { useCurrentUser } from "../../../../_hooks/useCurrentUser";
 import { DuplicatePriceNameError, DuplicateDefaultPriceError } from "../_logic/errors";
 import { ConfirmDialog } from "../../../../_components/molecules/ConfirmDialog/ConfirmDialog";
 import { Badge } from "../../../../_components/atoms/Badge/Badge";
@@ -168,6 +169,12 @@ function PriceModal({
 export function ProductPricesTab({ productId, canWrite }: ProductPricesTabProps) {
   const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
   const { options: branches } = useBranchesOptions();
+  const { branchId: userBranchId, can } = useCurrentUser();
+  const canAccessAllBranches = can("branches:access_all");
+  const visibleBranches = useMemo(() => {
+    if (canAccessAllBranches !== false) return branches;
+    return branches.filter((b) => b.id === userBranchId);
+  }, [branches, canAccessAllBranches, userBranchId]);
   const branchName = (id: string | null) => (id ? branches.find((b) => b.id === id)?.name ?? id : null);
 
   const { prices, isLoading, error, isSaving, saveError, clearSaveError, refresh, createOne, updateOne, deleteOne } = useProductPrices(productId, selectedBranchId);
@@ -216,7 +223,7 @@ export function ProductPricesTab({ productId, canWrite }: ProductPricesTabProps)
           className="px-3 py-1.5 rounded-md border border-outline-variant bg-surface-container-lowest text-body-md focus:outline-none focus:ring-2 focus:ring-primary"
         >
           <option value="">Precio base (todas)</option>
-          {branches.map((b) => (
+          {visibleBranches.map((b) => (
             <option key={b.id} value={b.id}>{b.name}</option>
           ))}
         </select>

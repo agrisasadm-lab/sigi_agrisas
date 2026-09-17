@@ -2,13 +2,18 @@
  * @jest-environment jsdom
  */
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 
 jest.mock("../../../../../app/_hooks/useCurrentUser");
 jest.mock("../../../../../app/(private)/inventory/_logic/hooks/useBranchInventory");
 jest.mock("../../../../../app/_hooks/useBranchesOptions");
 jest.mock("../../../../../app/(private)/inventory/_logic/hooks/useInventoryMutations");
 jest.mock("../../../../../app/_hooks/useInventoryScopeMode");
+jest.mock("../../../../../app/(private)/inventory/_blocks/InventoryAssignModal", () => ({
+  InventoryAssignModal: ({ onAssign }: { onAssign: (productId: string, quantity: number, reorderPoint: number) => void }) => (
+    <button type="button" onClick={() => onAssign("prod-1", 10, 5)}>Confirmar asignación (mock)</button>
+  ),
+}));
 jest.mock("../../../../../app/(private)/_blocks/OfflineSyncProvider", () => ({
   useOfflineSync: () => ({
     isOnline: true,
@@ -66,7 +71,7 @@ function setupBranchesOptions(options: { id: string; name: string }[] = []) {
   });
 }
 
-function setupInventoryMutations() {
+function setupInventoryMutations(overrides: Partial<ReturnType<typeof useInventoryMutationsModule.useInventoryMutations>> = {}) {
   jest.spyOn(useInventoryMutationsModule, "useInventoryMutations").mockReturnValue({
     isSaving: false,
     mutationError: null,
@@ -75,6 +80,7 @@ function setupInventoryMutations() {
     updateOne: jest.fn(),
     adjustOne: jest.fn(),
     removeOne: jest.fn(),
+    ...overrides,
   });
 }
 
@@ -175,5 +181,71 @@ describe("InventoryPage — badge de modo de inventario", () => {
     render(<InventoryPage />);
 
     expect(screen.queryByText("Inventario por sucursal")).not.toBeInTheDocument();
+  });
+});
+
+describe("InventoryPage — banner de éxito post-asignación", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  const assignedItem = {
+    id: "inv-1",
+    branchId: "branch-1",
+    productId: "prod-1",
+    productCode: "PROD1",
+    productName: "Producto Uno",
+    quantity: 10,
+    reservedQuantity: 0,
+    reorderPoint: 5,
+    updatedAt: new Date("2026-01-01"),
+    nearestExpirationDate: null,
+    nearestExpirationLotNumber: null,
+    expiryStatus: null,
+  };
+
+  it("con products:write, muestra el banner con el link a la tab Precios", async () => {
+    setupCurrentUser(["inventory:read", "inventory:write", "products:write"], "branch-1");
+    setupBranchesOptions([{ id: "branch-1", name: "Sucursal Centro" }]);
+    setupBranchInventory();
+    setupInventoryMutations({ assignOne: jest.fn().mockResolvedValue(assignedItem) });
+    setupInventoryScopeMode("branch");
+
+    render(<InventoryPage />);
+    fireEvent.click(screen.getByRole("button", { name: /asignar producto/i }));
+    fireEvent.click(screen.getByRole("button", { name: /confirmar asignación \(mock\)/i }));
+
+    const link = await screen.findByRole("link", { name: /asignar precio de venta/i });
+    expect(link).toHaveAttribute("href", "/catalogs/products/prod-1?tab=prices");
+    expect(screen.getByText(/PROD1/)).toBeInTheDocument();
+  });
+
+  it("sin products:write, muestra el banner sin el link", async () => {
+    setupCurrentUser(["inventory:read", "inventory:write"], "branch-1");
+    setupBranchesOptions([{ id: "branch-1", name: "Sucursal Centro" }]);
+    setupBranchInventory();
+    setupInventoryMutations({ assignOne: jest.fn().mockResolvedValue(assignedItem) });
+    setupInventoryScopeMode("branch");
+
+    render(<InventoryPage />);
+    fireEvent.click(screen.getByRole("button", { name: /asignar producto/i }));
+    fireEvent.click(screen.getByRole("button", { name: /confirmar asignación \(mock\)/i }));
+
+    expect(await screen.findByText(/PROD1/)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /asignar precio de venta/i })).not.toBeInTheDocument();
+  });
+
+  it("el banner se limpia al abrir 'Asignar producto' de nuevo", async () => {
+    setupCurrentUser(["inventory:read", "inventory:write", "products:write"], "branch-1");
+    setupBranchesOptions([{ id: "branch-1", name: "Sucursal Centro" }]);
+    setupBranchInventory();
+    setupInventoryMutations({ assignOne: jest.fn().mockResolvedValue(assignedItem) });
+    setupInventoryScopeMode("branch");
+
+    render(<InventoryPage />);
+    fireEvent.click(screen.getByRole("button", { name: /asignar producto/i }));
+    fireEvent.click(screen.getByRole("button", { name: /confirmar asignación \(mock\)/i }));
+    await screen.findByText(/PROD1/);
+
+    fireEvent.click(screen.getByRole("button", { name: /asignar producto/i }));
+    expect(screen.queryByText(/PROD1/)).not.toBeInTheDocument();
   });
 });

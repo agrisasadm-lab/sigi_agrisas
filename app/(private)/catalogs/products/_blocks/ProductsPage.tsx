@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useCurrentUser } from "../../../../_hooks/useCurrentUser";
 import { useDebounce } from "../../../../_hooks/useDebounce";
 import { useProducts } from "../_logic/hooks/useProducts";
@@ -18,6 +19,7 @@ import { CatalogEmpty } from "../../_blocks/CatalogEmpty";
 import { CatalogError } from "../../_blocks/CatalogError";
 import { ConfirmDialog } from "../../../../_components/molecules/ConfirmDialog/ConfirmDialog";
 import { Skeleton } from "../../../../_components/atoms/Skeleton/Skeleton";
+import { Icon } from "../../../../_components/atoms/Icon/Icon";
 import { EmptyState } from "../../../../_components/molecules/EmptyState/EmptyState";
 import { ProductCodeAlreadyInUseError, ProductDepartmentInvalidError } from "../_logic/errors";
 import { uploadProductImage } from "../_logic/services/uploadProductImage";
@@ -29,6 +31,13 @@ type ModalMode = "create" | "edit";
 interface ModalState {
   mode: ModalMode;
   entity: Product | null;
+}
+
+interface CreateSuccess {
+  productId: string;
+  productCode: string;
+  productName: string;
+  autoAssignedBranchId: string | null;
 }
 
 export function ProductsPage() {
@@ -51,6 +60,7 @@ export function ProductsPage() {
   const [deptError, setDeptError] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [imageUploadWarning, setImageUploadWarning] = useState<string | null>(null);
+  const [createSuccess, setCreateSuccess] = useState<CreateSuccess | null>(null);
 
   const { items, total, isLoading, error, refresh } = useProducts({
     page,
@@ -67,6 +77,7 @@ export function ProductsPage() {
 
   const canRead = can("products:read");
   const canWrite = can("products:write");
+  const canWriteInventory = can("inventory:write");
 
   const handleSearchChange = useCallback((val: string) => {
     setSearchInput(val);
@@ -94,6 +105,7 @@ export function ProductsPage() {
     setDeptError(null);
     setMutationError(null);
     setImageUploadWarning(null);
+    setCreateSuccess(null);
     clearError();
     setModalState({ mode: "create", entity: null });
   }, [clearError]);
@@ -103,6 +115,7 @@ export function ProductsPage() {
     setDeptError(null);
     setMutationError(null);
     setImageUploadWarning(null);
+    setCreateSuccess(null);
     clearError();
     setModalState({ mode: "edit", entity });
   }, [clearError]);
@@ -119,6 +132,14 @@ export function ProductsPage() {
     try {
       if (modalState?.mode === "create") {
         const product = await createOne(data as CreateProductBody);
+        if (product) {
+          setCreateSuccess({
+            productId: product.id,
+            productCode: product.code,
+            productName: product.name,
+            autoAssignedBranchId: product.autoAssignedBranchId,
+          });
+        }
         if (product && stagedImage) {
           try {
             await uploadProductImage(product.id, stagedImage);
@@ -142,7 +163,7 @@ export function ProductsPage() {
         setMutationError((err as Error).message ?? "Error al guardar.");
       }
     }
-  }, [modalState, createOne, updateOne, refresh]);
+  }, [modalState, createOne, updateOne, refresh, inventoryScopeMode]);
 
   const handleConfirmDelete = useCallback(async () => {
     if (!confirmDeleteId) return;
@@ -222,6 +243,33 @@ export function ProductsPage() {
             </p>
           </div>
         )}
+        {createSuccess && inventoryScopeMode === "branch" && (
+          <div className="mx-6 mt-4 flex items-center justify-between gap-3 rounded-md bg-primary-container px-4 py-3 text-label-lg text-on-primary-container">
+            <span>
+              <strong>{createSuccess.productCode}</strong> — {createSuccess.productName} creado.
+              {createSuccess.autoAssignedBranchId !== null ? (
+                <>
+                  {" "}
+                  <Link href={`/catalogs/products/${createSuccess.productId}`} className="underline font-medium">
+                    Gestionar producto
+                  </Link>
+                </>
+              ) : (
+                canWriteInventory === true && (
+                  <>
+                    {" "}
+                    <Link href="/inventory" className="underline font-medium">
+                      Asignar a sucursal
+                    </Link>
+                  </>
+                )
+              )}
+            </span>
+            <button type="button" onClick={() => setCreateSuccess(null)} className="shrink-0 p-1 rounded hover:bg-black/10" title="Descartar">
+              <Icon name="close" size={16} />
+            </button>
+          </div>
+        )}
         {isLoading ? (
           <div className="p-6 space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -231,7 +279,7 @@ export function ProductsPage() {
         ) : error ? (
           <CatalogError onRetry={refresh} />
         ) : total === 0 ? (
-          <CatalogEmpty canWrite={canWrite === true} onCreate={canWrite === true ? () => setModalState({ mode: "create", entity: null }) : undefined} />
+          <CatalogEmpty canWrite={canWrite === true} onCreate={canWrite === true ? () => { setCreateSuccess(null); setModalState({ mode: "create", entity: null }); } : undefined} />
         ) : (
           <>
             <ProductsTable

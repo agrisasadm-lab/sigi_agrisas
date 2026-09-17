@@ -2,6 +2,7 @@ import { CreateProductUseCase } from "@/modules/products/application/use-cases/C
 import { InMemoryProductRepository } from "@/modules/products/infrastructure/repositories/InMemoryProductRepository";
 import { InMemoryDepartmentRepository } from "@/modules/departments/infrastructure/repositories/InMemoryDepartmentRepository";
 import { InMemoryTaxRateRepository } from "@/modules/tax-rates/infrastructure/repositories/InMemoryTaxRateRepository";
+import { InMemoryBranchInventoryRepository } from "@/modules/inventory/infrastructure/repositories/InMemoryBranchInventoryRepository";
 import { CreateTaxRateUseCase } from "@/modules/tax-rates/application/use-cases/CreateTaxRateUseCase";
 import { DeactivateTaxRateUseCase } from "@/modules/tax-rates/application/use-cases/DeactivateTaxRateUseCase";
 import { ProductCodeAlreadyInUseError } from "@/modules/products/domain/errors/ProductCodeAlreadyInUseError";
@@ -114,5 +115,49 @@ describe("CreateProductUseCase", () => {
     await expect(
       useCase.execute({ code: "X4", name: "X", unit: "kg", departmentId, taxRateId: taxRate.id })
     ).rejects.toThrow(ProductTaxRateNotFoundError);
+  });
+});
+
+describe("CreateProductUseCase — auto-assign a branch", () => {
+  let repo: InMemoryProductRepository;
+  let deptRepo: InMemoryDepartmentRepository;
+  let branchInventoryRepo: InMemoryBranchInventoryRepository;
+  let useCase: CreateProductUseCase;
+  let departmentId: string;
+
+  beforeEach(async () => {
+    repo = new InMemoryProductRepository();
+    repo.reset();
+    deptRepo = new InMemoryDepartmentRepository();
+    const dept = await deptRepo.create({ code: "DEPT1", name: "Abarrotes" });
+    departmentId = dept.id;
+    branchInventoryRepo = new InMemoryBranchInventoryRepository();
+    branchInventoryRepo.reset();
+    useCase = new CreateProductUseCase(repo, deptRepo, undefined, branchInventoryRepo);
+  });
+
+  it("creates a branch_inventory row with quantity 0 when autoAssignBranchId is passed", async () => {
+    const result = await useCase.execute(
+      { code: "ARROZ_003", name: "Arroz", unit: "kg", departmentId },
+      "B1"
+    );
+    const view = await branchInventoryRepo.findByBranchAndProduct("B1", result.id);
+    expect(view).not.toBeNull();
+    expect(view?.inventory.quantity).toBe(0);
+  });
+
+  it("does not create any inventory row when autoAssignBranchId is omitted", async () => {
+    const result = await useCase.execute({ code: "ARROZ_004", name: "Arroz", unit: "kg", departmentId });
+    const view = await branchInventoryRepo.findByBranchAndProduct("B1", result.id);
+    expect(view).toBeNull();
+  });
+
+  it("still resolves with the created product when the auto-assign write fails (best-effort)", async () => {
+    jest.spyOn(branchInventoryRepo, "create").mockRejectedValueOnce(new Error("db down"));
+    const result = await useCase.execute(
+      { code: "ARROZ_005", name: "Arroz", unit: "kg", departmentId },
+      "B1"
+    );
+    expect(result.code).toBe("ARROZ_005");
   });
 });

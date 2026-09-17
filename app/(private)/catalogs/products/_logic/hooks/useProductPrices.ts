@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { listPrices, createPrice, updatePrice, deletePrice } from "../services/prices";
 import { DuplicatePriceNameError, DuplicateDefaultPriceError } from "../errors";
+import { ForbiddenError } from "../../../../../_lib/authFetch";
 import type { CreatePriceBody, UpdatePriceBody } from "../types/api";
 import type { ProductPrice } from "../types/domain";
 
@@ -61,6 +62,10 @@ export function useProductPrices(productId: string, branchId: string | null = nu
       return result;
     } catch (err) {
       if (err instanceof DuplicatePriceNameError || err instanceof DuplicateDefaultPriceError) throw err;
+      if (err instanceof ForbiddenError && err.required === "branches:access_all") {
+        setSaveError("No puedes crear precios para otra sucursal.");
+        return null;
+      }
       setSaveError((err as Error).message ?? "Error al guardar precio.");
       return null;
     } finally {
@@ -78,6 +83,10 @@ export function useProductPrices(productId: string, branchId: string | null = nu
       return result;
     } catch (err) {
       if (err instanceof DuplicatePriceNameError || err instanceof DuplicateDefaultPriceError) throw err;
+      if (err instanceof ForbiddenError && err.required === "branches:access_all") {
+        setSaveError("No puedes crear precios para otra sucursal.");
+        return null;
+      }
       setSaveError((err as Error).message ?? "Error al actualizar precio.");
       return null;
     } finally {

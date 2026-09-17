@@ -22,6 +22,11 @@ export interface Product {
   updatedAt: Date;
 }
 
+/** Respuesta de POST /products — incluye el resultado de la auto-asignación a la sucursal propia del creador (null si no aplica: admin, sin sucursal, o modo general). */
+export interface CreatedProduct extends Product {
+  autoAssignedBranchId: string | null;
+}
+
 export interface ProductPrice {
   id: string;
   productId: string;
