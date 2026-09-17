@@ -388,7 +388,7 @@ describe("ProductsController.list — branch scope mode", () => {
     expect(res.status).toBe(401);
   });
 
-  it("branch mode: operator without branches:access_all is scoped to their own branch when branchId is omitted", async () => {
+  it("branch mode: operator without branches:access_all sees the full catalog when branchId is omitted", async () => {
     process.env.INVENTORY_SCOPE_MODE = "branch";
     userCanMock.mockResolvedValue(false);
     const { ctrl, departmentId } = await buildController();
@@ -398,9 +398,10 @@ describe("ProductsController.list — branch scope mode", () => {
     const res = await ctrl.list(makeListReq({}, { "x-user-id": USER_ID, "x-user-branch-id": BRANCH_A }));
     expect(res.status).toBe(200);
     const body = await res.json();
-    // Sin fila de inventario en BRANCH_A (su sucursal), el catálogo queda vacío
-    expect(body.total).toBe(0);
-    expect(body.items.find((p: { id: string }) => p.id === productId)).toBeUndefined();
+    // Sin branchId explícito, el catálogo NO se filtra por sucursal aunque el
+    // caller no tenga fila de inventario en BRANCH_A (su sucursal)
+    expect(body.total).toBe(1);
+    expect(body.items.find((p: { id: string }) => p.id === productId)).toBeDefined();
   });
 
   it("branch mode: operator without branches:access_all requesting a different branchId is rejected (not silently overridden)", async () => {
@@ -416,12 +417,15 @@ describe("ProductsController.list — branch scope mode", () => {
     expect(body.required).toBe("branches:access_all");
   });
 
-  it("branch mode: operator without an assigned branch is forbidden", async () => {
+  it("branch mode: operator without an assigned branch still sees the full catalog when branchId is omitted", async () => {
     process.env.INVENTORY_SCOPE_MODE = "branch";
     userCanMock.mockResolvedValue(false);
-    const { ctrl } = await buildController();
+    const { ctrl, departmentId } = await buildController();
+    await ctrl.create(makeCreateReq({ code: "P1", name: "Arroz", unit: "kg", departmentId }));
     const res = await ctrl.list(makeListReq({}, { "x-user-id": USER_ID, "x-user-branch-id": "" }));
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.total).toBe(1);
   });
 
   it("branch mode: excludes products without a branch_inventory row", async () => {
@@ -431,8 +435,11 @@ describe("ProductsController.list — branch scope mode", () => {
     const created = await ctrl.create(makeCreateReq({ code: "P1", name: "Arroz", unit: "kg", departmentId }));
     const { id: productId } = await created.json();
     productRepo.setStock(BRANCH_A, productId, 0);
+    await ctrl.create(makeCreateReq({ code: "P2", name: "Frijol", unit: "kg", departmentId }));
 
-    const res = await ctrl.list(makeListReq({}, { "x-user-id": USER_ID, "x-user-branch-id": BRANCH_A }));
+    const res = await ctrl.list(
+      makeListReq({ branchId: BRANCH_A }, { "x-user-id": USER_ID, "x-user-branch-id": BRANCH_A })
+    );
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.total).toBe(1);
@@ -451,5 +458,24 @@ describe("ProductsController.list — branch scope mode", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.total).toBe(2);
+  });
+
+  it("branch mode: explicit branchId matching own branch still filters correctly", async () => {
+    process.env.INVENTORY_SCOPE_MODE = "branch";
+    userCanMock.mockResolvedValue(false);
+    const { ctrl, departmentId, productRepo } = await buildController();
+    const created = await ctrl.create(makeCreateReq({ code: "P1", name: "Arroz", unit: "kg", departmentId }));
+    const { id: assignedId } = await created.json();
+    productRepo.setStock(BRANCH_A, assignedId, 10);
+    await ctrl.create(makeCreateReq({ code: "P2", name: "Frijol", unit: "kg", departmentId }));
+
+    const res = await ctrl.list(
+      makeListReq({ branchId: BRANCH_A }, { "x-user-id": USER_ID, "x-user-branch-id": BRANCH_A })
+    );
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.total).toBe(1);
+    expect(body.items[0].id).toBe(assignedId);
+    expect(body.items[0].stock).toBe(10);
   });
 });

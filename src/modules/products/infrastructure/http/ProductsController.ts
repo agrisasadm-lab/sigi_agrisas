@@ -159,7 +159,7 @@ export class ProductsController {
 
     let branchId = filtersParsed.data.branchId;
     let branchScoped = false;
-    if (isBranchScopedInventory()) {
+    if (isBranchScopedInventory() && filtersParsed.data.branchId) {
       const scoped = await resolveScopedBranchId(req, branchId);
       if (scoped instanceof NextResponse) return scoped;
       branchId = scoped.branchId;
