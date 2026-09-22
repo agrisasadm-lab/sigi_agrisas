@@ -80,7 +80,7 @@ describe("Sales — notificación de stock bajo al vender (integration real DB)"
     priceId = price.id;
 
     const customer = await new CreateCustomerUseCase(customerRepo).execute({
-      code: `${P}CLI1`, name: "Cliente Low Stock", rfc: "CLS010101001",
+      code: `${P}CLI1`, name: "Cliente Low Stock", rfc: "CLS010101001", branchIds: [branchId],
     });
     customerId = customer.id;
 

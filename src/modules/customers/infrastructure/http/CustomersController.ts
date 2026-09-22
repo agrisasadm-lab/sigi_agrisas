@@ -9,8 +9,11 @@ import { SoftDeleteCustomerUseCase } from "../../application/use-cases/SoftDelet
 import { CustomerNotFoundError } from "../../domain/errors/CustomerNotFoundError";
 import { CustomerCodeAlreadyInUseError } from "../../domain/errors/CustomerCodeAlreadyInUseError";
 import { CustomerRfcAlreadyInUseError } from "../../domain/errors/CustomerRfcAlreadyInUseError";
+import { CustomerBranchNotFoundError } from "../../domain/errors/CustomerBranchNotFoundError";
 import { optionalRfcSchema, taxRegimeSchema, uuidSchema } from "@/shared/infrastructure/http/validators";
 import { mapDomainError } from "@/shared/infrastructure/http/mapDomainError";
+import { AuthorizationService } from "@/modules/rbac/application/ports/AuthorizationService";
+import { resolveScopedBranchId } from "@/modules/rbac/infrastructure/http/enforceBranchScope";
 
 const CFDI_USE_REGEX = /^[A-Z]{1,2}\d{2}$/;
 const TAX_ZIP_CODE_REGEX = /^\d{5}$/;
@@ -43,6 +46,7 @@ const listQueryFiltersSchema = z.object({
     .optional()
     .transform((v) => v?.trim() || undefined)
     .pipe(z.string().min(2, "search must be at least 2 characters").optional()),
+  branchId: uuidSchema.optional(),
 });
 
 const createBodySchema = z.object({
@@ -71,6 +75,7 @@ const createBodySchema = z.object({
   initialBalance: z.number().min(0).optional(),
   creditDays: z.coerce.number().int().min(0).default(30),
   isActive: z.boolean().optional(),
+  branchIds: z.array(uuidSchema).optional(),
   ...addressFieldsSchema,
 });
 
@@ -91,6 +96,7 @@ const updateBodySchema = z
     initialBalance: z.number().min(0).optional(),
     creditDays: z.coerce.number().int().min(0).optional(),
     isActive: z.boolean().optional(),
+    branchIds: z.array(uuidSchema).optional(),
     ...addressFieldsSchema,
   })
   .refine(
@@ -110,6 +116,7 @@ const updateBodySchema = z
       d.initialBalance !== undefined ||
       d.creditDays !== undefined ||
       d.isActive !== undefined ||
+      d.branchIds !== undefined ||
       d.addressStreet !== undefined ||
       d.addressExteriorNumber !== undefined ||
       d.addressInteriorNumber !== undefined ||
@@ -127,8 +134,28 @@ export class CustomersController {
     private readonly getUseCase: GetCustomerUseCase,
     private readonly createUseCase: CreateCustomerUseCase,
     private readonly updateUseCase: UpdateCustomerUseCase,
-    private readonly softDeleteUseCase: SoftDeleteCustomerUseCase
+    private readonly softDeleteUseCase: SoftDeleteCustomerUseCase,
+    private readonly authzService: AuthorizationService
   ) {}
+
+  /**
+   * A caller without `branches:access_all` whose own branch is not among
+   * the customer's `branchIds` cannot see/modify it (403, existence not
+   * disclosed). A bypass caller always passes.
+   */
+  private async assertCustomerVisible(req: NextRequest, branchIds: string[]): Promise<NextResponse | null> {
+    const userId = req.headers.get("x-user-id") ?? "";
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const bypass = await this.authzService.userCan(userId, "branches:access_all");
+    if (bypass) return null;
+
+    const userBranchId = req.headers.get("x-user-branch-id") ?? "";
+    if (userBranchId === "" || !branchIds.includes(userBranchId)) {
+      return NextResponse.json({ error: "Forbidden", required: "branches:access_all" }, { status: 403 });
+    }
+    return null;
+  }
 
   async list(req: NextRequest): Promise<NextResponse> {
     const { searchParams } = new URL(req.url);
@@ -138,21 +165,32 @@ export class CustomersController {
     }
     const filtersParsed = listQueryFiltersSchema.safeParse({
       search: searchParams.get("search") ?? undefined,
+      branchId: searchParams.get("branchId") ?? undefined,
     });
     if (!filtersParsed.success) {
       return NextResponse.json({ error: filtersParsed.error.errors[0].message }, { status: 400 });
     }
-    const result = await this.listUseCase.execute({ ...parsed.data, ...filtersParsed.data });
+
+    const scoped = await resolveScopedBranchId(req, filtersParsed.data.branchId, this.authzService);
+    if (scoped instanceof NextResponse) return scoped;
+
+    const result = await this.listUseCase.execute({
+      ...parsed.data,
+      search: filtersParsed.data.search,
+      branchId: scoped.branchId,
+    });
     return NextResponse.json(result);
   }
 
-  async getById(_req: NextRequest, id: string): Promise<NextResponse> {
+  async getById(req: NextRequest, id: string): Promise<NextResponse> {
     const parsed = uuidParamSchema.safeParse(id);
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
     }
     try {
       const customer = await this.getUseCase.execute(parsed.data);
+      const visible = await this.assertCustomerVisible(req, customer.branchIds);
+      if (visible) return visible;
       return NextResponse.json(customer);
     } catch (err) {
       const mapped = mapDomainError(err, [[CustomerNotFoundError, 404]]);
@@ -167,13 +205,30 @@ export class CustomersController {
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
     }
+
+    const scoped = await resolveScopedBranchId(req, undefined, this.authzService);
+    if (scoped instanceof NextResponse) return scoped;
+
+    let branchIds: string[];
+    if (scoped.branchId !== undefined) {
+      // Non-bypass: forced to the caller's own branch, ignoring whatever the body sent.
+      branchIds = [scoped.branchId];
+    } else {
+      // Bypass: branchIds is a required, explicit selection.
+      if (!parsed.data.branchIds || parsed.data.branchIds.length === 0) {
+        return NextResponse.json({ error: "branchIds must contain at least one branch" }, { status: 400 });
+      }
+      branchIds = parsed.data.branchIds;
+    }
+
     try {
-      const customer = await this.createUseCase.execute(parsed.data);
+      const customer = await this.createUseCase.execute({ ...parsed.data, branchIds });
       return NextResponse.json(customer, { status: 201 });
     } catch (err) {
       const mapped = mapDomainError(err, [
         [CustomerCodeAlreadyInUseError, 409],
         [CustomerRfcAlreadyInUseError, 409],
+        [CustomerBranchNotFoundError, 400],
       ]);
       if (mapped) return mapped;
       throw err;
@@ -190,25 +245,49 @@ export class CustomersController {
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
     }
+
     try {
-      const customer = await this.updateUseCase.execute(idParsed.data, parsed.data);
+      const existing = await this.getUseCase.execute(idParsed.data);
+      const visible = await this.assertCustomerVisible(req, existing.branchIds);
+      if (visible) return visible;
+
+      const userId = req.headers.get("x-user-id") ?? "";
+      const bypass = await this.authzService.userCan(userId, "branches:access_all");
+
+      let branchIds: string[] | undefined;
+      if (!bypass) {
+        // Non-bypass: branchIds in the body is silently ignored — same treatment as `code`.
+        branchIds = undefined;
+      } else if (parsed.data.branchIds !== undefined) {
+        if (parsed.data.branchIds.length === 0) {
+          return NextResponse.json({ error: "branchIds must contain at least one branch" }, { status: 400 });
+        }
+        branchIds = parsed.data.branchIds;
+      }
+
+      const customer = await this.updateUseCase.execute(idParsed.data, { ...parsed.data, branchIds });
       return NextResponse.json(customer);
     } catch (err) {
       const mapped = mapDomainError(err, [
         [CustomerNotFoundError, 404],
         [CustomerRfcAlreadyInUseError, 409],
+        [CustomerBranchNotFoundError, 400],
       ]);
       if (mapped) return mapped;
       throw err;
     }
   }
 
-  async softDelete(_req: NextRequest, id: string): Promise<NextResponse> {
+  async softDelete(req: NextRequest, id: string): Promise<NextResponse> {
     const parsed = uuidParamSchema.safeParse(id);
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
     }
     try {
+      const existing = await this.getUseCase.execute(parsed.data);
+      const visible = await this.assertCustomerVisible(req, existing.branchIds);
+      if (visible) return visible;
+
       await this.softDeleteUseCase.execute(parsed.data);
       return new NextResponse(null, { status: 204 });
     } catch (err) {

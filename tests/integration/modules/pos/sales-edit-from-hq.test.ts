@@ -87,7 +87,7 @@ describe("Sales — edición de venta completada (integration real DB)", () => {
     const price = await createPrice.execute(productId, { name: "Lista", price: 200, isDefault: true });
     priceId = price.id;
 
-    const customer = await createCustomer.execute({ code: `${P}CLI1`, name: "Cliente Edit", rfc: "CED010101001" });
+    const customer = await createCustomer.execute({ code: `${P}CLI1`, name: "Cliente Edit", rfc: "CED010101001", branchIds: [branchId] });
     customerId = customer.id;
 
     const folio = await folioRepo.create({ code: `${P}FOL1`, name: "Folio Edit", prefix: "EDIT", currentNumber: 0, scope: "POS" });

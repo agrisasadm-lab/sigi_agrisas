@@ -111,6 +111,7 @@ describe("Quotes — el ciclo de vida no toca inventario (integration real DB)",
       code: `${P}CLI1`,
       name: "Cliente Quote",
       rfc: "CQO010101001",
+      branchIds: [branchId],
     });
     customerId = customer.id;
 

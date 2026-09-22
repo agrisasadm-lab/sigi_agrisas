@@ -98,8 +98,8 @@ describe("Sales — POST /sales con quoteId (integration real DB)", () => {
       code: `${P}P1`, name: "Prod", unit: "kg", departmentId: dept.id, ivaRate: 0.16,
     })).id;
     priceId = (await createPrice.execute(productId, { name: "Lista", price: 100, isDefault: true })).id;
-    customerId = (await createCustomer.execute({ code: `${P}C1`, name: "Cli 1", rfc: "CLI010101001" })).id;
-    otherCustomerId = (await createCustomer.execute({ code: `${P}C2`, name: "Cli 2", rfc: "CLI020202002" })).id;
+    customerId = (await createCustomer.execute({ code: `${P}C1`, name: "Cli 1", rfc: "CLI010101001", branchIds: [branchId, otherBranchId] })).id;
+    otherCustomerId = (await createCustomer.execute({ code: `${P}C2`, name: "Cli 2", rfc: "CLI020202002", branchIds: [branchId] })).id;
     quoteFolioId = (await folioRepo.create({ code: `${P}COT`, name: "Cot", prefix: "COT", currentNumber: 0, scope: "POS" })).id;
     fiscalFolioId = (await folioRepo.create({ code: `${P}FAC`, name: "Fac", prefix: "FAC", currentNumber: 0, scope: "POS" })).id;
     pmId = (await pmRepo.create({ code: `${P}PM`, name: "Efectivo" })).id;
