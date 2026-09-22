@@ -11,7 +11,11 @@ import { CustomerCodeAlreadyInUseError } from "../../domain/errors/CustomerCodeA
 import { CustomerRfcAlreadyInUseError } from "../../domain/errors/CustomerRfcAlreadyInUseError";
 import { isPrismaUniqueError, isPrismaNotFoundError } from "@/shared/infrastructure/prisma/errors";
 
-function toCustomer(row: PrismaCustomer): Customer {
+const WITH_BRANCHES = { branches: { select: { branchId: true } } } satisfies Prisma.CustomerInclude;
+
+type CustomerRow = PrismaCustomer & { branches: { branchId: string }[] };
+
+function toCustomer(row: CustomerRow): Customer {
   return Customer.create({
     id: row.id,
     code: row.code,
@@ -39,6 +43,7 @@ function toCustomer(row: PrismaCustomer): Customer {
     addressState: row.addressState,
     addressCountry: row.addressCountry,
     addressZipCode: row.addressZipCode,
+    branchIds: row.branches.map((b) => b.branchId),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   });
@@ -48,7 +53,7 @@ function toCustomer(row: PrismaCustomer): Customer {
 export class PrismaCustomerRepository implements CustomerRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async findAll({ page, pageSize, includeInactive, search }: FindAllOptions): Promise<{ items: Customer[]; total: number }> {
+  async findAll({ page, pageSize, includeInactive, search, branchId }: FindAllOptions): Promise<{ items: Customer[]; total: number }> {
     const skip = (page - 1) * pageSize;
 
     const where: Prisma.CustomerWhereInput = {
@@ -62,10 +67,11 @@ export class PrismaCustomerRepository implements CustomerRepository {
             ],
           }
         : {}),
+      ...(branchId ? { branches: { some: { branchId } } } : {}),
     };
 
     const [rows, total] = await Promise.all([
-      this.prisma.customer.findMany({ where, skip, take: pageSize, orderBy: { createdAt: "desc" } }),
+      this.prisma.customer.findMany({ where, skip, take: pageSize, orderBy: { createdAt: "desc" }, include: WITH_BRANCHES }),
       this.prisma.customer.count({ where }),
     ]);
 
@@ -73,7 +79,7 @@ export class PrismaCustomerRepository implements CustomerRepository {
   }
 
   async findById(id: string): Promise<Customer | null> {
-    const row = await this.prisma.customer.findUnique({ where: { id } });
+    const row = await this.prisma.customer.findUnique({ where: { id }, include: WITH_BRANCHES });
     return row ? toCustomer(row) : null;
   }
 
@@ -106,7 +112,9 @@ export class PrismaCustomerRepository implements CustomerRepository {
           addressState: data.addressState ?? null,
           addressCountry: data.addressCountry ?? "MEX",
           addressZipCode: data.addressZipCode ?? null,
+          branches: { create: data.branchIds.map((branchId) => ({ branchId })) },
         },
+        include: WITH_BRANCHES,
       });
       return toCustomer(row);
     } catch (err) {
@@ -152,7 +160,11 @@ export class PrismaCustomerRepository implements CustomerRepository {
           ...(data.addressState !== undefined ? { addressState: data.addressState } : {}),
           ...(data.addressCountry !== undefined ? { addressCountry: data.addressCountry } : {}),
           ...(data.addressZipCode !== undefined ? { addressZipCode: data.addressZipCode } : {}),
+          ...(data.branchIds !== undefined
+            ? { branches: { deleteMany: {}, create: data.branchIds.map((branchId) => ({ branchId })) } }
+            : {}),
         },
+        include: WITH_BRANCHES,
       });
       return toCustomer(row);
     } catch (err) {

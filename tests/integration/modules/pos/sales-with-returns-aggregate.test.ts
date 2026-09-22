@@ -83,7 +83,7 @@ describe("POS — returnedQuantityBySaleItem aggregate (integration real DB)", (
     const priceA = await createPrice.execute(prodA.id, { name: "Lista", price: 50, isDefault: true });
     const priceB = await createPrice.execute(prodB.id, { name: "Lista", price: 50, isDefault: true });
     const priceC = await createPrice.execute(prodC.id, { name: "Lista", price: 50, isDefault: true });
-    const customer = await createCustomer.execute({ code: `${P}CLI1`, name: "Cliente Agg", rfc: "CAG010101001" });
+    const customer = await createCustomer.execute({ code: `${P}CLI1`, name: "Cliente Agg", rfc: "CAG010101001", branchIds: [branch.id] });
     const folio = await folioRepo.create({ code: `${P}FOL1`, name: "Folio Agg", prefix: "AG", currentNumber: 0, scope: "POS" });
     const pm = await pmRepo.create({ code: `${P}PM1`, name: "Efectivo Agg" });
     const user = await prisma.user.create({ data: { email: `${P}u@test.com`, passwordHash: "x", name: "User Agg" } });

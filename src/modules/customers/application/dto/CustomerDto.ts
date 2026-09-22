@@ -25,6 +25,7 @@ export interface CustomerDto {
   addressState: string | null;
   addressCountry: string | null;
   addressZipCode: string | null;
+  branchIds: string[];
   createdAt: string;
   updatedAt: string;
 }

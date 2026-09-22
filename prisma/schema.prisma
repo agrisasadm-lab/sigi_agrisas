@@ -195,6 +195,7 @@ model Branch {
   providerPayments      ProviderPayment[]
   productPrices         ProductPrice[]
   printerConfig         BranchPrinterConfig?
+  customers             CustomerBranch[]
 
   @@index([code])
   @@map("branches")
@@ -525,11 +526,25 @@ model Customer {
   invoices  Invoice[]
   movements InventoryMovement[]
   waybills  Waybill[]
+  branches  CustomerBranch[]
 
   @@index([code])
   @@index([rfc])
   @@index([name])
   @@map("customers")
+}
+
+model CustomerBranch {
+  customerId String   @map("customer_id")
+  branchId   String   @map("branch_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  branch   Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@id([customerId, branchId])
+  @@index([branchId])
+  @@map("customer_branches")
 }
 
 model Sale {

@@ -1,7 +1,7 @@
 ## 1. Schema y migración (dev)
 
-- [ ] 1.1 Agregar `model CustomerBranch` a `prisma/schema.prisma` (ver design.md — Decisión 1): `customerId`, `branchId`, `createdAt`, relaciones `customer`/`branch` con `onDelete: Cascade` en ambos, `@@id([customerId, branchId])`, `@@index([branchId])`, `@@map("customer_branches")`. Agregar `branches CustomerBranch[]` en `Customer` y `customers CustomerBranch[]` en `Branch`.
-- [ ] 1.2 En la migración generada, agregar el bootstrap SQL después del `CREATE TABLE`:
+- [x] 1.1 Agregar `model CustomerBranch` a `prisma/schema.prisma` (ver design.md — Decisión 1): `customerId`, `branchId`, `createdAt`, relaciones `customer`/`branch` con `onDelete: Cascade` en ambos, `@@id([customerId, branchId])`, `@@index([branchId])`, `@@map("customer_branches")`. Agregar `branches CustomerBranch[]` en `Customer` y `customers CustomerBranch[]` en `Branch`.
+- [x] 1.2 En la migración generada, agregar el bootstrap SQL después del `CREATE TABLE`:
   ```sql
   INSERT INTO customer_branches (customer_id, branch_id)
   SELECT DISTINCT customer_id, branch_id FROM sales    WHERE customer_id IS NOT NULL
@@ -17,26 +17,26 @@
   ON CONFLICT DO NOTHING;
   ```
   Verificar que `invoices.customer_id` existe (confirmar en `prisma/schema.prisma` antes de asumirlo — si el modelo de facturación usa otro nombre de columna, ajustar el SQL).
-- [ ] 1.3 `npx prisma migrate dev --name add_customer_branches` contra la DB de dev (`qzzjpyepggwautckqeex`).
-- [ ] 1.4 `npx prisma generate`.
-- [ ] 1.5 Verificación de la migración en dev: `SELECT customer_id, count(*) FROM customer_branches GROUP BY 1 HAVING count(*) = 0` debe devolver 0 filas (ningún cliente sin membresías).
+- [x] 1.3 `npx prisma migrate dev --name add_customer_branches` contra la DB de dev (`qzzjpyepggwautckqeex`).
+- [x] 1.4 `npx prisma generate`.
+- [x] 1.5 Verificación de la migración en dev: `SELECT customer_id, count(*) FROM customer_branches GROUP BY 1 HAVING count(*) = 0` debe devolver 0 filas (ningún cliente sin membresías).
 
 ## 2. Dominio y errores
 
-- [ ] 2.1 `src/modules/pos/domain/errors/CustomerNotAvailableInBranchError.ts` (nuevo) — mismo patrón que `ProductNotAvailableInBranchError` del mismo módulo.
-- [ ] 2.2 `src/modules/quotes/domain/errors/CustomerNotAvailableInBranchError.ts` (nuevo) — mismo patrón, módulo `quotes`.
-- [ ] 2.3 `src/modules/customers/domain/entities/Customer.ts`: agregar `branchIds: string[]` a las props de la entidad.
+- [x] 2.1 `src/modules/pos/domain/errors/CustomerNotAvailableInBranchError.ts` (nuevo) — mismo patrón que `ProductNotAvailableInBranchError` del mismo módulo.
+- [x] 2.2 `src/modules/quotes/domain/errors/CustomerNotAvailableInBranchError.ts` (nuevo) — mismo patrón, módulo `quotes`.
+- [x] 2.3 `src/modules/customers/domain/entities/Customer.ts`: agregar `branchIds: string[]` a las props de la entidad.
 
 ## 3. Módulo `customers` — port, DTO, use cases
 
-- [ ] 3.1 `src/modules/customers/application/ports/CustomerRepository.ts`: `FindAllOptions.branchId?: string`; `CreateCustomerData.branchIds: string[]`; `UpdateCustomerData.branchIds?: string[]`.
-- [ ] 3.2 `src/modules/customers/application/dto/CustomerDto.ts`: agregar `branchIds: string[]`; `toCustomerDto` lo mapea desde la entidad.
-- [ ] 3.3 `src/modules/customers/application/use-cases/{CreateCustomerUseCase,UpdateCustomerUseCase,ListCustomersUseCase}.ts`: pasar `branchIds`/`branchId` tal cual al repositorio (sin lógica de autorización — ya resuelta en el controller, ver design.md — Decisión 4).
-- [ ] 3.4 `src/modules/customers/infrastructure/repositories/PrismaCustomerRepository.ts`:
+- [x] 3.1 `src/modules/customers/application/ports/CustomerRepository.ts`: `FindAllOptions.branchId?: string`; `CreateCustomerData.branchIds: string[]`; `UpdateCustomerData.branchIds?: string[]`.
+- [x] 3.2 `src/modules/customers/application/dto/CustomerDto.ts`: agregar `branchIds: string[]`; `toCustomerDto` lo mapea desde la entidad.
+- [x] 3.3 `src/modules/customers/application/use-cases/{CreateCustomerUseCase,UpdateCustomerUseCase,ListCustomersUseCase}.ts`: pasar `branchIds`/`branchId` tal cual al repositorio (sin lógica de autorización — ya resuelta en el controller, ver design.md — Decisión 4).
+- [x] 3.4 `src/modules/customers/infrastructure/repositories/PrismaCustomerRepository.ts`:
   - `findAll`: agregar `...(branchId ? { branches: { some: { branchId } } } : {})` al `where`; incluir `branches: { select: { branchId: true } }` en el `select`/`include` (aquí y en `findById`) para poblar `branchIds`.
   - `create`: `branches: { create: data.branchIds.map((branchId) => ({ branchId })) }`.
   - `update`: si `data.branchIds !== undefined`, `branches: { deleteMany: {}, create: data.branchIds.map((branchId) => ({ branchId })) }` (ver design.md — Decisión 5).
-- [ ] 3.5 `src/modules/customers/infrastructure/repositories/InMemoryCustomerRepository.ts`: espejo en memoria (`Map<customerId, Set<branchId>>` o campo `branchIds` en el objeto en memoria), mismas reglas de `findAll`/`create`/`update`.
+- [x] 3.5 `src/modules/customers/infrastructure/repositories/InMemoryCustomerRepository.ts`: espejo en memoria (`Map<customerId, Set<branchId>>` o campo `branchIds` en el objeto en memoria), mismas reglas de `findAll`/`create`/`update`.
 - [ ] 3.6 Tests: actualizar `tests/unit/modules/customers/application/use-cases/*.test.ts` (o el archivo consolidado existente) — `create` persiste `branchIds`, `update` reemplaza el set completo, `findAll` filtra por `branchId`.
 
 ## 4. Módulo `customers` — controller y branch scoping

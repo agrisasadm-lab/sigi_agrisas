@@ -18,6 +18,7 @@ describe("Customers use cases", () => {
 
   it("crea y lista clientes", async () => {
     await new CreateCustomerUseCase(repo).execute({
+      branchIds: ["branch-a"],
       code: "CLI_001",
       name: "Acme",
       rfc: "ACM010101AAA",
@@ -33,12 +34,14 @@ describe("Customers use cases", () => {
 
   it("rechaza código duplicado", async () => {
     await new CreateCustomerUseCase(repo).execute({
+      branchIds: ["branch-a"],
       code: "CLI_001",
       name: "A",
       rfc: "ACM010101AAA",
     });
     await expect(
       new CreateCustomerUseCase(repo).execute({
+      branchIds: ["branch-a"],
         code: "CLI_001",
         name: "B",
         rfc: "BBB010101AAA",
@@ -48,12 +51,14 @@ describe("Customers use cases", () => {
 
   it("rechaza RFC duplicado", async () => {
     await new CreateCustomerUseCase(repo).execute({
+      branchIds: ["branch-a"],
       code: "CLI_001",
       name: "A",
       rfc: "ACM010101AAA",
     });
     await expect(
       new CreateCustomerUseCase(repo).execute({
+      branchIds: ["branch-a"],
         code: "CLI_002",
         name: "B",
         rfc: "ACM010101AAA",
@@ -63,6 +68,7 @@ describe("Customers use cases", () => {
 
   it("get devuelve el cliente o lanza not found", async () => {
     const created = await new CreateCustomerUseCase(repo).execute({
+      branchIds: ["branch-a"],
       code: "CLI_001",
       name: "Acme",
       rfc: "ACM010101AAA",
@@ -76,6 +82,7 @@ describe("Customers use cases", () => {
 
   it("update no permite cambiar code (lo ignora)", async () => {
     const created = await new CreateCustomerUseCase(repo).execute({
+      branchIds: ["branch-a"],
       code: "CLI_001",
       name: "Acme",
       rfc: "ACM010101AAA",
@@ -89,6 +96,7 @@ describe("Customers use cases", () => {
 
   it("update con creditLimit nulo lo limpia", async () => {
     const created = await new CreateCustomerUseCase(repo).execute({
+      branchIds: ["branch-a"],
       code: "CLI_001",
       name: "A",
       rfc: "ACM010101AAA",
@@ -103,6 +111,7 @@ describe("Customers use cases", () => {
 
   it("crea sin creditDays y aplica default 30", async () => {
     const created = await new CreateCustomerUseCase(repo).execute({
+      branchIds: ["branch-a"],
       code: "CLI_001",
       name: "Acme",
       rfc: "ACM010101AAA",
@@ -112,6 +121,7 @@ describe("Customers use cases", () => {
 
   it("crea con creditDays custom y lo persiste", async () => {
     const created = await new CreateCustomerUseCase(repo).execute({
+      branchIds: ["branch-a"],
       code: "CLI_001",
       name: "Acme",
       rfc: "ACM010101AAA",
@@ -122,6 +132,7 @@ describe("Customers use cases", () => {
 
   it("update con creditDays como único campo persiste el nuevo valor", async () => {
     const created = await new CreateCustomerUseCase(repo).execute({
+      branchIds: ["branch-a"],
       code: "CLI_001",
       name: "Acme",
       rfc: "ACM010101AAA",
@@ -134,6 +145,7 @@ describe("Customers use cases", () => {
 
   it("crea sin dirección estructurada y aplica default addressCountry=MEX", async () => {
     const created = await new CreateCustomerUseCase(repo).execute({
+      branchIds: ["branch-a"],
       code: "CLI_001",
       name: "Acme",
       rfc: "ACM010101AAA",
@@ -145,6 +157,7 @@ describe("Customers use cases", () => {
 
   it("crea con dirección estructurada completa y la persiste", async () => {
     const created = await new CreateCustomerUseCase(repo).execute({
+      branchIds: ["branch-a"],
       code: "CLI_001",
       name: "Acme",
       rfc: "ACM010101AAA",
@@ -169,6 +182,7 @@ describe("Customers use cases", () => {
 
   it("update de un solo campo de dirección no toca los demás", async () => {
     const created = await new CreateCustomerUseCase(repo).execute({
+      branchIds: ["branch-a"],
       code: "CLI_001",
       name: "Acme",
       rfc: "ACM010101AAA",
@@ -184,6 +198,7 @@ describe("Customers use cases", () => {
 
   it("update con addressStreet nulo lo limpia", async () => {
     const created = await new CreateCustomerUseCase(repo).execute({
+      branchIds: ["branch-a"],
       code: "CLI_001",
       name: "Acme",
       rfc: "ACM010101AAA",
@@ -196,14 +211,17 @@ describe("Customers use cases", () => {
   });
 
   it("crea sin rfc y permite un segundo cliente sin rfc", async () => {
-    const a = await new CreateCustomerUseCase(repo).execute({ code: "CLI_001", name: "A" });
-    const b = await new CreateCustomerUseCase(repo).execute({ code: "CLI_002", name: "B" });
+    const a = await new CreateCustomerUseCase(repo).execute({
+      branchIds: ["branch-a"], code: "CLI_001", name: "A" });
+    const b = await new CreateCustomerUseCase(repo).execute({
+      branchIds: ["branch-a"], code: "CLI_002", name: "B" });
     expect(a.rfc).toBeNull();
     expect(b.rfc).toBeNull();
   });
 
   it("crea con initialBalance y fija currentBalance al mismo valor", async () => {
     const created = await new CreateCustomerUseCase(repo).execute({
+      branchIds: ["branch-a"],
       code: "CLI_001",
       name: "Acme",
       rfc: "ACM010101AAA",
@@ -215,6 +233,7 @@ describe("Customers use cases", () => {
 
   it("update de initialBalance ajusta currentBalance por delta, sin resetearlo", async () => {
     const created = await new CreateCustomerUseCase(repo).execute({
+      branchIds: ["branch-a"],
       code: "CLI_001",
       name: "Acme",
       rfc: "ACM010101AAA",
@@ -233,6 +252,7 @@ describe("Customers use cases", () => {
 
   it("softDelete marca isActive=false", async () => {
     const created = await new CreateCustomerUseCase(repo).execute({
+      branchIds: ["branch-a"],
       code: "CLI_001",
       name: "A",
       rfc: "ACM010101AAA",
