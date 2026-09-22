@@ -174,7 +174,7 @@ export function PosPage() {
     // Dosification lines are not supported by the quotes module (out of scope) — only offered in sale mode.
     const [prices, dosifications] = await Promise.all([
       getProductPrices(product.id, selectedBranchId || null),
-      isQuoteMode ? Promise.resolve([]) : getProductDosifications(product.id),
+      isQuoteMode ? Promise.resolve([]) : getProductDosifications(product.id, selectedBranchId || null),
     ]);
     setPricePicker({ product, prices, dosifications, isLoading: false });
     setModal("pricePicker");

@@ -59,8 +59,8 @@ async function pullPricesFor(productId: string, branchId: string): Promise<Produ
   return Array.isArray(json) ? json : json.items ?? [];
 }
 
-async function pullDosificationsFor(productId: string): Promise<DosificationOptionDto[]> {
-  const res = await authFetch(`/api/v1/admin/products/${productId}/dosifications`);
+async function pullDosificationsFor(productId: string, branchId: string): Promise<DosificationOptionDto[]> {
+  const res = await authFetch(`/api/v1/admin/products/${productId}/dosifications?branchId=${branchId}`);
   if (!res.ok) throw new NetworkError();
   const json = (await res.json()) as { items: DosificationOptionDto[] } | DosificationOptionDto[];
   return Array.isArray(json) ? json : json.items ?? [];
@@ -106,7 +106,7 @@ export async function refreshCatalogCache(ownerBranchId: string): Promise<void> 
   ]);
 
   const pricesByProduct = await mapWithConcurrency(products, PRICE_FETCH_CONCURRENCY, (p) => pullPricesFor(p.id, ownerBranchId));
-  const dosificationsByProduct = await mapWithConcurrency(products, PRICE_FETCH_CONCURRENCY, (p) => pullDosificationsFor(p.id));
+  const dosificationsByProduct = await mapWithConcurrency(products, PRICE_FETCH_CONCURRENCY, (p) => pullDosificationsFor(p.id, ownerBranchId));
 
   const db = await getOfflineDb();
 
@@ -123,6 +123,11 @@ export async function refreshCatalogCache(ownerBranchId: string): Promise<void> 
   await productsTx.done;
 
   const pricesTx = db.transaction("catalogPrices", "readwrite");
+  // Purga los precios de cualquier otra sucursal: tras un cambio de sucursal la
+  // caché no debe seguir sirviendo los precios de la anterior.
+  for (const stale of await pricesTx.store.getAll()) {
+    if (stale.ownerBranchId !== ownerBranchId) await pricesTx.store.delete(stale.id);
+  }
   for (const prices of pricesByProduct) {
     for (const price of prices) await pricesTx.store.put({ ...price, ownerBranchId });
   }
@@ -172,9 +177,14 @@ export async function searchProductsFromCache(
   return filtered.map((p) => ({ ...p, stock: stockByProduct.get(p.id) ?? p.stock ?? null }));
 }
 
-export async function getProductPricesFromCache(productId: string): Promise<ProductPriceDto[]> {
+export async function getProductPricesFromCache(
+  productId: string,
+  ownerBranchId?: string,
+): Promise<ProductPriceDto[]> {
   const db = await getOfflineDb();
-  return db.getAllFromIndex("catalogPrices", "productId", productId);
+  const rows = await db.getAllFromIndex("catalogPrices", "productId", productId);
+  // Segunda barrera además de la purga del refresh: nunca servir precios de otra sucursal.
+  return ownerBranchId ? rows.filter((r) => r.ownerBranchId === ownerBranchId) : rows;
 }
 
 export async function getProductDosificationsFromCache(productId: string): Promise<DosificationOptionDto[]> {

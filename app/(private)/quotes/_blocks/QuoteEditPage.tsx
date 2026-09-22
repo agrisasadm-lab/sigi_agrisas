@@ -78,6 +78,7 @@ export function QuoteEditPage({ id }: QuoteEditPageProps) {
           : item.unitPrice;
         const fakePrice: ProductPriceDto = {
           id: item.productPriceId,
+          branchId: quote.branchId,
           name: item.priceNameSnapshot,
           price: basePrice,
           minQuantity: 1,

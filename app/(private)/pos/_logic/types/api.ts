@@ -1,6 +1,8 @@
 export interface ProductPriceDto {
   id: string;
   productId: string;
+  /** Sucursal dueña del precio. Todo precio pertenece a exactamente una. */
+  branchId: string;
   name: string;
   price: number;
   minQuantity: number;

@@ -11,8 +11,8 @@ export interface ProductLookup {
 export interface ProductPriceLookup {
   id: string;
   productId: string;
-  /** null = precio base (aplica a toda sucursal); no-null = override exclusivo de esa sucursal. */
-  branchId: string | null;
+  /** Sucursal dueña del precio. Todo precio pertenece a exactamente una. */
+  branchId: string;
   name: string;
   price: number;
   discountPct: number | null;
@@ -60,7 +60,7 @@ export interface PaymentMethodLookup {
 export interface PosLookupService {
   getProduct(id: string): Promise<ProductLookup | null>;
   getProductPrice(id: string): Promise<ProductPriceLookup | null>;
-  /** `branchId` resuelve el default de esa sucursal primero, cayendo al default global si no existe. */
+  /** Resuelve el default de esa sucursal. Sin fallback a ninguna otra. */
   getDosificationForSale(id: string, branchId: string): Promise<DosificationLookup | null>;
   getCustomer(id: string): Promise<CustomerLookup | null>;
   getBranch(id: string): Promise<BranchLookup | null>;
@@ -70,6 +70,4 @@ export interface PosLookupService {
   getDosificationSurchargePct(): Promise<number>;
   /** true si existe fila de branch_inventory para (branchId, productId) — asignación del producto a la sucursal (modo INVENTORY_SCOPE_MODE=branch). */
   isProductAvailableInBranch(productId: string, branchId: string): Promise<boolean>;
-  /** true si el producto tiene al menos un ProductPrice con branchId = esa sucursal — gate para rechazar la selección del precio base cuando la sucursal ya tiene su propio precio. */
-  hasBranchPriceOverrides(productId: string, branchId: string): Promise<boolean>;
 }

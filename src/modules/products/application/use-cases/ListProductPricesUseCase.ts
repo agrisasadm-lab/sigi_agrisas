@@ -13,20 +13,16 @@ export class ListProductPricesUseCase {
     private readonly branchRepo?: BranchActiveLookup
   ) {}
 
-  async execute(productId: string, branchId?: string): Promise<ListProductPricesResponse> {
+  /** `branchId` es obligatorio: cada precio pertenece a una sucursal y no hay herencia. */
+  async execute(productId: string, branchId: string): Promise<ListProductPricesResponse> {
     const [exists, branch] = await Promise.all([
       this.productRepo.exists(productId),
-      branchId && this.branchRepo ? this.branchRepo.findById(branchId) : Promise.resolve(null),
+      this.branchRepo ? this.branchRepo.findById(branchId) : Promise.resolve(null),
     ]);
     if (!exists) throw new ProductNotFoundError(productId);
+    if (this.branchRepo && !branch) throw new ProductPriceBranchNotFoundError(branchId);
 
-    if (branchId) {
-      if (!branch) throw new ProductPriceBranchNotFoundError(branchId);
-      const prices = await this.priceRepo.findEffectiveForBranch(productId, branchId);
-      return { items: prices.map(toProductPriceDto) };
-    }
-
-    const prices = await this.priceRepo.findByProductId(productId);
+    const prices = await this.priceRepo.findByProductAndBranch(productId, branchId);
     return { items: prices.map(toProductPriceDto) };
   }
 }

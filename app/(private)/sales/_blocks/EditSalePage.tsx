@@ -92,7 +92,7 @@ export function EditSalePage({ id }: EditSalePageProps) {
   async function handleAddProduct(product: ProductDto) {
     const [prices, dosifications] = await Promise.all([
       getProductPrices(product.id, sale?.branchId ?? null),
-      getProductDosifications(product.id),
+      getProductDosifications(product.id, sale?.branchId ?? null),
     ]);
     setPricePicker({ product, prices, dosifications, isLoading: false });
   }
@@ -115,7 +115,7 @@ export function EditSalePage({ id }: EditSalePageProps) {
     setPricePicker({ product: fakeProduct, prices: [], dosifications: [], isLoading: true, lineId });
     Promise.all([
       getProductPrices(line.productId, sale?.branchId ?? null),
-      getProductDosifications(line.productId),
+      getProductDosifications(line.productId, sale?.branchId ?? null),
     ]).then(([prices, dosifications]) => {
       setPricePicker((prev) => prev ? { ...prev, prices, dosifications, isLoading: false } : null);
     });

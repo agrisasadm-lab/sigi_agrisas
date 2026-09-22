@@ -393,7 +393,7 @@ model SatUnitOfMeasure {
 model ProductPrice {
   id          String   @id @default(uuid())
   productId   String   @map("product_id")
-  branchId    String?  @map("branch_id")
+  branchId    String   @map("branch_id")
   name        String   @db.VarChar(60)
   price       Decimal  @db.Decimal(12, 4)
   minQuantity Int      @default(1) @map("min_quantity")
@@ -403,7 +403,7 @@ model ProductPrice {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   product     Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
-  branch      Branch?      @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  branch      Branch       @relation(fields: [branchId], references: [id], onDelete: Cascade)
   saleItems   SaleItem[]
   quoteItems  QuoteItem[]
   returnItems ReturnItem[]

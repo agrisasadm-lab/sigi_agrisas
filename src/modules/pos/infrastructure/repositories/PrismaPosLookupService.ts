@@ -61,17 +61,11 @@ export class PrismaPosLookupService implements PosLookupService {
       select: { id: true, productId: true, name: true, numParts: true, isActive: true },
     });
     if (!row) return null;
-    // Prefiere el default propio de la sucursal; cae al default global si no existe.
-    const branchDefaultPrice = await this.prisma.productPrice.findFirst({
+    // El default de la sucursal de la operación. Sin fallback a ninguna otra.
+    const defaultPrice = await this.prisma.productPrice.findFirst({
       where: { productId: row.productId, branchId, isDefault: true },
       select: { price: true },
     });
-    const defaultPrice =
-      branchDefaultPrice ??
-      (await this.prisma.productPrice.findFirst({
-        where: { productId: row.productId, branchId: null, isDefault: true },
-        select: { price: true },
-      }));
     return {
       id: row.id,
       productId: row.productId,
@@ -128,10 +122,5 @@ export class PrismaPosLookupService implements PosLookupService {
       select: { productId: true },
     });
     return row !== null;
-  }
-
-  async hasBranchPriceOverrides(productId: string, branchId: string): Promise<boolean> {
-    const count = await this.prisma.productPrice.count({ where: { productId, branchId } });
-    return count > 0;
   }
 }

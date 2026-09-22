@@ -94,10 +94,7 @@ export class EditCompletedSaleUseCase {
         const price = await this.lookups.getProductPrice(item.productPriceId!);
         if (!price) throw new InactiveResourceError("Product price not found");
         if (price.productId !== item.productId) throw new ProductPriceMismatchError();
-        if (price.branchId != null && price.branchId !== existing.sale.branchId) {
-          throw new ProductPriceNotAvailableForBranchError();
-        }
-        if (price.branchId == null && (await this.lookups.hasBranchPriceOverrides(item.productId, existing.sale.branchId))) {
+        if (price.branchId !== existing.sale.branchId) {
           throw new ProductPriceNotAvailableForBranchError();
         }
 

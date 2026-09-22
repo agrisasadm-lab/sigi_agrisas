@@ -10,6 +10,7 @@ import { DuplicateDosificationNameError } from "../../domain/errors/DuplicateDos
 
 const productIdSchema = z.string().uuid("Invalid product ID format");
 const dosificationIdSchema = z.string().uuid("Invalid dosification ID format");
+const branchIdSchema = z.string().uuid("Invalid branchId");
 
 const createBodySchema = z.object({
   name: z.string().min(1).max(60),
@@ -27,6 +28,15 @@ const updateBodySchema = z
     message: "At least one field must be provided",
   });
 
+/** `branchId` del querystring — obligatorio: el precio default que alimenta `computedUnitPrice` es por sucursal. */
+function parseBranchId(req: NextRequest): { branchId: string } | NextResponse {
+  const raw = req.nextUrl.searchParams.get("branchId");
+  if (!raw) return NextResponse.json({ error: "branchId is required" }, { status: 400 });
+  const parsed = branchIdSchema.safeParse(raw);
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
+  return { branchId: parsed.data };
+}
+
 export class ProductDosificationsController {
   constructor(
     private readonly listUseCase: ListProductDosificationsUseCase,
@@ -35,13 +45,15 @@ export class ProductDosificationsController {
     private readonly softDeleteUseCase: SoftDeleteProductDosificationUseCase
   ) {}
 
-  async list(_req: NextRequest, productId: string): Promise<NextResponse> {
+  async list(req: NextRequest, productId: string): Promise<NextResponse> {
     const parsed = productIdSchema.safeParse(productId);
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
     }
+    const branch = parseBranchId(req);
+    if (branch instanceof NextResponse) return branch;
     try {
-      const result = await this.listUseCase.execute(parsed.data);
+      const result = await this.listUseCase.execute(parsed.data, branch.branchId);
       return NextResponse.json(result);
     } catch (err) {
       if (err instanceof ProductNotFoundError) return NextResponse.json({ error: err.message }, { status: 404 });
@@ -59,8 +71,10 @@ export class ProductDosificationsController {
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
     }
+    const branch = parseBranchId(req);
+    if (branch instanceof NextResponse) return branch;
     try {
-      const dosification = await this.createUseCase.execute(idParsed.data, parsed.data);
+      const dosification = await this.createUseCase.execute(idParsed.data, branch.branchId, parsed.data);
       return NextResponse.json(dosification, { status: 201 });
     } catch (err) {
       if (err instanceof ProductNotFoundError) return NextResponse.json({ error: err.message }, { status: 404 });
@@ -83,8 +97,10 @@ export class ProductDosificationsController {
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
     }
+    const branch = parseBranchId(req);
+    if (branch instanceof NextResponse) return branch;
     try {
-      const dosification = await this.updateUseCase.execute(pidParsed.data, dosParsed.data, parsed.data);
+      const dosification = await this.updateUseCase.execute(pidParsed.data, dosParsed.data, branch.branchId, parsed.data);
       return NextResponse.json(dosification);
     } catch (err) {
       if (err instanceof ProductDosificationNotFoundError) return NextResponse.json({ error: err.message }, { status: 404 });

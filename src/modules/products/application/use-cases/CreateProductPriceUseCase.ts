@@ -23,11 +23,9 @@ export class CreateProductPriceUseCase {
     const product = await this.productRepo.findById(productId);
     if (!product) throw new ProductNotFoundError(productId);
 
-    const branchId = req.branchId ?? null;
-    if (branchId !== null) {
-      const branch = this.branchRepo ? await this.branchRepo.findById(branchId) : null;
-      if (!branch || !branch.isActive) throw new ProductPriceInvalidBranchError(branchId);
-    }
+    const branchId = req.branchId;
+    const branch = this.branchRepo ? await this.branchRepo.findById(branchId) : null;
+    if (!branch || !branch.isActive) throw new ProductPriceInvalidBranchError(branchId);
 
     const isDefault = req.isDefault ?? false;
     if (isDefault) {

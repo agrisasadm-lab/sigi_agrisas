@@ -92,10 +92,7 @@ export class CreateQuoteUseCase {
 
       if (!price) throw new InactiveResourceError("Product price not found");
       if (price.productId !== item.productId) throw new ProductPriceMismatchError();
-      if (price.branchId != null && price.branchId !== req.branchId) {
-        throw new ProductPriceNotAvailableForBranchError();
-      }
-      if (price.branchId == null && (await this.lookups.hasBranchPriceOverrides(item.productId, req.branchId))) {
+      if (price.branchId !== req.branchId) {
         throw new ProductPriceNotAvailableForBranchError();
       }
 
