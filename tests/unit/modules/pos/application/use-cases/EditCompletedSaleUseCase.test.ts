@@ -6,6 +6,7 @@ import { SaleNotFoundError } from "@/modules/pos/domain/errors/SaleNotFoundError
 import { CancelledSaleNotEditableError } from "@/modules/pos/domain/errors/CancelledSaleNotEditableError";
 import { EmptySaleError } from "@/modules/pos/domain/errors/EmptySaleError";
 import { ProductPriceMismatchError } from "@/modules/pos/domain/errors/ProductPriceMismatchError";
+import { ProductPriceNotAvailableForBranchError } from "@/modules/pos/domain/errors/ProductPriceNotAvailableForBranchError";
 import { SaleHasActivePaymentsError } from "@/modules/payments/domain/errors/SaleHasActivePaymentsError";
 import { ReturnedTotalSaleNotEditableError } from "@/modules/pos/domain/errors/ReturnedTotalSaleNotEditableError";
 
@@ -73,6 +74,7 @@ function makeLookups(overrides?: Partial<PosLookupService>): PosLookupService {
     }),
     getDosificationSurchargePct: jest.fn().mockResolvedValue(7),
     isProductAvailableInBranch: jest.fn().mockResolvedValue(true),
+    hasBranchPriceOverrides: jest.fn().mockResolvedValue(false),
     ...overrides,
   };
 }
@@ -236,6 +238,21 @@ describe("EditCompletedSaleUseCase", () => {
       const result = await new EditCompletedSaleUseCase(makeRepo("completed"), lookups).execute("sale-1", baseReq);
       expect(result.dto.status).toBe("edited");
       expect(lookups.isProductAvailableInBranch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("override de precio por sucursal", () => {
+    it("rechaza el precio base cuando la sucursal ya tiene su propio override para ese producto", async () => {
+      const lookups = makeLookups({ hasBranchPriceOverrides: jest.fn().mockResolvedValue(true) });
+      await expect(
+        new EditCompletedSaleUseCase(makeRepo("completed"), lookups).execute("sale-1", baseReq)
+      ).rejects.toThrow(ProductPriceNotAvailableForBranchError);
+    });
+
+    it("acepta el precio base cuando la sucursal no tiene ningún override para ese producto", async () => {
+      const lookups = makeLookups({ hasBranchPriceOverrides: jest.fn().mockResolvedValue(false) });
+      const result = await new EditCompletedSaleUseCase(makeRepo("completed"), lookups).execute("sale-1", baseReq);
+      expect(result.dto.status).toBe("edited");
     });
   });
 });

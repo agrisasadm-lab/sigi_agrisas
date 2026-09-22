@@ -129,4 +129,9 @@ export class PrismaPosLookupService implements PosLookupService {
     });
     return row !== null;
   }
+
+  async hasBranchPriceOverrides(productId: string, branchId: string): Promise<boolean> {
+    const count = await this.prisma.productPrice.count({ where: { productId, branchId } });
+    return count > 0;
+  }
 }

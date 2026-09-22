@@ -95,6 +95,9 @@ export class CreateQuoteUseCase {
       if (price.branchId != null && price.branchId !== req.branchId) {
         throw new ProductPriceNotAvailableForBranchError();
       }
+      if (price.branchId == null && (await this.lookups.hasBranchPriceOverrides(item.productId, req.branchId))) {
+        throw new ProductPriceNotAvailableForBranchError();
+      }
 
       let unitPrice = price.price;
       if (isFractionalQuantity(item.quantity)) {

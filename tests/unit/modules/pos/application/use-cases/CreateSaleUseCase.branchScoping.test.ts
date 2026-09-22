@@ -117,6 +117,7 @@ function makeLookups(overrides?: Partial<PosLookupService>): PosLookupService {
     }),
     getDosificationSurchargePct: jest.fn().mockResolvedValue(5),
     isProductAvailableInBranch: jest.fn().mockResolvedValue(true),
+    hasBranchPriceOverrides: jest.fn().mockResolvedValue(false),
     ...overrides,
   };
 }
@@ -168,6 +169,25 @@ describe("CreateSaleUseCase — precio por sucursal", () => {
     await expect(new CreateSaleUseCase(makeRepo(), lookups).execute(baseReq, "user-1")).rejects.toThrow(
       ProductPriceNotAvailableForBranchError
     );
+  });
+
+  it("rechaza el precio base cuando la sucursal ya tiene su propio override para ese producto", async () => {
+    const lookups = makeLookups({
+      hasBranchPriceOverrides: jest.fn().mockResolvedValue(true),
+    });
+    await expect(new CreateSaleUseCase(makeRepo(), lookups).execute(baseReq, "user-1")).rejects.toThrow(
+      ProductPriceNotAvailableForBranchError
+    );
+  });
+
+  it("acepta el precio base cuando la sucursal no tiene ningún override para ese producto", async () => {
+    const repo = makeRepo();
+    const lookups = makeLookups({
+      hasBranchPriceOverrides: jest.fn().mockResolvedValue(false),
+    });
+    await new CreateSaleUseCase(repo, lookups).execute(baseReq, "user-1");
+    const call = (repo.createCompleted as jest.Mock).mock.calls[0][0] as CreateSaleData;
+    expect(call.items[0].unitPrice).toBe(100);
   });
 
   it("resuelve el default de dosificación pasando la sucursal propia de la venta", async () => {

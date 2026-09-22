@@ -41,6 +41,9 @@ function makeLookups(overrides: Partial<PosLookupService> = {}): PosLookupServic
     async isProductAvailableInBranch() {
       return true;
     },
+    async hasBranchPriceOverrides() {
+      return false;
+    },
     ...overrides,
   };
 }
@@ -76,6 +79,19 @@ describe("CreateQuoteUseCase — precio por sucursal", () => {
       ProductPriceNotAvailableForBranchError
     );
   });
+
+  it("rechaza el precio base cuando la sucursal ya tiene su propio override para ese producto", async () => {
+    const lookups = makeLookups({ hasBranchPriceOverrides: async () => true });
+    await expect(new CreateQuoteUseCase(repo, lookups).execute(baseCreateReq, USER_ID)).rejects.toThrow(
+      ProductPriceNotAvailableForBranchError
+    );
+  });
+
+  it("acepta el precio base cuando la sucursal no tiene ningún override para ese producto", async () => {
+    const lookups = makeLookups({ hasBranchPriceOverrides: async () => false });
+    const result = await new CreateQuoteUseCase(repo, lookups).execute(baseCreateReq, USER_ID);
+    expect(result.dto.items[0].unitPrice).toBe(100);
+  });
 });
 
 describe("UpdateQuoteUseCase — precio por sucursal", () => {
@@ -92,6 +108,17 @@ describe("UpdateQuoteUseCase — precio por sucursal", () => {
     const editLookups = makeLookups({
       getProductPrice: async (id) => ({ id, productId: PRODUCT_ID, branchId: HUAJUAPAN, name: "Menudeo", price: 70, discountPct: null }),
     });
+    await expect(
+      new UpdateQuoteUseCase(repo, editLookups).execute(created.dto.id, {
+        items: [{ productId: PRODUCT_ID, productPriceId: PRICE_ID, quantity: 1 }],
+      })
+    ).rejects.toThrow(ProductPriceNotAvailableForBranchError);
+  });
+
+  it("rechaza al editar items con el precio base cuando la sucursal ya tiene su propio override", async () => {
+    const lookups = makeLookups();
+    const created = await new CreateQuoteUseCase(repo, lookups).execute(baseCreateReq, USER_ID);
+    const editLookups = makeLookups({ hasBranchPriceOverrides: async () => true });
     await expect(
       new UpdateQuoteUseCase(repo, editLookups).execute(created.dto.id, {
         items: [{ productId: PRODUCT_ID, productPriceId: PRICE_ID, quantity: 1 }],

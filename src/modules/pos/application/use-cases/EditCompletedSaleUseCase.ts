@@ -97,6 +97,9 @@ export class EditCompletedSaleUseCase {
         if (price.branchId != null && price.branchId !== existing.sale.branchId) {
           throw new ProductPriceNotAvailableForBranchError();
         }
+        if (price.branchId == null && (await this.lookups.hasBranchPriceOverrides(item.productId, existing.sale.branchId))) {
+          throw new ProductPriceNotAvailableForBranchError();
+        }
 
         if (isFractionalQuantity(item.quantity)) {
           const surchargePct = await this.lookups.getDosificationSurchargePct();

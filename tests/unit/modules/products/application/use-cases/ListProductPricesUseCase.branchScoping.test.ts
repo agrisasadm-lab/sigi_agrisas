@@ -70,6 +70,25 @@ describe("ListProductPricesUseCase — precio efectivo por sucursal", () => {
     expect(result.items[0].isOverride).toBe(false);
   });
 
+  it("con branchId y override presente, excluye los demás tiers base (no los hereda por name)", async () => {
+    const productRepo = new InMemoryProductRepository();
+    const priceRepo = new InMemoryProductPriceRepository();
+    const create = new CreateProductPriceUseCase(productRepo, priceRepo, new FakeBranchLookup());
+    const { product } = await productRepo.create({ code: "P1", name: "Fertilizante", unit: "kg", departmentId: DEPT });
+
+    await create.execute(product.id, { name: "Precio Publico", price: 3666.65, isDefault: true });
+    await create.execute(product.id, { name: "Precio Subdis 10%", price: 3300 });
+    await create.execute(product.id, { name: "Precio Distri 15%", price: 3116.65 });
+    await create.execute(product.id, { name: "Precio Publico", price: 699.35, branchId: ZARIOZ });
+
+    const list = new ListProductPricesUseCase(productRepo, priceRepo, new FakeBranchLookup());
+    const result = await list.execute(product.id, ZARIOZ);
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].price).toBe(699.35);
+    expect(result.items[0].isOverride).toBe(true);
+  });
+
   it("rechaza branchId de sucursal inexistente", async () => {
     const productRepo = new InMemoryProductRepository();
     const priceRepo = new InMemoryProductPriceRepository();

@@ -52,8 +52,8 @@ async function pullProductsAndStock(branchId: string): Promise<ProductDto[]> {
   });
 }
 
-async function pullPricesFor(productId: string): Promise<ProductPriceDto[]> {
-  const res = await authFetch(`/api/v1/admin/products/${productId}/prices`);
+async function pullPricesFor(productId: string, branchId: string): Promise<ProductPriceDto[]> {
+  const res = await authFetch(`/api/v1/admin/products/${productId}/prices?branchId=${branchId}`);
   if (!res.ok) throw new NetworkError();
   const json = (await res.json()) as { items: ProductPriceDto[] } | ProductPriceDto[];
   return Array.isArray(json) ? json : json.items ?? [];
@@ -105,7 +105,7 @@ export async function refreshCatalogCache(ownerBranchId: string): Promise<void> 
     pullCustomers(),
   ]);
 
-  const pricesByProduct = await mapWithConcurrency(products, PRICE_FETCH_CONCURRENCY, (p) => pullPricesFor(p.id));
+  const pricesByProduct = await mapWithConcurrency(products, PRICE_FETCH_CONCURRENCY, (p) => pullPricesFor(p.id, ownerBranchId));
   const dosificationsByProduct = await mapWithConcurrency(products, PRICE_FETCH_CONCURRENCY, (p) => pullDosificationsFor(p.id));
 
   const db = await getOfflineDb();

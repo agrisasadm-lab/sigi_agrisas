@@ -113,6 +113,9 @@ describe("catalogCache — pull inicial", () => {
     expect(await getPaymentMethodsFromCache("b1")).toHaveLength(1);
     expect(await getFoliosFromCache("b1")).toHaveLength(1);
     expect(await searchCustomersFromCache("b1", undefined)).toHaveLength(1);
+
+    const priceCall = mockAuthFetch.mock.calls.find(([url]) => String(url).includes("/prices"));
+    expect(String(priceCall?.[0])).toContain("branchId=b1");
   });
 
   it("actualiza catalogSyncedAt tras un pull exitoso", async () => {

@@ -88,6 +88,9 @@ function makeLookups(overrides: Partial<PosLookupService> = {}): PosLookupServic
     async isProductAvailableInBranch(productId, branchId) {
       return overrides.isProductAvailableInBranch ? overrides.isProductAvailableInBranch(productId, branchId) : true;
     },
+    async hasBranchPriceOverrides(productId, branchId) {
+      return overrides.hasBranchPriceOverrides ? overrides.hasBranchPriceOverrides(productId, branchId) : false;
+    },
   };
 }
 
