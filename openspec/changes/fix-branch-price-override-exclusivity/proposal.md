@@ -1,3 +1,5 @@
+> **SUPERSEDED por `separate-branch-pricing`.** Su regla ("si la sucursal tiene >=1 override, sólo se ofrecen esos overrides") atacaba el síntoma conservando el bucket de precio global (`branch_id IS NULL`) y, con él, las lecturas sin `branchId` que devuelven listas vacías. `separate-branch-pricing` elimina el bucket global: `branch_id` pasa a `NOT NULL` y cada sucursal tiene su propio juego de precios. De este change se conservan la corrección de la caché offline (`pullPricesFor` con `branchId`) y los tests de branch scoping, reescritos contra la regla nueva.
+
 ## Historia de Usuario
 
 | # | Rol | Tarea | Motivo | Criterios de Aceptación | Criterios de Seguridad |
