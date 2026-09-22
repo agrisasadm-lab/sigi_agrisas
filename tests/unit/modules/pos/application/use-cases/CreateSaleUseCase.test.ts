@@ -100,6 +100,7 @@ function makeLookups(overrides?: Partial<PosLookupService>): PosLookupService {
     getProductPrice: jest.fn().mockResolvedValue({
       id: "pp1",
       productId: "p1",
+      branchId: "b1",
       name: "Menudeo",
       price: 100,
       discountPct: null,
@@ -111,6 +112,7 @@ function makeLookups(overrides?: Partial<PosLookupService>): PosLookupService {
     getDosificationForSale: jest.fn().mockResolvedValue({
       id: "d1",
       productId: "p1",
+      branchId: "b1",
       name: "1/4",
       numParts: 4,
       isActive: true,
@@ -165,6 +167,7 @@ describe("CreateSaleUseCase", () => {
       getProductPrice: jest.fn().mockResolvedValue({
         id: "pp1",
         productId: "pX",
+        branchId: "b1",
         name: "Otro",
         price: 100,
         discountPct: null,
@@ -318,7 +321,7 @@ describe("CreateSaleUseCase", () => {
           id: "p2", code: "P2", name: "Producto 2", ivaRate: 0.16, iepsRate: null, isActive: true,
         }),
         getProductPrice: jest.fn().mockResolvedValue({
-          id: "pp2", productId: "p2", name: "Menudeo", price: 50, discountPct: null,
+          id: "pp2", productId: "p2", branchId: "b1", name: "Menudeo", price: 50, discountPct: null,
         }),
       });
       await new CreateSaleUseCase(repo, lookups).execute(

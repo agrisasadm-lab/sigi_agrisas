@@ -45,6 +45,13 @@ import { DEFAULT_TICKET_SETTINGS } from "@/modules/settings/domain/entities/Tick
 
 const BRANCH_ID = "11111111-1111-1111-1111-111111111111";
 const OTHER_BRANCH_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+
+/**
+ * Sucursal a la que pertenece el precio que devuelve el lookup falso. Los precios
+ * viven en una sola sucursal, así que los casos que crean en OTHER_BRANCH_ID deben
+ * apuntar aquí también, o el use case rechaza la línea antes de llegar al controller.
+ */
+let priceBranchId = BRANCH_ID;
 const CUSTOMER_ID = "22222222-2222-2222-2222-222222222222";
 const FOLIO_ID = "33333333-3333-3333-3333-333333333333";
 const PRODUCT_ID = "44444444-4444-4444-4444-444444444444";
@@ -77,7 +84,7 @@ function makeLookups(overrides: Partial<PosLookupService> = {}): PosLookupServic
     async getProductPrice(id) {
       return overrides.getProductPrice
         ? overrides.getProductPrice(id)
-        : { id, productId: PRODUCT_ID, name: "Menudeo", price: 100, discountPct: null };
+        : { id, productId: PRODUCT_ID, branchId: priceBranchId, name: "Menudeo", price: 100, discountPct: null };
     },
     async getDosificationForSale(id) {
       return overrides.getDosificationForSale ? overrides.getDosificationForSale(id) : null;
@@ -163,13 +170,22 @@ const baseCreateBody = {
 const futureIso = () => new Date(Date.now() + 86400000 * 7).toISOString();
 const pastIso = () => "2020-01-01T00:00:00Z";
 
+function withPriceBranch<T>(branchId: string, fn: () => Promise<T>): Promise<T> {
+  priceBranchId = branchId;
+  return fn().finally(() => {
+    priceBranchId = BRANCH_ID;
+  });
+}
+
 async function seedQuote(
   quoteRepo: InMemoryQuoteRepository,
   controller: QuotesController,
   bodyOverrides: Partial<typeof baseCreateBody> = {}
 ) {
   quoteRepo.reset();
-  const res = await controller.create(req("POST", "/quotes", { ...baseCreateBody, ...bodyOverrides }));
+  const res = await withPriceBranch(bodyOverrides.branchId ?? BRANCH_ID, () =>
+    controller.create(req("POST", "/quotes", { ...baseCreateBody, ...bodyOverrides }))
+  );
   expect(res.status).toBe(201);
   return (await res.json()) as { id: string; branchId: string };
 }
@@ -235,7 +251,9 @@ describe("QuotesController.create", () => {
   it("201 con branchId distinto cuando el caller tiene bypass", async () => {
     const { controller, quoteRepo } = buildController({ bypass: true });
     quoteRepo.reset();
-    const res = await controller.create(req("POST", "/quotes", { ...baseCreateBody, branchId: OTHER_BRANCH_ID }));
+    const res = await withPriceBranch(OTHER_BRANCH_ID, () =>
+      controller.create(req("POST", "/quotes", { ...baseCreateBody, branchId: OTHER_BRANCH_ID }))
+    );
     expect(res.status).toBe(201);
   });
 

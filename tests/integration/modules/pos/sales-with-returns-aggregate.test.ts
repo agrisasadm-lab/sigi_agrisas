@@ -80,9 +80,9 @@ describe("POS — returnedQuantityBySaleItem aggregate (integration real DB)", (
     const prodA = await createProduct.execute({ code: `${P}A`, name: "A", unit: "kg", departmentId: dept.id, ivaRate: 0.16 });
     const prodB = await createProduct.execute({ code: `${P}B`, name: "B", unit: "kg", departmentId: dept.id, ivaRate: 0.16 });
     const prodC = await createProduct.execute({ code: `${P}C`, name: "C", unit: "kg", departmentId: dept.id, ivaRate: 0.16 });
-    const priceA = await createPrice.execute(prodA.id, { name: "Lista", price: 50, isDefault: true });
-    const priceB = await createPrice.execute(prodB.id, { name: "Lista", price: 50, isDefault: true });
-    const priceC = await createPrice.execute(prodC.id, { name: "Lista", price: 50, isDefault: true });
+    const priceA = await createPrice.execute(prodA.id, { branchId: branch.id, name: "Lista", price: 50, isDefault: true });
+    const priceB = await createPrice.execute(prodB.id, { branchId: branch.id, name: "Lista", price: 50, isDefault: true });
+    const priceC = await createPrice.execute(prodC.id, { branchId: branch.id, name: "Lista", price: 50, isDefault: true });
     const customer = await createCustomer.execute({ code: `${P}CLI1`, name: "Cliente Agg", rfc: "CAG010101001", branchIds: [branch.id] });
     const folio = await folioRepo.create({ code: `${P}FOL1`, name: "Folio Agg", prefix: "AG", currentNumber: 0, scope: "POS" });
     const pm = await pmRepo.create({ code: `${P}PM1`, name: "Efectivo Agg" });

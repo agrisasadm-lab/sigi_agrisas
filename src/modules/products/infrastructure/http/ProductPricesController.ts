@@ -17,7 +17,7 @@ const priceIdSchema = z.string().uuid("Invalid price ID format");
 const branchIdQuerySchema = z.string().uuid("Invalid branchId");
 
 const createBodySchema = z.object({
-  branchId: z.string().uuid("Invalid branchId"),
+  branchId: z.string({ required_error: "branchId is required" }).uuid("Invalid branchId"),
   name: z.string().min(1).max(60),
   price: z.number().min(0, "price must be >= 0"),
   minQuantity: z.number().int().min(1, "minQuantity must be >= 1").optional(),

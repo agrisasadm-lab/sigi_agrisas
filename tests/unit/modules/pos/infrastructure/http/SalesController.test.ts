@@ -339,7 +339,7 @@ describe("SalesController — quoteId link (task 10.8)", () => {
         id: VALID_UUID, code: "P1", name: "Producto", ivaRate: 0.16, iepsRate: null, isActive: true,
       }),
       getProductPrice: jest.fn().mockResolvedValue({
-        id: PRICE_ID, productId: VALID_UUID, name: "Lista", price: 100, discountPct: null,
+        id: PRICE_ID, productId: VALID_UUID, branchId: SALE_BRANCH, name: "Lista", price: 100, discountPct: null,
       }),
       getCustomer: jest.fn().mockResolvedValue({ id: SALE_CUSTOMER, isActive: true }),
       getBranch: jest.fn().mockResolvedValue({ id: SALE_BRANCH, isActive: true }),
@@ -529,7 +529,7 @@ describe("SalesController — Flujo de crédito y abonos activos", () => {
         id: VALID_UUID, code: "P1", name: "Prod", ivaRate: 0, iepsRate: null, isActive: true,
       }),
       getProductPrice: jest.fn().mockResolvedValue({
-        id: PRICE_ID_CR, productId: VALID_UUID, name: "Lista", price: 100, discountPct: null,
+        id: PRICE_ID_CR, productId: VALID_UUID, branchId: SALE_BRANCH_CR, name: "Lista", price: 100, discountPct: null,
       }),
       getCustomer: jest.fn().mockResolvedValue({
         id: SALE_CUSTOMER_CR, isActive: true,

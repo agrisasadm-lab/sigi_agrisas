@@ -173,7 +173,7 @@ describe("Inventory — branch scoping (integration real DB)", () => {
       });
       product2Id = product2.id;
 
-      const price2 = await createPrice.execute(product2Id, { name: "Lista", price: 50, isDefault: true });
+      const price2 = await createPrice.execute(product2Id, { branchId: branchAId, name: "Lista", price: 50, isDefault: true });
       price2Id = price2.id;
 
       const folio = await folioRepo.create({

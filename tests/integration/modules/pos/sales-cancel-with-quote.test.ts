@@ -94,7 +94,7 @@ describe("Sales — cancelar venta nacida de conversión (integration real DB)",
     productId = (await createProduct.execute({
       code: `${P}P`, name: "Prod Cancel", unit: "kg", departmentId: dept.id, ivaRate: 0.16,
     })).id;
-    priceId = (await createPrice.execute(productId, { name: "Lista", price: 100, isDefault: true })).id;
+    priceId = (await createPrice.execute(productId, { branchId, name: "Lista", price: 100, isDefault: true })).id;
     customerId = (await createCustomer.execute({ code: `${P}C`, name: "Cliente Cancel", rfc: "CCA010101001", branchIds: [branchId] })).id;
     quoteFolioId = (await folioRepo.create({ code: `${P}COT`, name: "Cot", prefix: "COT", currentNumber: 0, scope: "POS" })).id;
     fiscalFolioId = (await folioRepo.create({ code: `${P}FAC`, name: "Fac", prefix: "FAC", currentNumber: 0, scope: "POS" })).id;

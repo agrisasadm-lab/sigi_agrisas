@@ -61,7 +61,7 @@ function makeLookups(overrides: Partial<PosLookupService> = {}): PosLookupServic
     },
     async getProductPrice(id) {
       if (overrides.getProductPrice) return overrides.getProductPrice(id);
-      return { id, productId: PRODUCT_ID, name: "Menudeo", price: 100, discountPct: null };
+      return { id, productId: PRODUCT_ID, branchId: BRANCH_ID, name: "Menudeo", price: 100, discountPct: null };
     },
     async getDosificationForSale(id) {
       if (overrides.getDosificationForSale) return overrides.getDosificationForSale(id);
@@ -124,7 +124,7 @@ describe("CreateQuoteUseCase", () => {
       repo,
       makeLookups({
         async getProductPrice(id) {
-          return { id, productId: "OTRO_PRODUCT", name: "X", price: 10, discountPct: null };
+          return { id, productId: "OTRO_PRODUCT", branchId: BRANCH_ID, name: "X", price: 10, discountPct: null };
         },
       })
     );
@@ -529,7 +529,7 @@ describe("ConvertQuoteToSaleUseCase", () => {
       sRepo,
       makeLookups({
         async getProductPrice(idArg) {
-          return { id: idArg, productId: PRODUCT_ID, name: "Menudeo", price: 999, discountPct: null };
+          return { id: idArg, productId: PRODUCT_ID, branchId: BRANCH_ID, name: "Menudeo", price: 999, discountPct: null };
         },
       })
     );

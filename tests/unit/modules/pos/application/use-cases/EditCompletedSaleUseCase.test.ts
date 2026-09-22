@@ -56,6 +56,7 @@ function makeLookups(overrides?: Partial<PosLookupService>): PosLookupService {
     getProductPrice: jest.fn().mockResolvedValue({
       id: "pp1",
       productId: "p1",
+      branchId: "b1",
       name: "Menudeo",
       price: 100,
       discountPct: null,
@@ -67,6 +68,7 @@ function makeLookups(overrides?: Partial<PosLookupService>): PosLookupService {
     getDosificationForSale: jest.fn().mockResolvedValue({
       id: "d1",
       productId: "p1",
+      branchId: "b1",
       name: "1/4",
       numParts: 4,
       isActive: true,
@@ -74,7 +76,6 @@ function makeLookups(overrides?: Partial<PosLookupService>): PosLookupService {
     }),
     getDosificationSurchargePct: jest.fn().mockResolvedValue(7),
     isProductAvailableInBranch: jest.fn().mockResolvedValue(true),
-    hasBranchPriceOverrides: jest.fn().mockResolvedValue(false),
     ...overrides,
   };
 }
@@ -148,6 +149,7 @@ describe("EditCompletedSaleUseCase", () => {
       getProductPrice: jest.fn().mockResolvedValue({
         id: "pp1",
         productId: "pX",
+        branchId: "b1",
         name: "Otro",
         price: 100,
         discountPct: null,
@@ -241,17 +243,25 @@ describe("EditCompletedSaleUseCase", () => {
     });
   });
 
-  describe("override de precio por sucursal", () => {
-    it("rechaza el precio base cuando la sucursal ya tiene su propio override para ese producto", async () => {
-      const lookups = makeLookups({ hasBranchPriceOverrides: jest.fn().mockResolvedValue(true) });
+  describe("precio por sucursal", () => {
+    it("rechaza un precio que pertenece a otra sucursal", async () => {
+      const lookups = makeLookups({
+        getProductPrice: jest.fn().mockResolvedValue({
+          id: "pp1",
+          productId: "p1",
+          branchId: "otra-sucursal",
+          name: "Menudeo",
+          price: 100,
+          discountPct: null,
+        }),
+      });
       await expect(
         new EditCompletedSaleUseCase(makeRepo("completed"), lookups).execute("sale-1", baseReq)
       ).rejects.toThrow(ProductPriceNotAvailableForBranchError);
     });
 
-    it("acepta el precio base cuando la sucursal no tiene ningún override para ese producto", async () => {
-      const lookups = makeLookups({ hasBranchPriceOverrides: jest.fn().mockResolvedValue(false) });
-      const result = await new EditCompletedSaleUseCase(makeRepo("completed"), lookups).execute("sale-1", baseReq);
+    it("acepta el precio de la sucursal de la venta", async () => {
+      const result = await new EditCompletedSaleUseCase(makeRepo("completed"), makeLookups()).execute("sale-1", baseReq);
       expect(result.dto.status).toBe("edited");
     });
   });

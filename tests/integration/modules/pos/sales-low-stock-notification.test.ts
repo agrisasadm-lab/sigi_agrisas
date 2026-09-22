@@ -75,7 +75,7 @@ describe("Sales — notificación de stock bajo al vender (integration real DB)"
     productId = product.id;
 
     const price = await new CreateProductPriceUseCase(productRepo, priceRepo).execute(productId, {
-      name: "Lista", price: 50, isDefault: true,
+      branchId, name: "Lista", price: 50, isDefault: true,
     });
     priceId = price.id;
 

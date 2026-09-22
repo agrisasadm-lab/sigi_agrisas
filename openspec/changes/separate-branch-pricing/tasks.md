@@ -43,11 +43,11 @@
 
 ## 6. Tests
 
-- [ ] 6.1 Reescribir los tests de scoping heredados del change superseded (`CreateSaleUseCase.branchScoping`, `EditCompletedSaleUseCase`, `CreateQuoteUseCase.branchScoping`, `ListProductPricesUseCase.branchScoping`) contra la regla nueva: precio de otra sucursal → 400; precio de la sucursal propia → acepta; ya no existe el caso "precio base".
-- [ ] 6.2 Tests de `ProductPricesController`: `branchId` ausente en list → 400; ausente en create → 400; update de un precio de otra sucursal sin bypass → 403.
-- [ ] 6.3 Tests de dosificaciones: `computedUnitPrice` se resuelve con el default de la sucursal pedida; sin default en esa sucursal → `null` + `requiresDefaultPrice: true` aunque otra sucursal sí tenga default.
-- [ ] 6.4 Test de integración de la migración: partiendo de un producto con precio base y asignación en dos sucursales, tras migrar cada sucursal tiene su copia con el mismo valor y no queda ningún `branch_id` nulo.
-- [ ] 6.5 Tests de UI: `ProductPricesTab` sin opción "todas", arranque por sucursal, estado vacío sin sucursal; `catalogCache` manda `branchId`.
+- [x] 6.1 Reescribir los tests de scoping heredados del change superseded (`CreateSaleUseCase.branchScoping`, `EditCompletedSaleUseCase`, `CreateQuoteUseCase.branchScoping`, `ListProductPricesUseCase.branchScoping`) contra la regla nueva: precio de otra sucursal → 400; precio de la sucursal propia → acepta; ya no existe el caso "precio base".
+- [x] 6.2 Tests de `ProductPricesController`: `branchId` ausente en list → 400; ausente en create → 400; update de un precio de otra sucursal sin bypass → 403.
+- [x] 6.3 Tests de dosificaciones: `computedUnitPrice` se resuelve con el default de la sucursal pedida; sin default en esa sucursal → `null` + `requiresDefaultPrice: true` aunque otra sucursal sí tenga default.
+- [x] 6.4 Test de integración de la migración: partiendo de un producto con precio base y asignación en dos sucursales, tras migrar cada sucursal tiene su copia con el mismo valor y no queda ningún `branch_id` nulo.
+- [x] 6.5 Tests de UI: `ProductPricesTab` sin opción "todas", arranque por sucursal, estado vacío sin sucursal; `catalogCache` manda `branchId`.
 
 ## 7. Verificación
 

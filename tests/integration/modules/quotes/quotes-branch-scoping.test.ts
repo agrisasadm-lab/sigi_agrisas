@@ -141,7 +141,8 @@ describe("Quotes — branch scoping a nivel controller (integration real DB)", (
   let customerId: string;
   let creatorId: string;
   let productId: string;
-  let priceId: string;
+  let priceAId: string;
+  let priceBId: string;
   let quoteFolioId: string;
   let pmId: string;
   let fiscalFolioId: string;
@@ -156,7 +157,8 @@ describe("Quotes — branch scoping a nivel controller (integration real DB)", (
     productId = (await createProduct.execute({
       code: `${P}P`, name: "Prod", unit: "kg", departmentId: dept.id, ivaRate: 0.16,
     })).id;
-    priceId = (await createPrice.execute(productId, { name: "Lista", price: 100, isDefault: true })).id;
+    priceAId = (await createPrice.execute(productId, { branchId: branchAId, name: "Lista", price: 100, isDefault: true })).id;
+    priceBId = (await createPrice.execute(productId, { branchId: branchBId, name: "Lista", price: 100, isDefault: true })).id;
     customerId = (await createCustomer.execute({ code: `${P}C`, name: "Cliente Scope", rfc: "CSP010101001", branchIds: [branchAId, branchBId] })).id;
     quoteFolioId = (await folioRepo.create({ code: `${P}COT`, name: "Cot", prefix: "COT", currentNumber: 0, scope: "POS" })).id;
     fiscalFolioId = (await folioRepo.create({ code: `${P}FAC`, name: "Fac", prefix: "FAC", currentNumber: 0, scope: "POS" })).id;
@@ -171,14 +173,14 @@ describe("Quotes — branch scoping a nivel controller (integration real DB)", (
     const a = await adminCtl.create(
       req("POST", "/quotes", {
         branchId: branchAId, customerId, folioId: quoteFolioId,
-        items: [{ productId, productPriceId: priceId, quantity: 1 }],
+        items: [{ productId, productPriceId: priceAId, quantity: 1 }],
       }, adminHeaders)
     );
     quoteInAId = (await a.json()).id;
     const b = await adminCtl.create(
       req("POST", "/quotes", {
         branchId: branchBId, customerId, folioId: quoteFolioId,
-        items: [{ productId, productPriceId: priceId, quantity: 1 }],
+        items: [{ productId, productPriceId: priceBId, quantity: 1 }],
       }, adminHeaders)
     );
     quoteInBId = (await b.json()).id;

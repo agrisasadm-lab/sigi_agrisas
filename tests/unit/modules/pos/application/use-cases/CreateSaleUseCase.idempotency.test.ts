@@ -15,6 +15,7 @@ function makeLookups(): PosLookupService {
     getProductPrice: jest.fn().mockResolvedValue({
       id: "pp1",
       productId: "p1",
+      branchId: "b1",
       name: "Menudeo",
       price: 100,
       discountPct: null,

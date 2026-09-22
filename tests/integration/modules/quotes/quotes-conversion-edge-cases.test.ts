@@ -101,7 +101,7 @@ describe("Quotes — edge cases del ciclo de vida (integration real DB)", () => 
       code: `${P}P1`, name: "Prod Edge", unit: "kg", departmentId: dept.id, ivaRate: 0.16,
     });
     productId = product.id;
-    const price = await createPrice.execute(productId, { name: "Lista", price: 100, isDefault: true });
+    const price = await createPrice.execute(productId, { branchId: branchId, name: "Lista", price: 100, isDefault: true });
     priceId = price.id;
     const customer = await createCustomer.execute({ code: `${P}C1`, name: "Cliente Edge", rfc: "CED010101002", branchIds: [branchId] });
     customerId = customer.id;

@@ -101,6 +101,7 @@ describe("Quotes — el ciclo de vida no toca inventario (integration real DB)",
     productId = product.id;
 
     const price = await createPrice.execute(productId, {
+      branchId: branchId,
       name: "Lista",
       price: 50,
       isDefault: true,

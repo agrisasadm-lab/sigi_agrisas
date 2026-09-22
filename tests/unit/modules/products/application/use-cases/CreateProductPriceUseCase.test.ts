@@ -6,6 +6,7 @@ import { DuplicatePriceNameError } from "@/modules/products/domain/errors/Duplic
 import { DuplicateDefaultPriceError } from "@/modules/products/domain/errors/DuplicateDefaultPriceError";
 
 const DEPT = "11111111-1111-1111-1111-111111111111";
+const BRANCH = "22222222-2222-2222-2222-222222222222";
 
 describe("CreateProductPriceUseCase", () => {
   let productRepo: InMemoryProductRepository;
@@ -24,27 +25,27 @@ describe("CreateProductPriceUseCase", () => {
   });
 
   it("creates a non-default price", async () => {
-    const result = await useCase.execute(productId, { name: "Mayoreo", price: 10.5, minQuantity: 10 });
+    const result = await useCase.execute(productId, { branchId: BRANCH, name: "Mayoreo", price: 10.5, minQuantity: 10 });
     expect(result.name).toBe("Mayoreo");
     expect(result.minQuantity).toBe(10);
     expect(result.isDefault).toBe(false);
   });
 
   it("creates the first default price", async () => {
-    const result = await useCase.execute(productId, { name: "Menudeo", price: 12, isDefault: true });
+    const result = await useCase.execute(productId, { branchId: BRANCH, name: "Menudeo", price: 12, isDefault: true });
     expect(result.isDefault).toBe(true);
   });
 
   it("rejects a second default price", async () => {
-    await useCase.execute(productId, { name: "Menudeo", price: 12, isDefault: true });
+    await useCase.execute(productId, { branchId: BRANCH, name: "Menudeo", price: 12, isDefault: true });
     await expect(
-      useCase.execute(productId, { name: "Otro", price: 14, isDefault: true })
+      useCase.execute(productId, { branchId: BRANCH, name: "Otro", price: 14, isDefault: true })
     ).rejects.toThrow(DuplicateDefaultPriceError);
   });
 
   it("rejects a duplicate price name", async () => {
-    await useCase.execute(productId, { name: "Menudeo", price: 12 });
-    await expect(useCase.execute(productId, { name: "Menudeo", price: 13 })).rejects.toThrow(DuplicatePriceNameError);
+    await useCase.execute(productId, { branchId: BRANCH, name: "Menudeo", price: 12 });
+    await expect(useCase.execute(productId, { branchId: BRANCH, name: "Menudeo", price: 13 })).rejects.toThrow(DuplicatePriceNameError);
   });
 
   it("throws ProductNotFoundError when the product does not exist", async () => {
