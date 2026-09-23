@@ -96,8 +96,9 @@ describe("Sales — cancelar venta nacida de conversión (integration real DB)",
     })).id;
     priceId = (await createPrice.execute(productId, { branchId, name: "Lista", price: 100, isDefault: true })).id;
     customerId = (await createCustomer.execute({ code: `${P}C`, name: "Cliente Cancel", rfc: "CCA010101001", branchIds: [branchId] })).id;
-    quoteFolioId = (await folioRepo.create({ code: `${P}COT`, name: "Cot", prefix: "COT", currentNumber: 0, scope: "POS" })).id;
-    fiscalFolioId = (await folioRepo.create({ code: `${P}FAC`, name: "Fac", prefix: "FAC", currentNumber: 0, scope: "POS" })).id;
+    // Prefijos ÚNICOS por archivo — ver comentario equivalente en quotes-branch-scoping.test.ts.
+    quoteFolioId = (await folioRepo.create({ code: `${P}COT`, name: "Cot", prefix: "SCQ-", currentNumber: 0, scope: "POS" })).id;
+    fiscalFolioId = (await folioRepo.create({ code: `${P}FAC`, name: "Fac", prefix: "SCF-", currentNumber: 0, scope: "POS" })).id;
     pmId = (await pmRepo.create({ code: `${P}PM`, name: "Efectivo" })).id;
     creatorId = (await prisma.user.create({
       data: { email: `${P}u@test.com`, passwordHash: "x", name: "Op" },

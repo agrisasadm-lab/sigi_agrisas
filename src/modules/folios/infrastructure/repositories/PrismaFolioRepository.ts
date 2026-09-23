@@ -110,15 +110,19 @@ export class PrismaFolioRepository implements FolioRepository {
     return { branchCode: branch.code, counters: new Map(rows.map((r) => [r.folioId, r.currentNumber])) };
   }
 
-  async findAuditSequence(folioId: string, branchId?: string, likePattern?: string): Promise<AuditSequenceRaw[]> {
+  async findAuditSequence(folioId: string, branchId?: string, likePattern?: string, legacyOnlyRegex?: string): Promise<AuditSequenceRaw[]> {
     type RawRow = { num: unknown; doc_type: string; doc_id: string; status: string; issued_at: Date };
     // Filtro branch-scoped opcional: aplica SÓLO cuando el caller resolvió un
     // patrón (folio branch-scoped + branchId) — ver AuditFolioSequenceUseCase.
-    // Sin él, comportamiento histórico sin cambio (audita el global/legacy).
+    // Sin `branchId`, si el folio ES branch-scoped, `legacyOnlyRegex` excluye los
+    // documentos con formato nuevo (branch-suffixed) para no mezclar series —
+    // sin él (folio no branch-scoped), comportamiento histórico sin cambio.
     const branchFilter =
       branchId && likePattern
         ? Prisma.sql`AND branch_id = ${branchId} AND folio_code LIKE ${likePattern} ESCAPE '\\'`
-        : Prisma.empty;
+        : legacyOnlyRegex
+          ? Prisma.sql`AND folio_code ~ ${legacyOnlyRegex}`
+          : Prisma.empty;
     const rows = await this.prisma.$queryRaw<RawRow[]>`
       SELECT folio_number AS num, 'sale' AS doc_type, id AS doc_id, status, created_at AS issued_at
       FROM sales
@@ -147,12 +151,14 @@ export class PrismaFolioRepository implements FolioRepository {
     }));
   }
 
-  async getAuditCounts(folioId: string, branchId?: string, likePattern?: string): Promise<AuditCounts> {
+  async getAuditCounts(folioId: string, branchId?: string, likePattern?: string, legacyOnlyRegex?: string): Promise<AuditCounts> {
     type CountRow = { with_number: unknown; without_number: unknown };
     const branchFilter =
       branchId && likePattern
         ? Prisma.sql`AND branch_id = ${branchId} AND folio_code LIKE ${likePattern} ESCAPE '\\'`
-        : Prisma.empty;
+        : legacyOnlyRegex
+          ? Prisma.sql`AND folio_code ~ ${legacyOnlyRegex}`
+          : Prisma.empty;
     const [row] = await this.prisma.$queryRaw<CountRow[]>`
       SELECT
         COUNT(*) FILTER (WHERE folio_number IS NOT NULL)::int AS with_number,

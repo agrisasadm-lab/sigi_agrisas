@@ -50,8 +50,8 @@ The `quoteId` does NOT constrain whether the sale is cash or credit — the `pay
 2. Load `paymentMethod.isCredit` (via `include` or join) so the downstream branching is consistent within the transaction.
 3. If `quoteId` is non-null: validate per the rules above; failure → HTTP 400.
 4. For each item:
-   - If `productPriceId` is present: load the `Product` and `ProductPrice`; verify `productPrice.productId === item.productId` (else `ProductPriceMismatchError` → HTTP 400), that the price belongs to a product whose `isActive = true` (else HTTP 400), and that `productPrice.branchId === null OR productPrice.branchId === branchId` — the price is either a global base price or an override belonging to the sale's own branch (else `ProductPriceNotAvailableForBranchError` → HTTP 400 `{"error": "Product price does not belong to this branch"}`; the error message SHALL NOT disclose the price or the other branch it belongs to). If `item.quantity` is NOT an integer (`quantity % 1 !== 0`), resolve the currently configured `dosificationSurchargePct` from `settings-api` (default `5.0` when unconfigured) and compute `unitPrice = price.price * (1 + surchargePct / 100)`; if `item.quantity` IS an integer, `unitPrice = price.price` unchanged (no surcharge). This surcharge applies uniformly to every product — there is no per-product or per-department opt-out.
-   - If `dosificationId` is present instead: load the `Product` and `ProductDosification`; verify `dosification.productId === item.productId` (else HTTP 400) and `dosification.isActive = true` (else HTTP 400); load the product's default `ProductPrice` for the sale's `branchId` — the branch's own override marked `isDefault=true` if one exists, otherwise the global default (`branchId: null`, `isDefault=true`) — if neither exists → HTTP 400 `{"error": "Dosification requires a default price"}`; resolve the currently configured `dosificationSurchargePct` from `settings-api` (default `5.0` when unconfigured); compute `unitPrice = DosificationPriceCalculator.computeUnitPrice(defaultPrice.price, dosification.numParts, surchargePct)`. This is the ONLY surcharge applied to dosification lines — the fractional-quantity surcharge above SHALL NOT additionally apply here, regardless of whether `quantity` is itself fractional, to avoid double-charging the configured percentage on the same line.
+   - If `productPriceId` is present: load the `Product` and `ProductPrice`; verify `productPrice.productId === item.productId` (else `ProductPriceMismatchError` → HTTP 400), that the price belongs to a product whose `isActive = true` (else HTTP 400), and that `productPrice.branchId === branchId` — every `ProductPrice` belongs to exactly one branch, there is no shared base price or inheritance (see `products-api` — "List product prices", `separate-branch-pricing`) — else `ProductPriceNotAvailableForBranchError` → HTTP 400 `{"error": "Product price does not belong to this branch"}`; the error message SHALL NOT disclose the price or the other branch it belongs to. If `item.quantity` is NOT an integer (`quantity % 1 !== 0`), resolve the currently configured `dosificationSurchargePct` from `settings-api` (default `5.0` when unconfigured) and compute `unitPrice = price.price * (1 + surchargePct / 100)`; if `item.quantity` IS an integer, `unitPrice = price.price` unchanged (no surcharge). This surcharge applies uniformly to every product — there is no per-product or per-department opt-out.
+   - If `dosificationId` is present instead: load the `Product` and `ProductDosification`; verify `dosification.productId === item.productId` (else HTTP 400) and `dosification.isActive = true` (else HTTP 400); load the product's default `ProductPrice` for the sale's `branchId` (`branch_id = <branchId> AND is_default = true`) — if none exists → HTTP 400 `{"error": "Dosification requires a default price"}` (no fallback to another branch's default); resolve the currently configured `dosificationSurchargePct` from `settings-api` (default `5.0` when unconfigured); compute `unitPrice = DosificationPriceCalculator.computeUnitPrice(defaultPrice.price, dosification.numParts, surchargePct)`. This is the ONLY surcharge applied to dosification lines — the fractional-quantity surcharge above SHALL NOT additionally apply here, regardless of whether `quantity` is itself fractional, to avoid double-charging the configured percentage on the same line.
    - `quantity > 0` (else HTTP 400) for either case. The system MAY skip enforcement of `minQuantity` in v1 (documented, applies only to price-based lines).
 5. Snapshot `productCodeSnapshot = product.code`, `productNameSnapshot = product.name`; for price-based lines: `priceNameSnapshot = price.name`, `unitPrice` per step 4 above (recharged when `quantity` is fractional, else `price.price` unchanged), `discountPct = price.discountPct`; for dosification lines: `priceNameSnapshot = dosification.name`, `unitPrice` per above, `discountPct = null`, `dosificationId = dosification.id`, `numPartsSnapshot = dosification.numParts`. Both kinds set `ivaRate = product.ivaRate`, `iepsRate = product.iepsRate`. This server-computed snapshot is authoritative even for offline-originated sales — a `clientRequestId`-bearing request carries only IDs/quantities, never client-computed snapshot values, so catalog drift between offline creation and sync time is always resolved in favor of the server's live catalog. The snapshot does NOT record which branch's price (base or override) was used — only the resolved `unitPrice` value.
 6. Compute totals using `SaleTotalsCalculator` (domain service) — unchanged by dosification lines or by the fractional-quantity surcharge (operates on `quantity * unitPrice`, agnostic to what `quantity` represents or how `unitPrice` was resolved).
@@ -72,7 +72,7 @@ Returns HTTP 201 with the `SaleDetailDto` (including items, `quoteId`, `paidAmou
 
 #### Scenario: Successful cash sale
 - **WHEN** an `operator` with `x-user-branch-id: B1` and `sales:create` sends a valid body for branch B1 with 2 items, selecting a `paymentMethod` whose `isCredit=false` (no `quoteId`)
-- **THEN** the system returns HTTP 201 with the `SaleDetailDto` (`quoteId: null`, `isCredit: false`, `paidAmount: total`, `paymentStatus: 'paid'`, `creditLimitExceeded: false`), `branch_inventory.quantity` decremented by each item's quantity, and `folios.current_number` incremented by 1
+- **THEN** the system returns HTTP 201 with the `SaleDetailDto` (`quoteId: null`, `isCredit: false`, `paidAmount: total`, `paymentStatus: 'paid'`, `creditLimitExceeded: false`), `branch_inventory.quantity` decremented by each item's quantity, and — since the selected folio's `code` is branch-scoped (`TK`/`TC`/`COT`) — the `(folioId, B1)` row in `folio_branch_counters` incremented by 1; `folios.current_number` is untouched (only non-branch-scoped folios use that counter, see `admin-folios` — "Branch-scoped numbering for sales/quotes/purchases folios")
 - **AND** `customer.currentBalance` is NOT modified
 
 #### Scenario: Successful credit sale via CREDITO payment method
@@ -211,23 +211,19 @@ Returns HTTP 201 with the `SaleDetailDto` (including items, `quoteId`, `paidAmou
 - **WHEN** a sale issued before this capability exists with `folioCode = "TK-000038"` (the old global-counter format)
 - **THEN** that sale's `folioCode` is never altered by this change, and no new sale is ever assigned that same `folioCode` again (the new per-branch format `TK-<BRANCH>-NNNNNN` cannot collide with it)
 
-#### Scenario: Sale uses the branch's own override price
+#### Scenario: Sale uses the price of its own branch
 - **WHEN** the body's `branchId` is ZARIOZ and an item's `productPriceId` references a `ProductPrice` whose `branchId = ZARIOZ`
-- **THEN** the system returns HTTP 201 and `unitPrice` on that line is resolved from the ZARIOZ override, not from the product's global base price
+- **THEN** the system returns HTTP 201 and `unitPrice` on that line is resolved from that ZARIOZ-owned price
 
-#### Scenario: Sale uses the global base price when the branch has no override
-- **WHEN** the body's `branchId` is HUAJUAPAN and an item's `productPriceId` references a `ProductPrice` whose `branchId = null` (base)
-- **THEN** the system returns HTTP 201 and `unitPrice` on that line is resolved from the base price, exactly as before this change
-
-#### Scenario: Sale rejects a price override belonging to another branch
+#### Scenario: Sale rejects a price belonging to another branch
 - **WHEN** the body's `branchId` is HUAJUAPAN but an item's `productPriceId` references a `ProductPrice` whose `branchId = ZARIOZ`
 - **THEN** the system returns HTTP 400 `{"error": "Product price does not belong to this branch"}` and the transaction does not commit; the response body does not include the ZARIOZ price value
 
-#### Scenario: Dosification default price resolves the branch's own override first
-- **WHEN** the body's `branchId` is ZARIOZ, the item has `dosificationId` referencing a dosification whose product has BOTH a global default `ProductPrice` (base, `price=100`) AND a ZARIOZ-scoped override marked `isDefault=true` (`price=80`)
-- **THEN** the dosification's `basePrice` used for `computeUnitPrice` is `80` (the ZARIOZ default), not the global `100`
+#### Scenario: Dosification default price is resolved strictly from the sale's own branch
+- **WHEN** the body's `branchId` is ZARIOZ, the item has `dosificationId` referencing a dosification whose product has a ZARIOZ-owned `ProductPrice` marked `isDefault=true` (`price=80`) and a separate HUAJUAPAN-owned default (`price=100`)
+- **THEN** the dosification's `basePrice` used for `computeUnitPrice` is `80` (ZARIOZ's own default) — the HUAJUAPAN default is never considered
 
-#### Scenario: Dosification default price falls back to the global default
-- **WHEN** the body's `branchId` is HUAJUAPAN, the item has `dosificationId` referencing a dosification whose product has a global default `ProductPrice` and no HUAJUAPAN-scoped override
-- **THEN** the dosification's `basePrice` is resolved from the global default, exactly as before this change
+#### Scenario: Dosification without a default price in the sale's branch is rejected
+- **WHEN** the body's `branchId` is HUAJUAPAN, the item has `dosificationId` referencing a dosification whose product has a default `ProductPrice` in ZARIOZ but none in HUAJUAPAN
+- **THEN** the system returns HTTP 400 `{"error": "Dosification requires a default price"}` — the ZARIOZ default is never used as a fallback
 

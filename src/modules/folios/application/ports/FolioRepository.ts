@@ -45,8 +45,8 @@ export interface FolioRepository {
   create(data: CreateFolioData): Promise<Folio>;
   update(id: string, data: UpdateFolioData): Promise<Folio>;
   softDelete(id: string): Promise<void>;
-  findAuditSequence(folioId: string, branchId?: string, likePattern?: string): Promise<AuditSequenceRaw[]>;
-  getAuditCounts(folioId: string, branchId?: string, likePattern?: string): Promise<AuditCounts>;
+  findAuditSequence(folioId: string, branchId?: string, likePattern?: string, legacyOnlyRegex?: string): Promise<AuditSequenceRaw[]>;
+  getAuditCounts(folioId: string, branchId?: string, likePattern?: string, legacyOnlyRegex?: string): Promise<AuditCounts>;
   /** `null` si `branchId` no corresponde a ninguna sucursal. */
   findBranchCounters(folioIds: string[], branchId: string): Promise<BranchCountersResult | null>;
 }

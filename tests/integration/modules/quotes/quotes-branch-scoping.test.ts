@@ -160,8 +160,13 @@ describe("Quotes — branch scoping a nivel controller (integration real DB)", (
     priceAId = (await createPrice.execute(productId, { branchId: branchAId, name: "Lista", price: 100, isDefault: true })).id;
     priceBId = (await createPrice.execute(productId, { branchId: branchBId, name: "Lista", price: 100, isDefault: true })).id;
     customerId = (await createCustomer.execute({ code: `${P}C`, name: "Cliente Scope", rfc: "CSP010101001", branchIds: [branchAId, branchBId] })).id;
-    quoteFolioId = (await folioRepo.create({ code: `${P}COT`, name: "Cot", prefix: "COT", currentNumber: 0, scope: "POS" })).id;
-    fiscalFolioId = (await folioRepo.create({ code: `${P}FAC`, name: "Fac", prefix: "FAC", currentNumber: 0, scope: "POS" })).id;
+    // Prefijos ÚNICOS por archivo (no "COT"/"FAC" genéricos): allocateBranchFolio ahora
+    // sólo trata como branch-scoped los códigos EXACTOS {TK,TC,COT,CP} — un folio de
+    // prueba con code prefijado (${P}COT) cae al contador global legacy, cuyo folioCode
+    // depende sólo de `prefix`+número (no del folioId ni de P), así que reutilizar un
+    // prefix genérico entre archivos de test colisiona contra el UNIQUE(folio_code).
+    quoteFolioId = (await folioRepo.create({ code: `${P}COT`, name: "Cot", prefix: "QBS-", currentNumber: 0, scope: "POS" })).id;
+    fiscalFolioId = (await folioRepo.create({ code: `${P}FAC`, name: "Fac", prefix: "QBF-", currentNumber: 0, scope: "POS" })).id;
     pmId = (await pmRepo.create({ code: `${P}PM`, name: "Efectivo" })).id;
     creatorId = (await prisma.user.create({
       data: { email: `${P}u@test.com`, passwordHash: "x", name: "Op" },

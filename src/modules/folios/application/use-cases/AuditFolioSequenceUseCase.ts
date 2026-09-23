@@ -3,17 +3,20 @@ import { FolioAuditResultDto, AuditSequenceItemDto } from "@/modules/folios/appl
 import { FolioNotFoundError } from "@/modules/folios/domain/errors/FolioNotFoundError";
 import { FolioBranchNotFoundError } from "@/modules/folios/domain/errors/FolioBranchNotFoundError";
 import { isBranchScopedFolioCode } from "@/shared/domain/folios/branchScopedFolioCodes";
-import { branchFolioCodeLikePattern } from "@/shared/domain/folios/formatBranchFolioCode";
+import { branchFolioCodeLikePattern, legacyFolioCodeRegex } from "@/shared/domain/folios/formatBranchFolioCode";
 
 export class AuditFolioSequenceUseCase {
   constructor(private readonly repo: FolioRepository) {}
 
   /**
-   * Sin `branchId` (o si el folio no es branch-scoped): comportamiento sin cambio,
-   * audita el histórico completo contra `folio.currentNumber`. Con `branchId` en un
-   * folio branch-scoped: audita únicamente la serie de esa sucursal — `currentNumber`
-   * se resuelve de `folio_branch_counters` (0 si aún no hay fila) y la secuencia se
-   * filtra por `branch_id` + el patrón de `folioCode` de esa sucursal.
+   * Sin `branchId`: si el folio NO es branch-scoped, comportamiento sin cambio
+   * (audita el histórico completo contra `folio.currentNumber`). Si el folio SÍ
+   * es branch-scoped, audita sólo la serie legacy — se excluyen los documentos
+   * con formato nuevo (branch-suffixed) vía `legacyFolioCodeRegex`, para no
+   * mezclar series con `folio_number` que colisiona entre sucursales.
+   * Con `branchId` en un folio branch-scoped: audita únicamente la serie de esa
+   * sucursal — `currentNumber` se resuelve de `folio_branch_counters` (0 si aún
+   * no hay fila) y la secuencia se filtra por `branch_id` + el patrón de esa sucursal.
    */
   async execute(folioId: string, branchId?: string): Promise<FolioAuditResultDto> {
     const folio = await this.repo.findById(folioId);
@@ -22,19 +25,23 @@ export class AuditFolioSequenceUseCase {
     let currentNumber = folio.currentNumber;
     let branchCode: string | null = null;
     let likePattern: string | undefined;
+    let legacyOnlyRegex: string | undefined;
 
-    const scoped = branchId && isBranchScopedFolioCode(folio.code);
+    const branchScopedFolio = isBranchScopedFolioCode(folio.code);
+    const scoped = branchId && branchScopedFolio;
     if (scoped) {
       const branchCounters = await this.repo.findBranchCounters([folioId], branchId!);
       if (!branchCounters) throw new FolioBranchNotFoundError(branchId!);
       branchCode = branchCounters.branchCode;
       currentNumber = branchCounters.counters.get(folioId) ?? 0;
       likePattern = branchFolioCodeLikePattern(folio.prefix, folio.code, branchCode);
+    } else if (branchScopedFolio) {
+      legacyOnlyRegex = legacyFolioCodeRegex(folio.prefix, folio.code);
     }
 
     const [rawRows, counts] = await Promise.all([
-      this.repo.findAuditSequence(folioId, scoped ? branchId : undefined, likePattern),
-      this.repo.getAuditCounts(folioId, scoped ? branchId : undefined, likePattern),
+      this.repo.findAuditSequence(folioId, scoped ? branchId : undefined, likePattern, legacyOnlyRegex),
+      this.repo.getAuditCounts(folioId, scoped ? branchId : undefined, likePattern, legacyOnlyRegex),
     ]);
 
     const truncated = counts.withFolioNumber > 10000;

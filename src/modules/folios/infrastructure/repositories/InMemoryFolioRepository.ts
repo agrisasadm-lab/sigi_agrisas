@@ -12,10 +12,40 @@ import { FolioNotFoundError } from "@/modules/folios/domain/errors/FolioNotFound
 import { FolioCodeAlreadyInUseError } from "@/modules/folios/domain/errors/FolioCodeAlreadyInUseError";
 import { AuditSequenceRaw } from "@/modules/folios/application/dto/FolioAuditDto";
 
+export interface SeededAuditDoc {
+  folioId: string;
+  branchId: string | null;
+  folioCode: string;
+  folioNumber: number | null;
+  docType: AuditSequenceRaw["doc_type"];
+  docId: string;
+  status: string;
+  issuedAt: Date;
+}
+
+/** Traduce un patrón SQL `LIKE ... ESCAPE '\\'` (ver `branchFolioCodeLikePattern`) a RegExp equivalente. */
+function sqlLikeToRegExp(pattern: string): RegExp {
+  let re = "^";
+  for (let i = 0; i < pattern.length; i++) {
+    const ch = pattern[i];
+    if (ch === "\\" && i + 1 < pattern.length) {
+      re += pattern[++i].replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    } else if (ch === "%") {
+      re += ".*";
+    } else if (ch === "_") {
+      re += ".";
+    } else {
+      re += ch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+  }
+  return new RegExp(re + "$");
+}
+
 export class InMemoryFolioRepository implements FolioRepository {
   private store: Map<string, Folio> = new Map();
   private branches: Map<string, string> = new Map(); // branchId -> code
   private branchCounters: Map<string, number> = new Map(); // `${folioId}|${branchId}` -> currentNumber
+  private auditDocs: SeededAuditDoc[] = [];
 
   seed(folios: Folio[]): void {
     for (const f of folios) this.store.set(f.id, f);
@@ -27,6 +57,24 @@ export class InMemoryFolioRepository implements FolioRepository {
 
   seedBranchCounter(folioId: string, branchId: string, currentNumber: number): void {
     this.branchCounters.set(`${folioId}|${branchId}`, currentNumber);
+  }
+
+  /** Simula filas de sales/quotes/purchases/customer_payments para pruebas de auditoría. */
+  seedAuditDocs(docs: SeededAuditDoc[]): void {
+    this.auditDocs.push(...docs);
+  }
+
+  private matchingAuditDocs(folioId: string, branchId?: string, likePattern?: string, legacyOnlyRegex?: string): SeededAuditDoc[] {
+    return this.auditDocs.filter((d) => {
+      if (d.folioId !== folioId) return false;
+      if (branchId && likePattern) {
+        return d.branchId === branchId && sqlLikeToRegExp(likePattern).test(d.folioCode);
+      }
+      if (legacyOnlyRegex) {
+        return new RegExp(legacyOnlyRegex).test(d.folioCode);
+      }
+      return true;
+    });
   }
 
   async findAll({ page, pageSize, includeInactive, scope }: FindAllFoliosOptions): Promise<{ items: Folio[]; total: number }> {
@@ -76,12 +124,20 @@ export class InMemoryFolioRepository implements FolioRepository {
     return updated;
   }
 
-  async findAuditSequence(_folioId: string, _branchId?: string, _likePattern?: string): Promise<AuditSequenceRaw[]> {
-    return [];
+  async findAuditSequence(folioId: string, branchId?: string, likePattern?: string, legacyOnlyRegex?: string): Promise<AuditSequenceRaw[]> {
+    return this.matchingAuditDocs(folioId, branchId, likePattern, legacyOnlyRegex)
+      .filter((d) => d.folioNumber !== null)
+      .map((d) => ({ num: d.folioNumber as number, doc_type: d.docType, doc_id: d.docId, status: d.status, issued_at: d.issuedAt }))
+      .sort((a, b) => a.num - b.num)
+      .slice(0, 10001);
   }
 
-  async getAuditCounts(_folioId: string, _branchId?: string, _likePattern?: string): Promise<AuditCounts> {
-    return { withFolioNumber: 0, withoutFolioNumber: 0 };
+  async getAuditCounts(folioId: string, branchId?: string, likePattern?: string, legacyOnlyRegex?: string): Promise<AuditCounts> {
+    const matched = this.matchingAuditDocs(folioId, branchId, likePattern, legacyOnlyRegex);
+    return {
+      withFolioNumber: matched.filter((d) => d.folioNumber !== null).length,
+      withoutFolioNumber: matched.filter((d) => d.folioNumber === null).length,
+    };
   }
 
   async findBranchCounters(folioIds: string[], branchId: string): Promise<BranchCountersResult | null> {

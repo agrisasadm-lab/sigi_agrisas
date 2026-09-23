@@ -116,10 +116,15 @@ describe("Quotes — el ciclo de vida no toca inventario (integration real DB)",
     });
     customerId = customer.id;
 
+    // Prefijos ÚNICOS por archivo (no "COT"/"FAC" genéricos): allocateBranchFolio ahora
+    // sólo trata como branch-scoped los códigos EXACTOS {TK,TC,COT,CP} — un folio de
+    // prueba con code prefijado (${P}COT) cae al contador global legacy, cuyo folioCode
+    // depende sólo de `prefix`+número (no del folioId ni de P), así que reutilizar un
+    // prefix genérico entre archivos de test colisiona contra el UNIQUE(folio_code).
     const cotFolio = await folioRepo.create({
       code: `${P}COT`,
       name: "Folio Cotización",
-      prefix: "COT",
+      prefix: "QNI-",
       currentNumber: 0,
       scope: "POS",
     });
@@ -128,7 +133,7 @@ describe("Quotes — el ciclo de vida no toca inventario (integration real DB)",
     const fiscalFolio = await folioRepo.create({
       code: `${P}FAC`,
       name: "Folio Fiscal",
-      prefix: "FAC",
+      prefix: "QNF-",
       currentNumber: 0,
       scope: "POS",
     });
@@ -263,13 +268,15 @@ describe("Quotes — el ciclo de vida no toca inventario (integration real DB)",
     expect(quote.status).toBe("converted");
     expect(quote.convertedSaleId).toBe(convertedSaleId);
 
-    // Folio fiscal incrementado — contador por sucursal, no el global (allocateBranchFolio).
+    // El folio fiscal de prueba (code `${P}FAC`) NO es uno de los 4 códigos branch-scoped
+    // ({TK,TC,COT,CP}), así que allocateBranchFolio lo enruta al contador global legacy
+    // (folios.current_number), no a folio_branch_counters.
     const fiscalFolio = await prisma.folio.findUnique({ where: { id: fiscalFolioId } });
-    expect(fiscalFolio!.currentNumber).toBe(0);
+    expect(fiscalFolio!.currentNumber).toBe(1);
     const branchCounter = await prisma.folioBranchCounter.findUnique({
       where: { folioId_branchId: { folioId: fiscalFolioId, branchId } },
     });
-    expect(branchCounter!.currentNumber).toBe(1);
+    expect(branchCounter).toBeNull();
   });
 
   it("convertir dos veces la misma cotización es idempotente (sin doble decremento ni doble folio)", async () => {

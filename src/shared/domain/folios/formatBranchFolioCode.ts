@@ -27,3 +27,21 @@ export function branchFolioCodeLikePattern(prefix: string | null, code: string, 
   const escaped = escapeLikePattern(branchCode);
   return prefix ? `${prefix}${escaped}-%` : `${code}-${escaped}-%`;
 }
+
+function escapeRegexLiteral(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Regex Postgres (`~`) que matchea SOLO el formato legacy de `folioCode` para un
+ * folio branch-scoped (`allocateFolio.ts`: `<prefix><NNNNNN>` o `<code>-<n>`, sin
+ * sucursal). El formato nuevo (`formatBranchFolioCode` arriba) siempre inserta el
+ * código de sucursal — caracteres no numéricos — antes del sufijo final, así que
+ * "sólo dígitos tras el prefijo" basta para excluir CUALQUIER documento
+ * branch-scoped sin enumerar códigos de sucursal. Úsese cuando se audita un folio
+ * branch-scoped SIN `branchId` (vista legacy/global) para no mezclar series.
+ */
+export function legacyFolioCodeRegex(prefix: string | null, code: string): string {
+  const base = prefix ?? `${code}-`;
+  return `^${escapeRegexLiteral(base)}[0-9]+$`;
+}

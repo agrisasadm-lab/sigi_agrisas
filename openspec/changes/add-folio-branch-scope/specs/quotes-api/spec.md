@@ -24,7 +24,7 @@ Optional body: `notes: string | null` (max 1000 chars), `expiresAt: string | nul
 
 0. If `clientRequestId` is non-null, perform the idempotent-replay lookup described above; short-circuit on a match before any of the following steps.
 1. Validate `customer.isActive`, `branch.isActive`, `folio.isActive`. Any inactive → HTTP 400.
-2. For each item: load the `Product` and `ProductPrice`; verify `productPrice.productId === item.productId` (else `ProductPriceMismatchError` → HTTP 400), that `productPrice` belongs to a product whose `isActive = true` (else HTTP 400), and that `productPrice.branchId === null OR productPrice.branchId === branchId` — the price is either a global base price or an override belonging to the quote's own branch (else `ProductPriceNotAvailableForBranchError` → HTTP 400 `{"error": "Product price does not belong to this branch"}`; the error message SHALL NOT disclose the price or the other branch it belongs to). `quantity > 0` (else HTTP 400 via Zod). If `item.quantity` is NOT an integer (`quantity % 1 !== 0`), resolve the currently configured `dosificationSurchargePct` from `settings-api` (default `5.0` when unconfigured) and compute `unitPrice = price.price * (1 + surchargePct / 100)`; if `item.quantity` IS an integer, `unitPrice = price.price` unchanged. This applies uniformly to every product — no per-product or per-department opt-out — and is the same rule `pos-api` applies to normal-price sale lines.
+2. For each item: load the `Product` and `ProductPrice`; verify `productPrice.productId === item.productId` (else `ProductPriceMismatchError` → HTTP 400), that `productPrice` belongs to a product whose `isActive = true` (else HTTP 400), and that `productPrice.branchId === branchId` — every `ProductPrice` belongs to exactly one branch, there is no shared base price or inheritance (see `products-api` — "List product prices", `separate-branch-pricing`) — else `ProductPriceNotAvailableForBranchError` → HTTP 400 `{"error": "Product price does not belong to this branch"}`; the error message SHALL NOT disclose the price or the other branch it belongs to. `quantity > 0` (else HTTP 400 via Zod). If `item.quantity` is NOT an integer (`quantity % 1 !== 0`), resolve the currently configured `dosificationSurchargePct` from `settings-api` (default `5.0` when unconfigured) and compute `unitPrice = price.price * (1 + surchargePct / 100)`; if `item.quantity` IS an integer, `unitPrice = price.price` unchanged. This applies uniformly to every product — no per-product or per-department opt-out — and is the same rule `pos-api` applies to normal-price sale lines.
 3. Snapshot `productCodeSnapshot = product.code`, `productNameSnapshot = product.name`, `priceNameSnapshot = price.name`, `unitPrice` per step 2 above (recharged when `quantity` is fractional, else `price.price` unchanged), `discountPct = price.discountPct`, `ivaRate = product.ivaRate`, `iepsRate = product.iepsRate`. This server-computed snapshot is authoritative even for offline-originated quotes — a `clientRequestId`-bearing request carries only IDs/quantities, never client-computed snapshot values, so catalog drift between offline creation and sync time is always resolved in favor of the server's live catalog. The snapshot does NOT record which branch's price (base or override) was used — only the resolved `unitPrice` value; this snapshot is what `pos-api`'s "Convert quote to sale" carries forward unchanged, so a converted sale is never re-validated against branch price at conversion time.
 4. Compute totals using `QuoteTotalsCalculator` (domain service) — unchanged by the fractional-quantity surcharge (operates on `quantity * unitPrice`, agnostic to how `unitPrice` was resolved).
 5. Allocate the next folio number **for the quote's own branch** atomically via `allocateBranchFolio(tx, folioId, branchId)` — same per-branch counter and `folioCode` format (`<prefix><BRANCH_CODE>-<NNNNNN>`, e.g. `COT-ZARIOZ-000001`) described in `pos-api` — "Create sale (atomic emission)". If the folio is inactive → HTTP 400. Legacy `folioCode`s issued before this change are preserved unchanged.
@@ -35,7 +35,7 @@ The endpoint SHALL NOT touch `branch_inventory` at any point. Returns HTTP 201 w
 
 #### Scenario: Successful quote creation
 - **WHEN** an `operator` with `x-user-branch-id: B1` and `quotes:create` sends a valid body for branch B1 with 2 items
-- **THEN** the system returns HTTP 201 with the `QuoteDetailDto`, `folios.current_number` incremented by 1, and `branch_inventory.quantity` for the involved products UNCHANGED
+- **THEN** the system returns HTTP 201 with the `QuoteDetailDto` and `branch_inventory.quantity` for the involved products UNCHANGED — since the selected folio's `code` is branch-scoped (typically `COT`), the `(folioId, B1)` row in `folio_branch_counters` is incremented by 1 instead of `folios.current_number` (see `admin-folios` — "Branch-scoped numbering for sales/quotes/purchases folios")
 
 #### Scenario: Branch scoping violation
 - **WHEN** an `operator` with `x-user-branch-id: B1` posts a body with `branchId: B2`
@@ -93,11 +93,11 @@ The endpoint SHALL NOT touch `branch_inventory` at any point. Returns HTTP 201 w
 - **WHEN** an offline-queued quote's `expiresAt` (computed client-side from a cached default) would already be in the past by the time the sync request reaches the server
 - **THEN** the system rejects it with the same HTTP 400 `expiresAt must be in the future` as any online request — `offline-sync` surfaces this as a non-retriable business failure in its sync queue UI, it does not retry automatically
 
-#### Scenario: Quote uses the branch's own override price
+#### Scenario: Quote uses the price of its own branch
 - **WHEN** the body's `branchId` is ZARIOZ and an item's `productPriceId` references a `ProductPrice` whose `branchId = ZARIOZ`
-- **THEN** the system returns HTTP 201 and `unitPrice` on that line is resolved from the ZARIOZ override, not from the product's global base price
+- **THEN** the system returns HTTP 201 and `unitPrice` on that line is resolved from that ZARIOZ-owned price
 
-#### Scenario: Quote rejects a price override belonging to another branch
+#### Scenario: Quote rejects a price belonging to another branch
 - **WHEN** the body's `branchId` is HUAJUAPAN but an item's `productPriceId` references a `ProductPrice` whose `branchId = ZARIOZ`
 - **THEN** the system returns HTTP 400 `{"error": "Product price does not belong to this branch"}` and the transaction does not commit
 

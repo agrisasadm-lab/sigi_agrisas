@@ -83,6 +83,8 @@ describe("Folios — contador por sucursal (integration real DB)", () => {
   let priceBId: string;
   let customerId: string;
   let salesFolioId: string;
+  let salesFolioCurrentNumberBefore: number;
+  let customFolioId: string;
   let pmId: string;
   let providerId: string;
   let purchasePmId: string;
@@ -107,10 +109,25 @@ describe("Folios — contador por sucursal (integration real DB)", () => {
       code: `${P}CLI`, name: "Cliente", rfc: "FBR010101001", branchIds: [branchAId, branchBId],
     })).id;
 
-    const salesFolio = await folioRepo.create({
-      code: `${P}TK`, name: "Ticket", prefix: "TK-", currentNumber: 0, scope: "POS",
+    // El código literal "TK" es lo que hace que allocateBranchFolio trate este folio
+    // como branch-scoped (isBranchScopedFolioCode compara exacto contra {TK,TC,COT,CP}) —
+    // un código de prueba con prefijo (ej. "FOLBR_TK") NO calificaría. Se reutiliza el
+    // folio canónico real (compartido, no se puede crear un segundo folio con code="TK"
+    // por el unique constraint) en vez de crear uno de prueba; el aislamiento de las
+    // aserciones de contador se logra snapshoteando su currentNumber antes/después,
+    // no creando un folio nuevo.
+    const realTk = await prisma.folio.findFirstOrThrow({ where: { code: "TK" } });
+    salesFolioId = realTk.id;
+    salesFolioCurrentNumberBefore = realTk.currentNumber;
+
+    // Folio de prueba con código NO branch-scoped (no está en {TK,TC,COT,CP}) — usado
+    // para probar que allocateBranchFolio cae al contador global legacy para cualquier
+    // folio scope=POS fuera del set branch-scoped (regresión del bug donde se usaba
+    // incondicionalmente el contador por sucursal para TODO folio).
+    const customFolio = await folioRepo.create({
+      code: `${P}CU`, name: "Folio Custom", prefix: "CUX-", currentNumber: 0, scope: "POS",
     });
-    salesFolioId = salesFolio.id;
+    customFolioId = customFolio.id;
 
     pmId = (await pmRepo.create({ code: `${P}PM`, name: "Efectivo" })).id;
 
@@ -153,7 +170,25 @@ describe("Folios — contador por sucursal (integration real DB)", () => {
 
   it("el contador global de folios.current_number no se mueve", async () => {
     const folio = await prisma.folio.findUnique({ where: { id: salesFolioId } });
-    expect(folio!.currentNumber).toBe(0);
+    expect(folio!.currentNumber).toBe(salesFolioCurrentNumberBefore);
+  });
+
+  it("un folio custom fuera de {TK,TC,COT,CP} sigue usando el contador global legacy", async () => {
+    const { dto: sale } = await createSale.execute(
+      { branchId: branchAId, customerId, paymentMethodId: pmId, folioId: customFolioId,
+        items: [{ productId, productPriceId: priceAId, quantity: 1 }] },
+      cashierId
+    );
+
+    expect(sale.folioCode).toBe("CUX-000001");
+
+    const folio = await prisma.folio.findUnique({ where: { id: customFolioId } });
+    expect(folio!.currentNumber).toBe(1);
+
+    const counter = await prisma.folioBranchCounter.findUnique({
+      where: { folioId_branchId: { folioId: customFolioId, branchId: branchAId } },
+    });
+    expect(counter).toBeNull();
   });
 
   it("cada sucursal tiene su propia fila en folio_branch_counters", async () => {

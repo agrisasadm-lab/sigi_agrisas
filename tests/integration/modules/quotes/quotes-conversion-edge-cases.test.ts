@@ -105,8 +105,9 @@ describe("Quotes — edge cases del ciclo de vida (integration real DB)", () => 
     priceId = price.id;
     const customer = await createCustomer.execute({ code: `${P}C1`, name: "Cliente Edge", rfc: "CED010101002", branchIds: [branchId] });
     customerId = customer.id;
-    quoteFolioId = (await folioRepo.create({ code: `${P}COT`, name: "Cot Edge", prefix: "COT", currentNumber: 0, scope: "POS" })).id;
-    fiscalFolioId = (await folioRepo.create({ code: `${P}FAC`, name: "Fac Edge", prefix: "FAC", currentNumber: 0, scope: "POS" })).id;
+    // Prefijos ÚNICOS por archivo — ver comentario equivalente en quotes-branch-scoping.test.ts.
+    quoteFolioId = (await folioRepo.create({ code: `${P}COT`, name: "Cot Edge", prefix: "QCE-", currentNumber: 0, scope: "POS" })).id;
+    fiscalFolioId = (await folioRepo.create({ code: `${P}FAC`, name: "Fac Edge", prefix: "QCF-", currentNumber: 0, scope: "POS" })).id;
     pmId = (await pmRepo.create({ code: `${P}PM`, name: "Pago Edge" })).id;
     creatorId = (await prisma.user.create({
       data: { email: `${P}u@test.com`, passwordHash: "x", name: "Edge User" },
