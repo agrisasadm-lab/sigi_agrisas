@@ -86,17 +86,14 @@ function makeLookups(overrides: Partial<PosLookupService> = {}): PosLookupServic
         ? overrides.getProductPrice(id)
         : { id, productId: PRODUCT_ID, branchId: priceBranchId, name: "Menudeo", price: 100, discountPct: null };
     },
-    async getDosificationForSale(id) {
-      return overrides.getDosificationForSale ? overrides.getDosificationForSale(id) : null;
+    async getDosificationForSale(id, branchId) {
+      return overrides.getDosificationForSale ? overrides.getDosificationForSale(id, branchId) : null;
     },
     async getDosificationSurchargePct() {
       return overrides.getDosificationSurchargePct ? overrides.getDosificationSurchargePct() : 5;
     },
     async isProductAvailableInBranch(productId, branchId) {
       return overrides.isProductAvailableInBranch ? overrides.isProductAvailableInBranch(productId, branchId) : true;
-    },
-    async hasBranchPriceOverrides(productId, branchId) {
-      return overrides.hasBranchPriceOverrides ? overrides.hasBranchPriceOverrides(productId, branchId) : false;
     },
   };
 }

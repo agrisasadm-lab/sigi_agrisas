@@ -7,6 +7,14 @@ export interface FindAllFoliosOptions {
   pageSize: number;
   includeInactive: boolean;
   scope?: FolioScope;
+  branchId?: string;
+}
+
+/** Contadores por sucursal de un conjunto de folios, resueltos en una sola consulta. */
+export interface BranchCountersResult {
+  branchCode: string;
+  /** folioId -> currentNumber (0 si el folio aún no tiene fila para esta sucursal). */
+  counters: Map<string, number>;
 }
 
 export interface CreateFolioData {
@@ -37,6 +45,8 @@ export interface FolioRepository {
   create(data: CreateFolioData): Promise<Folio>;
   update(id: string, data: UpdateFolioData): Promise<Folio>;
   softDelete(id: string): Promise<void>;
-  findAuditSequence(folioId: string): Promise<AuditSequenceRaw[]>;
-  getAuditCounts(folioId: string): Promise<AuditCounts>;
+  findAuditSequence(folioId: string, branchId?: string, likePattern?: string): Promise<AuditSequenceRaw[]>;
+  getAuditCounts(folioId: string, branchId?: string, likePattern?: string): Promise<AuditCounts>;
+  /** `null` si `branchId` no corresponde a ninguna sucursal. */
+  findBranchCounters(folioIds: string[], branchId: string): Promise<BranchCountersResult | null>;
 }

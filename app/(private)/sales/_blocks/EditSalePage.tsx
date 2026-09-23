@@ -48,7 +48,7 @@ export function EditSalePage({ id }: EditSalePageProps) {
 
   const { sale, isLoading: saleLoading } = useSaleDetail(id);
   const { isSaving, edit, mutationError } = useSaleMutations();
-  const { options: folios, isLoading: foliosLoading } = useFoliosOptions({ scope: "POS" });
+  const { options: folios, isLoading: foliosLoading } = useFoliosOptions({ scope: "POS", branchId: sale?.branchId ?? null });
   const { options: paymentMethods, isLoading: pmLoading } = usePaymentMethodsOptions();
   const { dosificationSurchargePct } = usePricingSettingsOptions();
 

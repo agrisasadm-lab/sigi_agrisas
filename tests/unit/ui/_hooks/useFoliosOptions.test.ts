@@ -86,4 +86,47 @@ describe("useFoliosOptions", () => {
 
     expect(mockAuthFetch).toHaveBeenCalledTimes(2);
   });
+
+
+  it("con branchId incluye ?branchId= en la URL", async () => {
+    mockAuthFetch.mockReturnValue(makeResponse([{ ...FOLIO_TK, branchCurrentNumber: 3, nextFolioCode: "TK-ZARIOZ-000004" }]));
+    const { result } = renderHook(() => useFoliosOptions({ scope: "POS", branchId: "b-zarioz" }));
+    act(() => { result.current.refresh(); });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const url: string = (mockAuthFetch.mock.calls[0] as [string])[0];
+    expect(url).toContain("branchId=b-zarioz");
+    expect(result.current.options[0].branchCurrentNumber).toBe(3);
+    expect(result.current.options[0].nextFolioCode).toBe("TK-ZARIOZ-000004");
+  });
+
+  it("sin branchId no incluye el query param y los campos de sucursal quedan null", async () => {
+    mockAuthFetch.mockReturnValue(makeResponse([FOLIO_TK]));
+    const { result } = renderHook(() => useFoliosOptions({ scope: "POS" }));
+    act(() => { result.current.refresh(); });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const url: string = (mockAuthFetch.mock.calls[0] as [string])[0];
+    expect(url).not.toContain("branchId=");
+    expect(result.current.options[0].branchCurrentNumber).toBeNull();
+    expect(result.current.options[0].nextFolioCode).toBeNull();
+  });
+
+  it("cambiar de sucursal usa una cache key distinta y refetchea", async () => {
+    mockAuthFetch
+      .mockReturnValueOnce(makeResponse([{ ...FOLIO_TK, nextFolioCode: "TK-ZARIOZ-000001" }]))
+      .mockReturnValueOnce(makeResponse([{ ...FOLIO_TK, nextFolioCode: "TK-PRADERA-000001" }]));
+
+    const { result, rerender } = renderHook(
+      ({ branchId }: { branchId: string }) => useFoliosOptions({ scope: "POS", branchId }),
+      { initialProps: { branchId: "b-zarioz-2" } }
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.options[0]?.nextFolioCode).toBe("TK-ZARIOZ-000001");
+
+    rerender({ branchId: "b-pradera-2" });
+    await waitFor(() => expect(result.current.options[0]?.nextFolioCode).toBe("TK-PRADERA-000001"));
+
+    expect(mockAuthFetch).toHaveBeenCalledTimes(2);
+  });
 });

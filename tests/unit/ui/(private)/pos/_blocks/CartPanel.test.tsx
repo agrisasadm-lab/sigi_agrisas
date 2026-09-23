@@ -28,7 +28,7 @@ mockUseCurrentUser.mockReturnValue({
   refresh: jest.fn(),
 });
 
-const folios: FolioOption[] = [{ id: "f1", code: "PRINC", name: "Principal", prefix: "A", currentNumber: 100, isActive: true }];
+const folios: FolioOption[] = [{ id: "f1", code: "PRINC", name: "Principal", prefix: "A", currentNumber: 100, isActive: true, branchCurrentNumber: null, nextFolioCode: null }];
 const paymentMethods: PaymentMethodOption[] = [{ id: "pm1", code: "EFE", name: "Efectivo", isActive: true }];
 
 const zeroTotals: CartTotals = { subtotal: 0, ivaTotal: 0, iepsTotal: 0, taxTotal: 0, total: 0 };

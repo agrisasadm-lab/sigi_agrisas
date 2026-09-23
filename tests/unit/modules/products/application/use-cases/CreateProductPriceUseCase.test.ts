@@ -49,6 +49,6 @@ describe("CreateProductPriceUseCase", () => {
   });
 
   it("throws ProductNotFoundError when the product does not exist", async () => {
-    await expect(useCase.execute("nope", { name: "X", price: 1 })).rejects.toThrow(ProductNotFoundError);
+    await expect(useCase.execute("nope", { branchId: BRANCH, name: "X", price: 1 })).rejects.toThrow(ProductNotFoundError);
   });
 });

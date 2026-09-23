@@ -36,12 +36,12 @@ export function QuoteCreatePage() {
   const isBypass = can("branches:access_all");
   const { isOnline, offlineEnabled, ownerBranchId } = useOfflineSync();
 
-  const { options: folios, isLoading: foliosLoading } = useFoliosOptions({ scope: "POS" });
   const { dosificationSurchargePct } = usePricingSettingsOptions();
   const { lines, totals, addLine, updateQuantity, updateDiscountPct, changeTier, removeLine, clear } = useCart(dosificationSurchargePct);
   const { status, quote, queuedQuote, error: submitError, submit, reset: resetSubmit } = useQuoteSubmission();
 
   const { branches, selectedBranchId, setSelectedBranchId } = useBypassBranchOptions(isBypass, userBranchId ?? null);
+  const { options: folios, isLoading: foliosLoading } = useFoliosOptions({ scope: "POS", branchId: selectedBranchId || null });
   const [selectedFolioId, setSelectedFolioId] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [expiresAt, setExpiresAt] = useState("");

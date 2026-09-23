@@ -1,4 +1,4 @@
-import { listFolios } from "../../../../../../../app/(private)/catalogs/folios/_logic/services/listFolios";
+import { listFolios, auditFolio } from "../../../../../../../app/(private)/catalogs/folios/_logic/services/listFolios";
 import { UnauthenticatedError, ForbiddenError, NetworkError } from "../../../../../../../app/_lib/authFetch";
 
 const baseDto = {
@@ -11,6 +11,8 @@ const baseDto = {
   isActive: true,
   createdAt: "2024-01-01T00:00:00.000Z",
   updatedAt: "2024-01-01T00:00:00.000Z",
+  branchCurrentNumber: null,
+  nextFolioCode: null,
 };
 
 describe("listFolios", () => {
@@ -87,5 +89,66 @@ describe("listFolios", () => {
 
     expect(result.items[0].createdAt).toEqual(new Date("2024-01-01T00:00:00.000Z"));
     expect(result.items[0].updatedAt).toEqual(new Date("2024-01-01T00:00:00.000Z"));
+  });
+
+  it("parses branchCurrentNumber/nextFolioCode from the DTO", async () => {
+    const mockFetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ items: [{ ...baseDto, branchCurrentNumber: 3, nextFolioCode: "FAC-ZARIOZ-000004" }], total: 1, page: 1, pageSize: 20 }),
+    } as Response);
+
+    const result = await listFolios({ page: 1, pageSize: 20 }, mockFetch);
+
+    expect(result.items[0].branchCurrentNumber).toBe(3);
+    expect(result.items[0].nextFolioCode).toBe("FAC-ZARIOZ-000004");
+  });
+});
+
+describe("auditFolio", () => {
+  const auditResponse = {
+    folioId: "f1",
+    code: "TK",
+    prefix: "TK-",
+    currentNumber: 5,
+    totalIssued: 5,
+    withoutFolioNumber: 0,
+    gaps: [],
+    truncated: false,
+    sequence: [],
+    branchId: null,
+    branchCode: null,
+  };
+
+  it("sin branchId no agrega el query param", async () => {
+    const mockFetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => auditResponse,
+    } as Response);
+
+    await auditFolio("f1", null, mockFetch);
+
+    const calledUrl = mockFetch.mock.calls[0][0] as string;
+    expect(calledUrl).toBe("/api/v1/admin/folios/f1/audit");
+  });
+
+  it("con branchId agrega ?branchId= a la URL", async () => {
+    const mockFetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ ...auditResponse, branchId: "b1", branchCode: "ZARIOZ" }),
+    } as Response);
+
+    const result = await auditFolio("f1", "b1", mockFetch);
+
+    const calledUrl = mockFetch.mock.calls[0][0] as string;
+    expect(calledUrl).toBe("/api/v1/admin/folios/f1/audit?branchId=b1");
+    expect(result.branchCode).toBe("ZARIOZ");
+  });
+
+  it("throws NetworkError on network failure", async () => {
+    const mockFetch = jest.fn().mockRejectedValueOnce(new NetworkError());
+    await expect(auditFolio("f1", null, mockFetch)).rejects.toBeInstanceOf(NetworkError);
   });
 });

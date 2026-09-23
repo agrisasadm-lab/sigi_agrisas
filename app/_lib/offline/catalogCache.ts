@@ -73,8 +73,8 @@ async function pullPaymentMethods(): Promise<CachedPaymentMethod[]> {
   return body.items;
 }
 
-async function pullFolios(): Promise<CachedFolio[]> {
-  const res = await authFetch("/api/v1/admin/folios?pageSize=100&includeInactive=false&scope=POS");
+async function pullFolios(branchId: string): Promise<CachedFolio[]> {
+  const res = await authFetch(`/api/v1/admin/folios?pageSize=100&includeInactive=false&scope=POS&branchId=${branchId}`);
   if (!res.ok) throw new NetworkError();
   const body = (await res.json()) as { items: CachedFolio[] };
   return body.items;
@@ -101,7 +101,7 @@ export async function refreshCatalogCache(ownerBranchId: string): Promise<void> 
   const [products, paymentMethods, folios, customers] = await Promise.all([
     pullProductsAndStock(ownerBranchId),
     pullPaymentMethods(),
-    pullFolios(),
+    pullFolios(ownerBranchId),
     pullCustomers(),
   ]);
 

@@ -27,7 +27,6 @@ function makeLookups(): PosLookupService {
     getDosificationForSale: jest.fn(),
     getDosificationSurchargePct: jest.fn().mockResolvedValue(5),
     isProductAvailableInBranch: jest.fn().mockResolvedValue(true),
-    hasBranchPriceOverrides: jest.fn().mockResolvedValue(false),
   };
 }
 

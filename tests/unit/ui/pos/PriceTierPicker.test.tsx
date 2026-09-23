@@ -15,8 +15,8 @@ const product: ProductDto = {
 };
 
 const prices: ProductPriceDto[] = [
-  { id: "pr1", productId: "p1", name: "Precio Normal", price: 100, minQuantity: 1, discountPct: 0, isDefault: true },
-  { id: "pr2", productId: "p1", name: "Precio Mayoreo", price: 80, minQuantity: 10, discountPct: 0, isDefault: false },
+  { id: "pr1", productId: "p1", branchId: "b1", name: "Precio Normal", price: 100, minQuantity: 1, discountPct: 0, isDefault: true },
+  { id: "pr2", productId: "p1", branchId: "b1", name: "Precio Mayoreo", price: 80, minQuantity: 10, discountPct: 0, isDefault: false },
 ];
 
 HTMLDialogElement.prototype.showModal = jest.fn(function (this: HTMLDialogElement) {

@@ -82,7 +82,9 @@ export class InMemoryQuoteRepository implements QuoteRepository {
   }
 
   async createWithItems(data: CreateQuoteData): Promise<QuoteSummary> {
-    const folioNum = (folioCounter[data.folioId] = (folioCounter[data.folioId] ?? 0) + 1);
+    // Contador por (folio, sucursal) — espejo de folio_branch_counters, no del contador global.
+    const folioKey = `${data.folioId}|${data.branchId}`;
+    const folioNum = (folioCounter[folioKey] = (folioCounter[folioKey] ?? 0) + 1);
     const now = new Date();
     const quoteId = makeId();
     const items = data.items.map((it) =>

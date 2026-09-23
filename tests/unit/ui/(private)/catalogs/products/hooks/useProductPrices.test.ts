@@ -66,7 +66,7 @@ describe("useProductPrices — traducción de errores en createOne/updateOne", (
 
     await expect(
       act(async () => {
-        await result.current.createOne({ branchId: null, name: "X", price: 10 });
+        await result.current.createOne({ branchId: "b1", name: "X", price: 10 });
       })
     ).rejects.toBeInstanceOf(DuplicatePriceNameError);
 
@@ -80,7 +80,7 @@ describe("useProductPrices — traducción de errores en createOne/updateOne", (
 
     await expect(
       act(async () => {
-        await result.current.createOne({ branchId: null, name: "X", price: 10, isDefault: true });
+        await result.current.createOne({ branchId: "b1", name: "X", price: 10, isDefault: true });
       })
     ).rejects.toBeInstanceOf(DuplicateDefaultPriceError);
 
@@ -93,7 +93,7 @@ describe("useProductPrices — traducción de errores en createOne/updateOne", (
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     await act(async () => {
-      await result.current.createOne({ branchId: null, name: "X", price: 10 });
+      await result.current.createOne({ branchId: "b1", name: "X", price: 10 });
     });
 
     expect(result.current.saveError).toBe("Network error");
@@ -105,7 +105,7 @@ describe("useProductPrices — traducción de errores en createOne/updateOne", (
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     await act(async () => {
-      await result.current.createOne({ branchId: null, name: "Menudeo", price: 12 });
+      await result.current.createOne({ branchId: "b1", name: "Menudeo", price: 12 });
     });
 
     expect(result.current.saveError).toBeNull();

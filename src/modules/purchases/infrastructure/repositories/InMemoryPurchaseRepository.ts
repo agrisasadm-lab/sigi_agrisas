@@ -71,7 +71,8 @@ export class InMemoryPurchaseRepository implements PurchaseRepository {
   branches = new Map<string, BranchMock>();
   paymentMethods = new Map<string, PaymentMethodMock>();
   products = new Map<string, ProductMock>();
-  private folioCounter = 0;
+  // Contador por sucursal — espejo de folio_branch_counters (CP es branch-scoped), no del contador global.
+  private folioCounterByBranch = new Map<string, number>();
 
   seedProvider(provider: ProviderMock): void {
     this.providers.set(provider.id, { ...provider });
@@ -222,9 +223,9 @@ export class InMemoryPurchaseRepository implements PurchaseRepository {
 
     const totals = PurchaseTotalsCalculator.computeTotals(calcLines);
 
-    this.folioCounter++;
-    const folioNumber = this.folioCounter;
-    const folioCode = `CP-${String(folioNumber).padStart(6, "0")}`;
+    const folioNumber = (this.folioCounterByBranch.get(data.branchId) ?? 0) + 1;
+    this.folioCounterByBranch.set(data.branchId, folioNumber);
+    const folioCode = `CP-${data.branchId}-${String(folioNumber).padStart(6, "0")}`;
 
     const isCredit = paymentMethod.isCredit;
     const paidAmount = isCredit ? 0 : totals.total;

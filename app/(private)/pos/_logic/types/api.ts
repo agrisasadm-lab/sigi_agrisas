@@ -55,6 +55,8 @@ export interface FolioOption {
   prefix?: string | null;
   currentNumber: number;
   isActive: boolean;
+  branchCurrentNumber: number | null;
+  nextFolioCode: string | null;
 }
 
 export interface PaymentMethodOption {

@@ -123,7 +123,6 @@ function makeLookups(overrides?: Partial<PosLookupService>): PosLookupService {
     // use case, no el valor default de settings (cubierto en DosificationPriceCalculator.test.ts).
     getDosificationSurchargePct: jest.fn().mockResolvedValue(7),
     isProductAvailableInBranch: jest.fn().mockResolvedValue(true),
-    hasBranchPriceOverrides: jest.fn().mockResolvedValue(false),
     ...overrides,
   };
 }

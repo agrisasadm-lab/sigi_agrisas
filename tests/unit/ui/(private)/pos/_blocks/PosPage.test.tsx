@@ -42,7 +42,7 @@ jest.mock("../../../../../../app/(private)/pos/_logic/hooks/useCart", () => ({
 
 // --- options hooks ---
 jest.mock("../../../../../../app/_hooks/useFoliosOptions", () => ({
-  useFoliosOptions: () => ({ options: [], isLoading: false }),
+  useFoliosOptions: () => ({ options: [], isLoading: false, refresh: jest.fn() }),
 }));
 jest.mock("../../../../../../app/_hooks/usePaymentMethodsOptions", () => ({
   usePaymentMethodsOptions: () => ({ options: [], isLoading: false }),

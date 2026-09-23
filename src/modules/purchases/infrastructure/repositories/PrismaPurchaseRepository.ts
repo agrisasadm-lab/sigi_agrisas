@@ -20,7 +20,7 @@ import { ProductNotFoundOrInactiveError } from "../../domain/errors/ProductNotFo
 import { PurchaseHasActiveProviderPaymentsError } from "../../domain/errors/PurchaseHasActiveProviderPaymentsError";
 import { SatUuidAlreadyExistsError } from "../../domain/errors/SatUuidAlreadyExistsError";
 import { InactiveResourceError } from "@/modules/pos/domain/errors/InactiveResourceError";
-import { allocateFolio } from "@/shared/infrastructure/folios/allocateFolio";
+import { allocateBranchFolio } from "@/shared/infrastructure/folios/allocateBranchFolio";
 import { recordInventoryMovement } from "@/shared/infrastructure/inventory/recordInventoryMovement";
 
 type TxClient = Prisma.TransactionClient;
@@ -269,7 +269,7 @@ export class PrismaPurchaseRepository implements PurchaseRepository {
       const totals = PurchaseTotalsCalculator.computeTotals(calcLines);
 
       const folio = await resolveCanonicalFolio(tx, CP_FOLIO_CODE);
-      const { folioNumber, folioCode } = await allocateFolio(tx, folio.id);
+      const { folioNumber, folioCode } = await allocateBranchFolio(tx, folio.id, data.branchId);
 
       const purchasedAt = data.purchasedAt ?? new Date();
       for (let i = 0; i < snapshots.length; i++) {

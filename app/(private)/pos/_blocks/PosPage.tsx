@@ -47,7 +47,6 @@ export function PosPage() {
   const isBypass = can("branches:access_all");
   const { isOnline, offlineEnabled, ownerBranchId } = useOfflineSync();
 
-  const { options: folios, isLoading: foliosLoading } = useFoliosOptions({ scope: "POS" });
   const { options: paymentMethods, isLoading: pmLoading } = usePaymentMethodsOptions();
   const { dosificationSurchargePct } = usePricingSettingsOptions();
   const {
@@ -83,6 +82,7 @@ export function PosPage() {
     canCreate === false && canQuote === true ? "quote" : "sale"
   );
   const { branches, selectedBranchId, setSelectedBranchId } = useBypassBranchOptions(isBypass, userBranchId ?? null);
+  const { options: folios, isLoading: foliosLoading, refresh: refreshFolios } = useFoliosOptions({ scope: "POS", branchId: selectedBranchId || null });
   const [selectedFolioId, setSelectedFolioId] = useState<string>("");
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string>("");
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
@@ -132,8 +132,10 @@ export function PosPage() {
   useEffect(() => {
     if ((saleStatus === "succeeded" && sale) || (saleStatus === "queued-offline" && queuedSale)) {
       setModal("confirmed");
+      // El consecutivo de la sucursal avanzó — refrescar el preview del siguiente folio.
+      if (saleStatus === "succeeded") refreshFolios();
     }
-  }, [saleStatus, sale, queuedSale]);
+  }, [saleStatus, sale, queuedSale, refreshFolios]);
 
   // Handle quote success → redirect (online) or show provisional confirmation (offline)
   useEffect(() => {

@@ -137,10 +137,30 @@ model Folio {
   movements        InventoryMovement[]
   purchases        Purchase[]
   providerPayments ProviderPayment[]
+  branchCounters   FolioBranchCounter[]
 
   @@index([code])
   @@index([scope])
   @@map("folios")
+}
+
+/// Contador independiente por (folio, sucursal) para folios branch-scoped
+/// (TK/TC/COT/CP — ver src/shared/domain/folios/BRANCH_SCOPED_FOLIO_CODES).
+/// `folios.current_number` sigue existiendo para RB/AB/DEV/PP/TS, que no se
+/// tocan por este modelo. Sin backfill: cada sucursal arranca en 0.
+model FolioBranchCounter {
+  folioId       String   @map("folio_id")
+  branchId      String   @map("branch_id")
+  currentNumber Int      @default(0) @map("current_number")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  folio  Folio  @relation(fields: [folioId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@id([folioId, branchId])
+  @@index([branchId])
+  @@map("folio_branch_counters")
 }
 
 model Department {
@@ -196,6 +216,7 @@ model Branch {
   productPrices         ProductPrice[]
   printerConfig         BranchPrinterConfig?
   customers             CustomerBranch[]
+  folioCounters         FolioBranchCounter[]
 
   @@index([code])
   @@map("branches")
@@ -467,7 +488,7 @@ model InventoryMovement {
   customerId        String?  @map("customer_id")
   providerId        String?  @map("provider_id")
   folioId           String?  @map("folio_id")
-  folioCode         String?  @map("folio_code") @db.VarChar(40)
+  folioCode         String?  @map("folio_code") @db.VarChar(64)
   folioNumber       Int?     @map("folio_number")
   originFolioCode   String?  @map("origin_folio_code") @db.VarChar(40)
   originFolioNumber Int?     @map("origin_folio_number")
@@ -551,7 +572,7 @@ model Sale {
   id                 String    @id @default(uuid())
   folioId            String    @map("folio_id")
   folioNumber        Int       @map("folio_number")
-  folioCode          String    @map("folio_code") @db.VarChar(40)
+  folioCode          String    @map("folio_code") @db.VarChar(64)
   branchId           String    @map("branch_id")
   customerId         String?   @map("customer_id")
   cashierId          String    @map("cashier_id") @db.Uuid
@@ -586,7 +607,8 @@ model Sale {
   invoices            Invoice[]
   waybills            Waybill[]
 
-  @@unique([folioId, folioNumber])
+  @@unique([folioCode])
+  @@index([folioId])
   @@index([branchId])
   @@index([customerId])
   @@index([status])
@@ -678,7 +700,7 @@ model Quote {
   id                 String    @id @default(uuid())
   folioId            String    @map("folio_id")
   folioNumber        Int       @map("folio_number")
-  folioCode          String    @map("folio_code") @db.VarChar(40)
+  folioCode          String    @map("folio_code") @db.VarChar(64)
   branchId           String    @map("branch_id")
   customerId         String?   @map("customer_id")
   creatorId          String    @map("creator_id") @db.Uuid
@@ -707,7 +729,8 @@ model Quote {
   salesFromQuote Sale[]      @relation("SaleFromQuote")
   items          QuoteItem[]
 
-  @@unique([folioId, folioNumber])
+  @@unique([folioCode])
+  @@index([folioId])
   @@index([branchId])
   @@index([customerId])
   @@index([status])
@@ -1046,7 +1069,7 @@ model Purchase {
   branchId              String    @map("branch_id")
   folioId               String    @map("folio_id")
   folioNumber           Int       @map("folio_number")
-  folioCode             String    @map("folio_code") @db.VarChar(40)
+  folioCode             String    @map("folio_code") @db.VarChar(64)
   paymentMethodId       String    @map("payment_method_id")
   creatorId             String    @map("creator_id") @db.Uuid
   status                String    @default("completed") @db.VarChar(20)
@@ -1075,7 +1098,8 @@ model Purchase {
   items            PurchaseItem[]
   providerPayments ProviderPayment[]
 
-  @@unique([folioId, folioNumber])
+  @@unique([folioCode])
+  @@index([folioId])
   @@index([providerId])
   @@index([branchId])
   @@index([status])

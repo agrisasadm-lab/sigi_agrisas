@@ -263,9 +263,13 @@ describe("Quotes — el ciclo de vida no toca inventario (integration real DB)",
     expect(quote.status).toBe("converted");
     expect(quote.convertedSaleId).toBe(convertedSaleId);
 
-    // Folio fiscal incrementado
+    // Folio fiscal incrementado — contador por sucursal, no el global (allocateBranchFolio).
     const fiscalFolio = await prisma.folio.findUnique({ where: { id: fiscalFolioId } });
-    expect(fiscalFolio!.currentNumber).toBe(1);
+    expect(fiscalFolio!.currentNumber).toBe(0);
+    const branchCounter = await prisma.folioBranchCounter.findUnique({
+      where: { folioId_branchId: { folioId: fiscalFolioId, branchId } },
+    });
+    expect(branchCounter!.currentNumber).toBe(1);
   });
 
   it("convertir dos veces la misma cotización es idempotente (sin doble decremento ni doble folio)", async () => {
