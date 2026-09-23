@@ -17,9 +17,10 @@ interface UseCustomersParams {
   pageSize: number;
   search?: string;
   includeInactive?: boolean;
+  branchId?: string;
 }
 
-export function useCustomers({ page, pageSize, search, includeInactive }: UseCustomersParams): UseCustomersResult {
+export function useCustomers({ page, pageSize, search, includeInactive, branchId }: UseCustomersParams): UseCustomersResult {
   const [items, setItems] = useState<Customer[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,7 +33,7 @@ export function useCustomers({ page, pageSize, search, includeInactive }: UseCus
     setIsLoading(true);
     setError(null);
 
-    listCustomers({ page, pageSize, search, includeInactive }, undefined, controller.signal)
+    listCustomers({ page, pageSize, search, includeInactive, branchId }, undefined, controller.signal)
       .then((data) => {
         if (cancelled) return;
         setItems(data.items);
@@ -51,7 +52,7 @@ export function useCustomers({ page, pageSize, search, includeInactive }: UseCus
       cancelled = true;
       controller.abort();
     };
-  }, [page, pageSize, search, includeInactive, tick]);
+  }, [page, pageSize, search, includeInactive, branchId, tick]);
 
   const refresh = useCallback(() => setTick((t) => t + 1), []);
 

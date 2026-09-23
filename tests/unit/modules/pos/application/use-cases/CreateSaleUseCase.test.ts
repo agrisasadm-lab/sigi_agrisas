@@ -105,7 +105,7 @@ function makeLookups(overrides?: Partial<PosLookupService>): PosLookupService {
       price: 100,
       discountPct: null,
     }),
-    getCustomer: jest.fn().mockResolvedValue({ id: "c1", isActive: true, creditLimit: null, currentBalance: 0 }),
+    getCustomer: jest.fn().mockResolvedValue({ id: "c1", isActive: true, creditLimit: null, currentBalance: 0, branchIds: ["b1"] }),
     getBranch: jest.fn().mockResolvedValue({ id: "b1", isActive: true }),
     getFolio: jest.fn().mockResolvedValue({ id: "f1", code: "VENTA", prefix: null, scope: "POS", isActive: true }),
     getPaymentMethod: jest.fn().mockResolvedValue({ id: "pm1", isActive: true, isCredit: false }),
@@ -154,7 +154,7 @@ describe("CreateSaleUseCase", () => {
 
   it("rechaza customer inactivo", async () => {
     const lookups = makeLookups({
-      getCustomer: jest.fn().mockResolvedValue({ id: "c1", isActive: false, creditLimit: null, currentBalance: 0 }),
+      getCustomer: jest.fn().mockResolvedValue({ id: "c1", isActive: false, creditLimit: null, currentBalance: 0, branchIds: ["b1"] }),
     });
     await expect(
       new CreateSaleUseCase(makeRepo(), lookups).execute(baseReq, "user-1")
@@ -346,7 +346,7 @@ describe("CreateSaleUseCase", () => {
     const creditLookups = (creditLimit: number | null = 5000, currentBalance = 0) =>
       makeLookups({
         getPaymentMethod: jest.fn().mockResolvedValue({ id: "pm1", isActive: true, isCredit: true }),
-        getCustomer: jest.fn().mockResolvedValue({ id: "c1", isActive: true, creditLimit, currentBalance }),
+        getCustomer: jest.fn().mockResolvedValue({ id: "c1", isActive: true, creditLimit, currentBalance, branchIds: ["b1"] }),
       });
 
     it("crea venta a crédito con paidAmount=0 y paymentStatus=pending", async () => {

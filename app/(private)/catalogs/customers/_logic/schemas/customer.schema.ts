@@ -76,6 +76,7 @@ const structuredAddressFields = {
 export const createCustomerSchema = z.object({
   code: codeSchema,
   name: z.string().min(1, "El nombre es obligatorio.").max(120),
+  branchIds: z.array(z.string().uuid()).min(1, "Selecciona al menos una sucursal.").optional(),
   rfc: optionalRfc,
   legalName: z.string().max(200).nullable().optional(),
   taxRegime: optionalTaxRegime,
@@ -96,6 +97,7 @@ export const createCustomerSchema = z.object({
 export const updateCustomerSchema = z
   .object({
     name: z.string().min(1).max(120).optional(),
+    branchIds: z.array(z.string().uuid()).min(1, "Selecciona al menos una sucursal.").optional(),
     rfc: optionalRfc,
     legalName: z.string().max(200).nullable().optional(),
     taxRegime: optionalTaxRegime,
@@ -129,6 +131,7 @@ export const updateCustomerSchema = z
       d.initialBalance !== undefined ||
       d.creditDays !== undefined ||
       d.isActive !== undefined ||
+      d.branchIds !== undefined ||
       d.addressStreet !== undefined ||
       d.addressExteriorNumber !== undefined ||
       d.addressInteriorNumber !== undefined ||

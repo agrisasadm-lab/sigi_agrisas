@@ -31,6 +31,7 @@ const baseCustomer: Customer = {
   addressState: null,
   addressCountry: null,
   addressZipCode: null,
+  branchIds: [],
   createdAt: new Date("2026-05-25"),
   updatedAt: new Date("2026-05-25"),
 };

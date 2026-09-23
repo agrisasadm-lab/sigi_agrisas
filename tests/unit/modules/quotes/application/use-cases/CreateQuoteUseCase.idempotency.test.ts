@@ -20,7 +20,7 @@ function makeLookups(): PosLookupService {
       price: 100,
       discountPct: null,
     }),
-    getCustomer: jest.fn().mockResolvedValue({ id: "c1", isActive: true, creditLimit: null, currentBalance: 0 }),
+    getCustomer: jest.fn().mockResolvedValue({ id: "c1", isActive: true, creditLimit: null, currentBalance: 0, branchIds: ["b1"] }),
     getBranch: jest.fn().mockResolvedValue({ id: "b1", isActive: true }),
     getFolio: jest.fn().mockResolvedValue({ id: "f1", code: "COT", prefix: null, scope: "POS", isActive: true }),
     getPaymentMethod: jest.fn(),

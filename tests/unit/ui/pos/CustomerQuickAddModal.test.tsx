@@ -197,3 +197,31 @@ describe("CustomerQuickAddModal — catálogos SAT en datos fiscales", () => {
     );
   });
 });
+
+describe("CustomerQuickAddModal — branchIds", () => {
+  beforeEach(() => {
+    mockCreateCustomer.mockReset();
+    mockUseSatCatalogSearch.mockReturnValue({ options: [], isLoading: false });
+    mockCreateCustomer.mockResolvedValue(stubCustomer);
+  });
+
+  it("envía branchIds: [branchId] cuando se provee la prop branchId", async () => {
+    const user = userEvent.setup();
+    render(<CustomerQuickAddModal onCreated={jest.fn()} onClose={jest.fn()} branchId="b-zarioz" />);
+    await fillRequired(user)();
+    await user.click(screen.getByText("Crear cliente"));
+    await waitFor(() => expect(mockCreateCustomer).toHaveBeenCalled());
+    expect(mockCreateCustomer.mock.calls[0][0]).toEqual(
+      expect.objectContaining({ branchIds: ["b-zarioz"] })
+    );
+  });
+
+  it("no envía branchIds cuando no se provee la prop branchId", async () => {
+    const user = userEvent.setup();
+    render(<CustomerQuickAddModal onCreated={jest.fn()} onClose={jest.fn()} />);
+    await fillRequired(user)();
+    await user.click(screen.getByText("Crear cliente"));
+    await waitFor(() => expect(mockCreateCustomer).toHaveBeenCalled());
+    expect(mockCreateCustomer.mock.calls[0][0]).not.toHaveProperty("branchIds");
+  });
+});

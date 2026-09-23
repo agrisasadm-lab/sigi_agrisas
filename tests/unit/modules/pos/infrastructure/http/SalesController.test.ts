@@ -340,7 +340,7 @@ describe("SalesController — quoteId link (task 10.8)", () => {
       getProductPrice: jest.fn().mockResolvedValue({
         id: PRICE_ID, productId: VALID_UUID, branchId: SALE_BRANCH, name: "Lista", price: 100, discountPct: null,
       }),
-      getCustomer: jest.fn().mockResolvedValue({ id: SALE_CUSTOMER, isActive: true }),
+      getCustomer: jest.fn().mockResolvedValue({ id: SALE_CUSTOMER, isActive: true, branchIds: [SALE_BRANCH] }),
       getBranch: jest.fn().mockResolvedValue({ id: SALE_BRANCH, isActive: true }),
       getFolio: jest.fn().mockResolvedValue({ id: VALID_UUID, code: "F", prefix: "F", scope: "POS", isActive: true }),
       getDosificationForSale: jest.fn(),
@@ -533,6 +533,7 @@ describe("SalesController — Flujo de crédito y abonos activos", () => {
         id: SALE_CUSTOMER_CR, isActive: true,
         creditLimit: opts.creditLimit,
         currentBalance: opts.currentBalance ?? 0,
+        branchIds: [SALE_BRANCH_CR],
       }),
       getBranch: jest.fn().mockResolvedValue({ id: SALE_BRANCH_CR, isActive: true }),
       getFolio: jest.fn().mockResolvedValue({ id: VALID_UUID, code: "F", prefix: null, scope: "POS", isActive: true }),

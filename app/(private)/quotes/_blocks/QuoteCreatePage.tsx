@@ -58,6 +58,11 @@ export function QuoteCreatePage() {
     }
   }, [status, quote, queuedQuote, router]);
 
+  // Al cambiar de sucursal (bypass), el cliente ya seleccionado puede no pertenecer a la nueva.
+  useEffect(() => {
+    setSelectedCustomerId("");
+  }, [selectedBranchId]);
+
   function handleNewQuote() {
     clear();
     resetSubmit();
@@ -203,6 +208,7 @@ export function QuoteCreatePage() {
             setModal(null);
           }}
           onClose={() => setModal(null)}
+          branchId={selectedBranchId || undefined}
         />
       )}
 

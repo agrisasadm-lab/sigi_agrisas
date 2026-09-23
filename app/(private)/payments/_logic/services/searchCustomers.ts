@@ -5,16 +5,18 @@ export interface SearchCustomersParams {
   search?: string;
   page?: number;
   pageSize?: number;
+  branchId?: string;
   signal?: AbortSignal;
 }
 
 export async function searchCustomers(
-  { search, page = 1, pageSize = 20, signal }: SearchCustomersParams,
+  { search, page = 1, pageSize = 20, branchId, signal }: SearchCustomersParams,
   fetchImpl = authFetch,
 ): Promise<{ items: CustomerSearchResultDto[]; total: number }> {
   const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize), includeInactive: "false" });
   const trimmed = search?.trim();
   if (trimmed && trimmed.length >= 2) params.set("search", trimmed);
+  if (branchId) params.set("branchId", branchId);
 
   let res: Response;
   try {

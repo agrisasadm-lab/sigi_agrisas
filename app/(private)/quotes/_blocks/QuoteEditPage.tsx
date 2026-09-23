@@ -257,6 +257,7 @@ export function QuoteEditPage({ id }: QuoteEditPageProps) {
             setModal(null);
           }}
           onClose={() => setModal(null)}
+          branchId={quote?.branchId}
         />
       )}
 

@@ -1,8 +1,7 @@
 import { CreateQuoteUseCase } from "@/modules/quotes/application/use-cases/CreateQuoteUseCase";
-import { UpdateQuoteUseCase } from "@/modules/quotes/application/use-cases/UpdateQuoteUseCase";
 import { InMemoryQuoteRepository } from "@/modules/quotes/infrastructure/repositories/InMemoryQuoteRepository";
 import { PosLookupService } from "@/modules/pos/application/ports/PosLookups";
-import { ProductPriceNotAvailableForBranchError } from "@/modules/quotes/domain/errors/ProductPriceNotAvailableForBranchError";
+import { CustomerNotAvailableInBranchError } from "@/modules/quotes/domain/errors/CustomerNotAvailableInBranchError";
 
 const ZARIOZ = "11111111-1111-1111-1111-111111111111";
 const HUAJUAPAN = "88888888-8888-8888-8888-888888888888";
@@ -52,7 +51,7 @@ const baseCreateReq = {
   items: [{ productId: PRODUCT_ID, productPriceId: PRICE_ID, quantity: 2 }],
 };
 
-describe("CreateQuoteUseCase — precio por sucursal", () => {
+describe("CreateQuoteUseCase — cliente por sucursal", () => {
   let repo: InMemoryQuoteRepository;
 
   beforeEach(() => {
@@ -60,48 +59,35 @@ describe("CreateQuoteUseCase — precio por sucursal", () => {
     repo.reset();
   });
 
-  it("usa el precio que pertenece a la sucursal de la cotización", async () => {
+  it("rechaza un cliente fuera de sucursal", async () => {
     const lookups = makeLookups({
-      getProductPrice: async (id) => ({ id, productId: PRODUCT_ID, branchId: ZARIOZ, name: "Menudeo", price: 80, discountPct: null }),
-    });
-    const result = await new CreateQuoteUseCase(repo, lookups).execute(baseCreateReq, USER_ID);
-    expect(result.dto.items[0].unitPrice).toBe(80);
-  });
-
-  it("rechaza un precio cuyo branchId pertenece a otra sucursal", async () => {
-    const lookups = makeLookups({
-      getProductPrice: async (id) => ({ id, productId: PRODUCT_ID, branchId: HUAJUAPAN, name: "Menudeo", price: 70, discountPct: null }),
+      async getCustomer(id) {
+        return { id, isActive: true, creditLimit: null, currentBalance: 0, email: null, branchIds: [HUAJUAPAN] };
+      },
     });
     await expect(new CreateQuoteUseCase(repo, lookups).execute(baseCreateReq, USER_ID)).rejects.toThrow(
-      ProductPriceNotAvailableForBranchError
+      CustomerNotAvailableInBranchError
     );
   });
 
-  it("acepta el precio de la propia sucursal", async () => {
-    const result = await new CreateQuoteUseCase(repo, makeLookups()).execute(baseCreateReq, USER_ID);
-    expect(result.dto.items[0].unitPrice).toBe(100);
-  });
-});
-
-describe("UpdateQuoteUseCase — precio por sucursal", () => {
-  let repo: InMemoryQuoteRepository;
-
-  beforeEach(() => {
-    repo = new InMemoryQuoteRepository();
-    repo.reset();
-  });
-
-  it("rechaza al editar items con un precio de otra sucursal", async () => {
-    const lookups = makeLookups();
-    const created = await new CreateQuoteUseCase(repo, lookups).execute(baseCreateReq, USER_ID);
-    const editLookups = makeLookups({
-      getProductPrice: async (id) => ({ id, productId: PRODUCT_ID, branchId: HUAJUAPAN, name: "Menudeo", price: 70, discountPct: null }),
+  it("acepta un cliente multi-sucursal que incluye la de la operación", async () => {
+    const lookups = makeLookups({
+      async getCustomer(id) {
+        return { id, isActive: true, creditLimit: null, currentBalance: 0, email: null, branchIds: [HUAJUAPAN, ZARIOZ] };
+      },
     });
-    await expect(
-      new UpdateQuoteUseCase(repo, editLookups).execute(created.dto.id, {
-        items: [{ productId: PRODUCT_ID, productPriceId: PRICE_ID, quantity: 1 }],
-      })
-    ).rejects.toThrow(ProductPriceNotAvailableForBranchError);
+    const result = await new CreateQuoteUseCase(repo, lookups).execute(baseCreateReq, USER_ID);
+    expect(result.dto.status).toBe("draft");
   });
 
+  it("customerId nulo no dispara el gate", async () => {
+    const getCustomerSpy = jest.fn();
+    const lookups = makeLookups({ getCustomer: getCustomerSpy });
+    const result = await new CreateQuoteUseCase(repo, lookups).execute(
+      { ...baseCreateReq, customerId: undefined },
+      USER_ID
+    );
+    expect(result.dto.status).toBe("draft");
+    expect(getCustomerSpy).not.toHaveBeenCalled();
+  });
 });

@@ -80,9 +80,9 @@ async function pullFolios(branchId: string): Promise<CachedFolio[]> {
   return body.items;
 }
 
-async function pullCustomers(): Promise<CustomerDto[]> {
+async function pullCustomers(branchId: string): Promise<CustomerDto[]> {
   return paginate<CustomerDto>(async (page) => {
-    const params = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE), includeInactive: "false" });
+    const params = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE), includeInactive: "false", branchId });
     const res = await authFetch(`/api/v1/admin/customers?${params.toString()}`);
     if (!res.ok) throw new NetworkError();
     const body = (await res.json()) as { items: CustomerDto[]; total: number };
@@ -102,7 +102,7 @@ export async function refreshCatalogCache(ownerBranchId: string): Promise<void> 
     pullProductsAndStock(ownerBranchId),
     pullPaymentMethods(),
     pullFolios(ownerBranchId),
-    pullCustomers(),
+    pullCustomers(ownerBranchId),
   ]);
 
   const pricesByProduct = await mapWithConcurrency(products, PRICE_FETCH_CONCURRENCY, (p) => pullPricesFor(p.id, ownerBranchId));

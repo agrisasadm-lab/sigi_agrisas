@@ -3,7 +3,7 @@ import { SaleRepository, SaleSummary, CreateSaleData } from "@/modules/pos/appli
 import { PosLookupService } from "@/modules/pos/application/ports/PosLookups";
 import { Sale } from "@/modules/pos/domain/entities/Sale";
 import { SaleItem } from "@/modules/pos/domain/entities/SaleItem";
-import { ProductPriceNotAvailableForBranchError } from "@/modules/pos/domain/errors/ProductPriceNotAvailableForBranchError";
+import { CustomerNotAvailableInBranchError } from "@/modules/pos/domain/errors/CustomerNotAvailableInBranchError";
 
 function makeSummary(data: CreateSaleData): SaleSummary {
   const now = new Date();
@@ -23,19 +23,19 @@ function makeSummary(data: CreateSaleData): SaleSummary {
       discountPct: it.discountPct,
       ivaRate: it.ivaRate,
       iepsRate: it.iepsRate,
-      lineSubtotal: it.lineSubtotal,
-      lineTax: it.lineTax,
-      lineTotal: it.lineTotal,
+      lineSubtotal: 0,
+      lineTax: 0,
+      lineTotal: 0,
     })
   );
   const sale = Sale.create({
     id: "sale-1",
     folioId: data.folioId,
     folioNumber: 1,
-    folioCode: "F-1",
+    folioCode: "TK-000001",
     branchId: data.branchId,
     customerId: data.customerId,
-    cashierId: data.cashierId,
+    cashierId: "user-1",
     paymentMethodId: data.paymentMethodId,
     quoteId: data.quoteId ?? null,
     status: "completed",
@@ -53,20 +53,7 @@ function makeSummary(data: CreateSaleData): SaleSummary {
     updatedAt: now,
     items,
   });
-  return {
-    sale,
-    joined: {
-      branchName: "Zarioz",
-      customerName: "Cliente",
-      customerRfc: "ACM010101AAA",
-      customerAddress: null,
-      customerCreditDays: null,
-      cashierName: "Cajero",
-      paymentMethodCode: "EFECTIVO",
-      paymentMethodName: "Efectivo",
-      paymentMethodIsCredit: false,
-    },
-  };
+  return { sale, joined: { branchName: null, customerName: null, customerRfc: null, customerAddress: null, customerCreditDays: null, cashierName: null, paymentMethodCode: null, paymentMethodName: null, paymentMethodIsCredit: false } };
 }
 
 function makeRepo(): SaleRepository {
@@ -88,33 +75,16 @@ const HUAJUAPAN = "branch-huajuapan";
 function makeLookups(overrides?: Partial<PosLookupService>): PosLookupService {
   return {
     getProduct: jest.fn().mockResolvedValue({
-      id: "p1",
-      code: "P1",
-      name: "Producto 1",
-      ivaRate: 0.16,
-      iepsRate: null,
-      isActive: true,
+      id: "p1", code: "P1", name: "Producto 1", ivaRate: 0.16, iepsRate: null, isActive: true,
     }),
     getProductPrice: jest.fn().mockResolvedValue({
-      id: "pp1",
-      productId: "p1",
-      branchId: ZARIOZ,
-      name: "Precio Publico",
-      price: 100,
-      discountPct: null,
+      id: "pp1", productId: "p1", branchId: ZARIOZ, name: "Precio Publico", price: 100, discountPct: null,
     }),
     getCustomer: jest.fn().mockResolvedValue({ id: "c1", isActive: true, creditLimit: null, currentBalance: 0, branchIds: [ZARIOZ] }),
     getBranch: jest.fn().mockResolvedValue({ id: ZARIOZ, isActive: true }),
     getFolio: jest.fn().mockResolvedValue({ id: "f1", code: "VENTA", prefix: null, scope: "POS", isActive: true }),
     getPaymentMethod: jest.fn().mockResolvedValue({ id: "pm1", isActive: true, isCredit: false }),
-    getDosificationForSale: jest.fn().mockResolvedValue({
-      id: "d1",
-      productId: "p1",
-      name: "1/4",
-      numParts: 4,
-      isActive: true,
-      basePrice: 100,
-    }),
+    getDosificationForSale: jest.fn(),
     getDosificationSurchargePct: jest.fn().mockResolvedValue(5),
     isProductAvailableInBranch: jest.fn().mockResolvedValue(true),
     ...overrides,
@@ -129,53 +99,31 @@ const baseReq = {
   items: [{ productId: "p1", productPriceId: "pp1", quantity: 2 }],
 };
 
-describe("CreateSaleUseCase — precio por sucursal", () => {
-  it("usa el precio de la sucursal de la venta", async () => {
-    const repo = makeRepo();
-    await new CreateSaleUseCase(repo, makeLookups()).execute(baseReq, "user-1");
-    const call = (repo.createCompleted as jest.Mock).mock.calls[0][0] as CreateSaleData;
-    expect(call.items[0].unitPrice).toBe(100);
-  });
-
-  it("usa el precio propio cuando la sucursal tiene uno distinto al de otras", async () => {
-    const repo = makeRepo();
+describe("CreateSaleUseCase — cliente por sucursal", () => {
+  it("rechaza un cliente fuera de sucursal", async () => {
     const lookups = makeLookups({
-      getProductPrice: jest.fn().mockResolvedValue({
-        id: "pp1",
-        productId: "p1",
-        branchId: ZARIOZ,
-        name: "Precio Publico",
-        price: 80,
-        discountPct: null,
-      }),
-    });
-    await new CreateSaleUseCase(repo, lookups).execute(baseReq, "user-1");
-    const call = (repo.createCompleted as jest.Mock).mock.calls[0][0] as CreateSaleData;
-    expect(call.items[0].unitPrice).toBe(80);
-  });
-
-  it("rechaza un precio cuyo branchId pertenece a otra sucursal", async () => {
-    const lookups = makeLookups({
-      getProductPrice: jest.fn().mockResolvedValue({
-        id: "pp1",
-        productId: "p1",
-        branchId: HUAJUAPAN,
-        name: "Precio Publico",
-        price: 70,
-        discountPct: null,
-      }),
+      getCustomer: jest.fn().mockResolvedValue({ id: "c1", isActive: true, creditLimit: null, currentBalance: 0, branchIds: [HUAJUAPAN] }),
     });
     await expect(new CreateSaleUseCase(makeRepo(), lookups).execute(baseReq, "user-1")).rejects.toThrow(
-      ProductPriceNotAvailableForBranchError
+      CustomerNotAvailableInBranchError
     );
   });
 
-  it("resuelve el default de dosificación pasando la sucursal propia de la venta", async () => {
-    const lookups = makeLookups();
-    await new CreateSaleUseCase(makeRepo(), lookups).execute(
-      { ...baseReq, items: [{ productId: "p1", dosificationId: "d1", quantity: 4 }] },
+  it("acepta un cliente multi-sucursal que incluye la de la operación", async () => {
+    const lookups = makeLookups({
+      getCustomer: jest.fn().mockResolvedValue({ id: "c1", isActive: true, creditLimit: null, currentBalance: 0, branchIds: [HUAJUAPAN, ZARIOZ] }),
+    });
+    const result = await new CreateSaleUseCase(makeRepo(), lookups).execute(baseReq, "user-1");
+    expect(result.dto.status).toBe("completed");
+  });
+
+  it("customerId nulo no dispara el gate", async () => {
+    const lookups = makeLookups({ getCustomer: jest.fn() });
+    const result = await new CreateSaleUseCase(makeRepo(), lookups).execute(
+      { ...baseReq, customerId: undefined },
       "user-1"
     );
-    expect(lookups.getDosificationForSale).toHaveBeenCalledWith("d1", ZARIOZ);
+    expect(result.dto.status).toBe("completed");
+    expect(lookups.getCustomer).not.toHaveBeenCalled();
   });
 });

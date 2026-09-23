@@ -3,10 +3,14 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 jest.mock("../../../../../../app/_hooks/useCurrentUser", () => ({ useCurrentUser: jest.fn() }));
+jest.mock("../../../../../../app/_hooks/useBranchesOptions", () => ({ useBranchesOptions: jest.fn() }));
+jest.mock("../../../../../../app/_hooks/useHeadquarters", () => ({ useHeadquarters: jest.fn() }));
 jest.mock("../../../../../../app/(private)/catalogs/customers/_logic/hooks/useCustomers", () => ({ useCustomers: jest.fn() }));
 jest.mock("../../../../../../app/(private)/catalogs/customers/_logic/hooks/useCustomerMutations", () => ({ useCustomerMutations: jest.fn() }));
 
 import { useCurrentUser } from "../../../../../../app/_hooks/useCurrentUser";
+import { useBranchesOptions } from "../../../../../../app/_hooks/useBranchesOptions";
+import { useHeadquarters } from "../../../../../../app/_hooks/useHeadquarters";
 import * as useCustomersModule from "../../../../../../app/(private)/catalogs/customers/_logic/hooks/useCustomers";
 import * as useCustomerMutationsModule from "../../../../../../app/(private)/catalogs/customers/_logic/hooks/useCustomerMutations";
 import { CustomersPage } from "../../../../../../app/(private)/catalogs/customers/_blocks/CustomersPage";
@@ -51,6 +55,8 @@ describe("CustomersPage", () => {
     });
     jest.spyOn(useCustomersModule, "useCustomers").mockReturnValue(defaultCustomers);
     jest.spyOn(useCustomerMutationsModule, "useCustomerMutations").mockReturnValue(defaultMutations);
+    (useBranchesOptions as jest.Mock).mockReturnValue({ options: [], isLoading: false, refresh: jest.fn() });
+    (useHeadquarters as jest.Mock).mockReturnValue({ hq: null, isLoading: false, refresh: jest.fn() });
   });
 
   it("shows skeletons when canRead='loading'", () => {
@@ -140,6 +146,7 @@ describe("CustomersPage", () => {
       addressState: null,
       addressCountry: null,
       addressZipCode: null,
+  branchIds: [],
       createdAt: new Date(),
       updatedAt: new Date(),
     };

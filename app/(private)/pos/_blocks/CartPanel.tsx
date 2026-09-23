@@ -107,6 +107,7 @@ export function CartPanel({
           value={selectedCustomerId}
           onChange={onCustomerChange}
           onOpenQuickAdd={onOpenQuickAdd}
+          branchId={selectedBranchId}
         />
 
         <div>

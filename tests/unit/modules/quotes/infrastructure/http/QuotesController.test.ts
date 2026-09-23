@@ -63,7 +63,7 @@ const USER_ID = "00000000-0000-0000-0000-000000000001";
 function makeLookups(overrides: Partial<PosLookupService> = {}): PosLookupService {
   return {
     async getCustomer(id) {
-      return overrides.getCustomer ? overrides.getCustomer(id) : { id, isActive: true, creditLimit: null, currentBalance: 0, email: null };
+      return overrides.getCustomer ? overrides.getCustomer(id) : { id, isActive: true, creditLimit: null, currentBalance: 0, email: null, branchIds: [priceBranchId] };
     },
     async getBranch(id) {
       return overrides.getBranch ? overrides.getBranch(id) : { id, isActive: true };
@@ -255,7 +255,7 @@ describe("QuotesController.create", () => {
   });
 
   it("400 cuando customer está inactivo", async () => {
-    const lookups = makeLookups({ getCustomer: async (id) => ({ id, isActive: false, creditLimit: null, currentBalance: 0, email: null }) });
+    const lookups = makeLookups({ getCustomer: async (id) => ({ id, isActive: false, creditLimit: null, currentBalance: 0, email: null, branchIds: [BRANCH_ID] }) });
     const { controller, quoteRepo } = buildController({ lookups });
     quoteRepo.reset();
     const res = await controller.create(req("POST", "/quotes", baseCreateBody));
@@ -498,7 +498,7 @@ describe("QuotesController.convert", () => {
   it("200 con creditLimitExceeded=true cuando el cliente excede su línea de crédito al convertir (ya no bloquea)", async () => {
     const lookups = makeLookups({
       getPaymentMethod: async (id) => ({ id, isActive: true, isCredit: true }),
-      getCustomer: async (id) => ({ id, isActive: true, creditLimit: 50, currentBalance: 0, email: null }),
+      getCustomer: async (id) => ({ id, isActive: true, creditLimit: 50, currentBalance: 0, email: null, branchIds: [BRANCH_ID] }),
     });
     const { controller, quoteRepo } = buildController({ lookups });
     const created = await seedQuote(quoteRepo, controller);
@@ -518,7 +518,7 @@ describe("QuotesController.convert", () => {
   it("200 con creditLimitExceeded=false cuando el cliente no tiene creditLimit configurado (ya no bloquea)", async () => {
     const lookups = makeLookups({
       getPaymentMethod: async (id) => ({ id, isActive: true, isCredit: true }),
-      getCustomer: async (id) => ({ id, isActive: true, creditLimit: null, currentBalance: 0, email: null }),
+      getCustomer: async (id) => ({ id, isActive: true, creditLimit: null, currentBalance: 0, email: null, branchIds: [BRANCH_ID] }),
     });
     const { controller, quoteRepo } = buildController({ lookups });
     const created = await seedQuote(quoteRepo, controller);

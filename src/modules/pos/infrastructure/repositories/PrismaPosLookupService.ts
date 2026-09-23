@@ -79,7 +79,10 @@ export class PrismaPosLookupService implements PosLookupService {
   async getCustomer(id: string): Promise<CustomerLookup | null> {
     const row = await this.prisma.customer.findUnique({
       where: { id },
-      select: { id: true, isActive: true, creditLimit: true, currentBalance: true, email: true },
+      select: {
+        id: true, isActive: true, creditLimit: true, currentBalance: true, email: true,
+        branches: { select: { branchId: true } },
+      },
     });
     if (!row) return null;
     return {
@@ -88,6 +91,7 @@ export class PrismaPosLookupService implements PosLookupService {
       creditLimit: row.creditLimit ? Number(row.creditLimit) : null,
       currentBalance: Number(row.currentBalance),
       email: row.email,
+      branchIds: row.branches.map((b) => b.branchId),
     };
   }
 

@@ -261,4 +261,46 @@ describe("Customers use cases", () => {
     const fetched = await new GetCustomerUseCase(repo).execute(created.id);
     expect(fetched.isActive).toBe(false);
   });
+
+
+  it("create persiste branchIds", async () => {
+    const created = await new CreateCustomerUseCase(repo).execute({
+      branchIds: ["branch-a", "branch-b"],
+      code: "CLI_BR1",
+      name: "Multi Sucursal",
+      rfc: "MUL010101AAA",
+    });
+    expect(created.branchIds.sort()).toEqual(["branch-a", "branch-b"]);
+  });
+
+  it("update reemplaza el set completo de branchIds", async () => {
+    const created = await new CreateCustomerUseCase(repo).execute({
+      branchIds: ["branch-a", "branch-b"],
+      code: "CLI_BR2",
+      name: "Reasignado",
+      rfc: "REA010101AAA",
+    });
+    const updated = await new UpdateCustomerUseCase(repo).execute(created.id, {
+      branchIds: ["branch-c"],
+    });
+    expect(updated.branchIds).toEqual(["branch-c"]);
+  });
+
+  it("findAll filtra por branchId", async () => {
+    await new CreateCustomerUseCase(repo).execute({
+      branchIds: ["branch-a"], code: "CLI_A", name: "Solo A", rfc: "SOA010101AAA",
+    });
+    await new CreateCustomerUseCase(repo).execute({
+      branchIds: ["branch-b"], code: "CLI_B", name: "Solo B", rfc: "SOB010101AAA",
+    });
+    await new CreateCustomerUseCase(repo).execute({
+      branchIds: ["branch-a", "branch-b"], code: "CLI_AB", name: "Ambas", rfc: "AMB010101AAA",
+    });
+
+    const resultA = await new ListCustomersUseCase(repo).execute({ page: 1, pageSize: 20, includeInactive: false, branchId: "branch-a" });
+    expect(resultA.items.map((c) => c.code).sort()).toEqual(["CLI_A", "CLI_AB"]);
+
+    const resultB = await new ListCustomersUseCase(repo).execute({ page: 1, pageSize: 20, includeInactive: false, branchId: "branch-b" });
+    expect(resultB.items.map((c) => c.code).sort()).toEqual(["CLI_AB", "CLI_B"]);
+  });
 });

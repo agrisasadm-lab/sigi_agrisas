@@ -34,6 +34,8 @@ export interface CustomerLookup {
   creditLimit: number | null;
   currentBalance: number;
   email: string | null;
+  /** Sucursales a las que el cliente pertenece (membresía N:M). */
+  branchIds: string[];
 }
 
 export interface BranchLookup {

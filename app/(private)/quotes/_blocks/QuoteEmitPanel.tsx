@@ -136,6 +136,7 @@ export function QuoteEmitPanel({
           value={selectedCustomerId}
           onChange={onCustomerChange}
           onOpenQuickAdd={onOpenQuickAdd}
+          branchId={selectedBranchId}
         />
 
         <div>

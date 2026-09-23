@@ -13,6 +13,7 @@ import { DosificationRequiresDefaultPriceError } from "../../domain/errors/Dosif
 import { DosificationPriceCalculator } from "@/modules/products/domain/services/DosificationPriceCalculator";
 import { isFractionalQuantity } from "@/modules/products/domain/services/isFractionalQuantity";
 import { CancelledSaleNotEditableError } from "../../domain/errors/CancelledSaleNotEditableError";
+import { CustomerNotAvailableInBranchError } from "../../domain/errors/CustomerNotAvailableInBranchError";
 import { ReturnedTotalSaleNotEditableError } from "../../domain/errors/ReturnedTotalSaleNotEditableError";
 import { InactiveResourceError } from "../../domain/errors/InactiveResourceError";
 import { ProductNotAvailableInBranchError } from "../../domain/errors/ProductNotAvailableInBranchError";
@@ -40,6 +41,7 @@ export class EditCompletedSaleUseCase {
     if (req.customerId) {
       const customer = await this.lookups.getCustomer(req.customerId);
       if (!customer || !customer.isActive) throw new InactiveResourceError("Customer");
+      if (!customer.branchIds.includes(existing.sale.branchId)) throw new CustomerNotAvailableInBranchError();
     }
     if (req.paymentMethodId) {
       const pm = await this.lookups.getPaymentMethod(req.paymentMethodId);

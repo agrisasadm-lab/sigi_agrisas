@@ -41,7 +41,7 @@ function makeLookups(overrides: Partial<PosLookupService> = {}): PosLookupServic
   return {
     async getCustomer(id) {
       if (overrides.getCustomer) return overrides.getCustomer(id);
-      return { id, isActive: true, creditLimit: null, currentBalance: 0, email: null };
+      return { id, isActive: true, creditLimit: null, currentBalance: 0, email: null, branchIds: [BRANCH_ID] };
     },
     async getBranch(id) {
       if (overrides.getBranch) return overrides.getBranch(id);
@@ -130,7 +130,7 @@ describe("CreateQuoteUseCase", () => {
   it("rechaza customer inactivo", async () => {
     const uc = new CreateQuoteUseCase(
       repo,
-      makeLookups({ async getCustomer(id) { return { id, isActive: false, creditLimit: null, currentBalance: 0, email: null }; } })
+      makeLookups({ async getCustomer(id) { return { id, isActive: false, creditLimit: null, currentBalance: 0, email: null, branchIds: [BRANCH_ID] }; } })
     );
     await expect(uc.execute(baseCreateReq, USER_ID)).rejects.toThrow(InactiveResourceError);
   });

@@ -120,6 +120,11 @@ export function PosPage() {
     }
   }, [canCreate, canQuote]);
 
+  // Al cambiar de sucursal (bypass), el cliente ya seleccionado puede no pertenecer a la nueva.
+  useEffect(() => {
+    setSelectedCustomerId("");
+  }, [selectedBranchId]);
+
   // Prompt on unload when cart has items
   useEffect(() => {
     if (lines.length === 0) return;
@@ -382,6 +387,7 @@ export function PosPage() {
         <CustomerQuickAddModal
           onCreated={handleCustomerCreated}
           onClose={() => setModal(null)}
+          branchId={selectedBranchId || undefined}
         />
       )}
 

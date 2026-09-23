@@ -116,6 +116,9 @@ describe("catalogCache — pull inicial", () => {
 
     const priceCall = mockAuthFetch.mock.calls.find(([url]) => String(url).includes("/prices"));
     expect(String(priceCall?.[0])).toContain("branchId=b1");
+
+    const customersCall = mockAuthFetch.mock.calls.find(([url]) => String(url).includes("/customers"));
+    expect(String(customersCall?.[0])).toContain("branchId=b1");
   });
 
   it("actualiza catalogSyncedAt tras un pull exitoso", async () => {

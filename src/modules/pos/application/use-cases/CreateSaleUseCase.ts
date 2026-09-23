@@ -16,6 +16,7 @@ import { InactiveResourceError } from "../../domain/errors/InactiveResourceError
 import { QuoteLinkInvalidError } from "../../domain/errors/QuoteLinkInvalidError";
 import { FolioScopeMismatchError } from "@/shared/domain/errors/FolioScopeMismatchError";
 import { ProductNotAvailableInBranchError } from "../../domain/errors/ProductNotAvailableInBranchError";
+import { CustomerNotAvailableInBranchError } from "../../domain/errors/CustomerNotAvailableInBranchError";
 
 export interface CreateSaleResult {
   dto: SaleDetailDto;
@@ -63,6 +64,7 @@ export class CreateSaleUseCase {
 
     if (req.customerId && !customer) throw new InactiveResourceError("Customer not found");
     if (customer && !customer.isActive) throw new InactiveResourceError("Customer");
+    if (customer && !customer.branchIds.includes(req.branchId)) throw new CustomerNotAvailableInBranchError();
     if (!branch) throw new InactiveResourceError("Branch not found");
     if (!branch.isActive) throw new InactiveResourceError("Branch");
     if (!folio) throw new InactiveResourceError("Folio not found");

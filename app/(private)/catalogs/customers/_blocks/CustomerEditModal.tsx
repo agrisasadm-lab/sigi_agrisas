@@ -8,6 +8,11 @@ import { createCustomerSchema, updateCustomerSchema } from "../_logic/schemas/cu
 import type { Customer } from "../_logic/types/domain";
 import type { CreateCustomerBody, UpdateCustomerBody } from "../_logic/types/api";
 
+interface CustomerBranchOption {
+  id: string;
+  name: string;
+}
+
 interface CustomerEditModalProps {
   open: boolean;
   mode: "create" | "edit";
@@ -18,6 +23,12 @@ interface CustomerEditModalProps {
   mutationError: string | null;
   onSave: (data: CreateCustomerBody | UpdateCustomerBody) => void;
   onClose: () => void;
+  /** Sucursales activas — vía useBranchesOptions(). Sólo se usan en modo bypass. */
+  branches: CustomerBranchOption[];
+  isBypass: boolean;
+  ownBranchId: string | null;
+  /** Preselección en modo create con bypass. */
+  headquartersId: string | null;
 }
 
 function normalizeOptional(value: string): string | null {
@@ -44,6 +55,10 @@ export function CustomerEditModal({
   mutationError,
   onSave,
   onClose,
+  branches,
+  isBypass,
+  ownBranchId,
+  headquartersId,
 }: CustomerEditModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -71,6 +86,7 @@ export function CustomerEditModal({
   const [addressState, setAddressState] = useState("");
   const [addressCountry, setAddressCountry] = useState("");
   const [addressZipCode, setAddressZipCode] = useState("");
+  const [branchIds, setBranchIds] = useState<string[]>([]);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -118,6 +134,7 @@ export function CustomerEditModal({
       setAddressState("");
       setAddressCountry("");
       setAddressZipCode("");
+      setBranchIds(isBypass ? (headquartersId ? [headquartersId] : []) : ownBranchId ? [ownBranchId] : []);
     } else if (entity) {
       setCode(entity.code);
       setName(entity.name);
@@ -143,9 +160,14 @@ export function CustomerEditModal({
       setAddressState(entity.addressState ?? "");
       setAddressCountry(entity.addressCountry ?? "");
       setAddressZipCode(entity.addressZipCode ?? "");
+      setBranchIds(entity.branchIds);
     }
     setValidationErrors({});
-  }, [open, mode, entity]);
+  }, [open, mode, entity, isBypass, ownBranchId, headquartersId]);
+
+  function toggleBranch(id: string) {
+    setBranchIds((prev) => (prev.includes(id) ? prev.filter((b) => b !== id) : [...prev, id]));
+  }
 
   function buildCreatePayload(): CreateCustomerBody {
     const trimmedCreditDays = creditDays.trim();
@@ -174,6 +196,7 @@ export function CustomerEditModal({
       addressState: normalizeOptional(addressState),
       addressCountry: normalizeOptional(addressCountry),
       addressZipCode: normalizeOptional(addressZipCode),
+      branchIds,
     };
   }
 
@@ -226,6 +249,9 @@ export function CustomerEditModal({
     if (co !== entity.addressCountry) diff.addressCountry = co;
     const zc = normalizeOptional(addressZipCode);
     if (zc !== entity.addressZipCode) diff.addressZipCode = zc;
+    const sortedCurrent = [...branchIds].sort();
+    const sortedOriginal = [...entity.branchIds].sort();
+    if (JSON.stringify(sortedCurrent) !== JSON.stringify(sortedOriginal)) diff.branchIds = branchIds;
     return diff;
   }
 
@@ -593,6 +619,42 @@ export function CustomerEditModal({
               <p className="text-label-sm text-error mt-1">{validationErrors.initialBalance}</p>
             )}
           </div>
+        </section>
+
+        {/* Sección: Sucursales */}
+        <section className="space-y-3 pt-4 border-t border-outline-variant">
+          <h3 className="text-title-sm font-medium text-on-surface-variant uppercase tracking-wide">
+            Sucursales
+          </h3>
+
+          {isBypass ? (
+            <>
+              <div className="flex flex-wrap gap-3">
+                {branches.map((b) => (
+                  <label
+                    key={b.id}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-outline-variant bg-surface-container-lowest text-body-sm text-on-surface cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={branchIds.includes(b.id)}
+                      onChange={() => toggleBranch(b.id)}
+                      className="rounded"
+                    />
+                    {b.name}
+                  </label>
+                ))}
+              </div>
+              {validationErrors.branchIds && (
+                <p className="text-label-sm text-error">{validationErrors.branchIds}</p>
+              )}
+            </>
+          ) : (
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-secondary-container text-on-secondary-container text-body-sm">
+              <Icon name="store" size={16} />
+              {branches.find((b) => b.id === ownBranchId)?.name ?? "Mi sucursal"}
+            </div>
+          )}
         </section>
 
         {/* Sección: Domicilio estructurado (Carta Porte) */}
