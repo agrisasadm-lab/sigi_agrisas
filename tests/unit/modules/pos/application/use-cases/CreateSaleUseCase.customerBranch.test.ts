@@ -126,4 +126,17 @@ describe("CreateSaleUseCase — cliente por sucursal", () => {
     expect(result.dto.status).toBe("completed");
     expect(lookups.getCustomer).not.toHaveBeenCalled();
   });
+
+  it("gate incondicional: rechaza cliente fuera de sucursal tanto con branchScopedInventory=false como =true", async () => {
+    const lookups = makeLookups({
+      getCustomer: jest.fn().mockResolvedValue({ id: "c1", isActive: true, creditLimit: null, currentBalance: 0, branchIds: [HUAJUAPAN] }),
+      isProductAvailableInBranch: jest.fn().mockResolvedValue(true),
+    });
+    await expect(
+      new CreateSaleUseCase(makeRepo(), lookups, undefined, false).execute(baseReq, "user-1")
+    ).rejects.toThrow(CustomerNotAvailableInBranchError);
+    await expect(
+      new CreateSaleUseCase(makeRepo(), lookups, undefined, true).execute(baseReq, "user-1")
+    ).rejects.toThrow(CustomerNotAvailableInBranchError);
+  });
 });

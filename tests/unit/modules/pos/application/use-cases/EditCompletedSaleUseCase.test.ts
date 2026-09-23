@@ -9,6 +9,7 @@ import { ProductPriceMismatchError } from "@/modules/pos/domain/errors/ProductPr
 import { ProductPriceNotAvailableForBranchError } from "@/modules/pos/domain/errors/ProductPriceNotAvailableForBranchError";
 import { SaleHasActivePaymentsError } from "@/modules/payments/domain/errors/SaleHasActivePaymentsError";
 import { ReturnedTotalSaleNotEditableError } from "@/modules/pos/domain/errors/ReturnedTotalSaleNotEditableError";
+import { CustomerNotAvailableInBranchError } from "@/modules/pos/domain/errors/CustomerNotAvailableInBranchError";
 
 function makeSummary(status: SaleStatus): SaleSummary {
   const now = new Date();
@@ -61,7 +62,7 @@ function makeLookups(overrides?: Partial<PosLookupService>): PosLookupService {
       price: 100,
       discountPct: null,
     }),
-    getCustomer: jest.fn().mockResolvedValue({ id: "c1", isActive: true, creditLimit: null, currentBalance: 0 }),
+    getCustomer: jest.fn().mockResolvedValue({ id: "c1", isActive: true, creditLimit: null, currentBalance: 0, branchIds: ["b1"] }),
     getBranch: jest.fn().mockResolvedValue({ id: "b1", isActive: true }),
     getFolio: jest.fn().mockResolvedValue({ id: "f1", code: "VENTA", prefix: null, scope: "POS", isActive: true }),
     getPaymentMethod: jest.fn().mockResolvedValue({ id: "pm1", isActive: true, isCredit: false }),
@@ -240,6 +241,50 @@ describe("EditCompletedSaleUseCase", () => {
       const result = await new EditCompletedSaleUseCase(makeRepo("completed"), lookups).execute("sale-1", baseReq);
       expect(result.dto.status).toBe("edited");
       expect(lookups.isProductAvailableInBranch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("cliente por sucursal", () => {
+    it("rechaza reasignar un customerId fuera de la sucursal de la venta", async () => {
+      const lookups = makeLookups({
+        getCustomer: jest.fn().mockResolvedValue({
+          id: "c2",
+          isActive: true,
+          creditLimit: null,
+          currentBalance: 0,
+          branchIds: ["otra-sucursal"],
+        }),
+      });
+      await expect(
+        new EditCompletedSaleUseCase(makeRepo("completed"), lookups).execute("sale-1", {
+          ...baseReq,
+          customerId: "c2",
+        })
+      ).rejects.toThrow(CustomerNotAvailableInBranchError);
+    });
+
+    it("acepta reasignar un customerId con membresía en la sucursal de la venta", async () => {
+      const lookups = makeLookups({
+        getCustomer: jest.fn().mockResolvedValue({
+          id: "c2",
+          isActive: true,
+          creditLimit: null,
+          currentBalance: 0,
+          branchIds: ["b1"],
+        }),
+      });
+      const result = await new EditCompletedSaleUseCase(makeRepo("completed"), lookups).execute("sale-1", {
+        ...baseReq,
+        customerId: "c2",
+      });
+      expect(result.dto.status).toBe("edited");
+    });
+
+    it("no dispara el gate cuando la edición no reasigna customerId", async () => {
+      const lookups = makeLookups();
+      const result = await new EditCompletedSaleUseCase(makeRepo("completed"), lookups).execute("sale-1", baseReq);
+      expect(result.dto.status).toBe("edited");
+      expect(lookups.getCustomer).not.toHaveBeenCalled();
     });
   });
 

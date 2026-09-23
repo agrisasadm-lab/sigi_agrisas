@@ -66,7 +66,7 @@
 - [x] 6.4 `app/(private)/catalogs/customers/_logic/schemas/customer.schema.ts` (si existe con ese nombre; si no, ubicar el schema Zod de cliente): agregar `branchIds: z.array(z.string().uuid())`.
 - [x] 6.5 `app/(private)/catalogs/customers/_blocks/CustomerEditModal.tsx`: 4ª sección "Sucursales" (ver diseño de UI en el delta de `customers-ui`). Props nuevas: `branches: {id,name,code}[]` (vía `useBranchesOptions()`), `isBypass: boolean`, `ownBranchId: string | null`, `headquartersId: string | null` (vía `useHeadquarters()`). Bypass: checklist con al menos 1 marcado, preselecciona Matriz en `create`. Operador: chip read-only con su sucursal.
 - [x] 6.6 `app/(private)/catalogs/customers/_blocks/CustomersPage.tsx`: si `isBypass`, agregar `Select` de sucursal en el toolbar (mismo patrón que `/sales`), pasar `branchId` a `listCustomers`/hook de lista.
-- [x] 6.7 `app/(private)/catalogs/customers/_blocks/CustomersTable.tsx`: columna "Sucursales" (códigos separados por coma) sólo cuando `isBypass`.
+- [x] 6.7 `app/(private)/catalogs/customers/_blocks/CustomersTable.tsx`: columna "Sucursales" (nombres separados por coma, vía `useBranchesOptions()` — sin campo `code` disponible) sólo cuando `isBypass`.
 - [x] 6.8 `app/(private)/catalogs/customers/_logic/hooks/{useCustomers,useCustomerMutations}.ts` (nombres exactos a confirmar al implementar): propagar `branchId`/`branchIds`; el diff de mutations incluye `branchIds` como comparación de sets ordenados (no de referencia de array).
 - [x] 6.9 Tests: `tests/unit/ui/(private)/catalogs/customers/CustomerEditModal.test.tsx` (bypass vs operador, validación de mínimo 1 sucursal), `CustomersPage.test.tsx` (filtro visible sólo para bypass), tests de los servicios (`branchId`/`branchIds` en query/body).
 

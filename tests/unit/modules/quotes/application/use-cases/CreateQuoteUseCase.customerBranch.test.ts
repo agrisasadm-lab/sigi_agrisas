@@ -90,4 +90,19 @@ describe("CreateQuoteUseCase — cliente por sucursal", () => {
     expect(result.dto.status).toBe("draft");
     expect(getCustomerSpy).not.toHaveBeenCalled();
   });
+
+  it("gate incondicional: rechaza cliente fuera de sucursal tanto con branchScopedInventory=false como =true", async () => {
+    const lookups = makeLookups({
+      async getCustomer(id) {
+        return { id, isActive: true, creditLimit: null, currentBalance: 0, email: null, branchIds: [HUAJUAPAN] };
+      },
+    });
+    await expect(
+      new CreateQuoteUseCase(repo, lookups, false).execute(baseCreateReq, USER_ID)
+    ).rejects.toThrow(CustomerNotAvailableInBranchError);
+    repo.reset();
+    await expect(
+      new CreateQuoteUseCase(repo, lookups, true).execute(baseCreateReq, USER_ID)
+    ).rejects.toThrow(CustomerNotAvailableInBranchError);
+  });
 });
