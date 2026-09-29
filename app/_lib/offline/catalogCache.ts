@@ -123,10 +123,14 @@ export async function refreshCatalogCache(ownerBranchId: string): Promise<void> 
   await productsTx.done;
 
   const pricesTx = db.transaction("catalogPrices", "readwrite");
-  // Purga los precios de cualquier otra sucursal: tras un cambio de sucursal la
-  // caché no debe seguir sirviendo los precios de la anterior.
+  // Reemplazo completo: purga TODOS los precios cacheados (de esta sucursal y de
+  // cualquier otra) antes de repoblar con la respuesta fresca del server. Un
+  // purge parcial (sólo "otra sucursal") deja huérfano cualquier id que el
+  // server ya no devuelva para la sucursal actual — por ejemplo un precio que
+  // migró de bucket global a otra sucursal server-side sigue existiendo con su
+  // id viejo en la caché y aparece duplicado/obsoleto en el selector del POS.
   for (const stale of await pricesTx.store.getAll()) {
-    if (stale.ownerBranchId !== ownerBranchId) await pricesTx.store.delete(stale.id);
+    await pricesTx.store.delete(stale.id);
   }
   for (const prices of pricesByProduct) {
     for (const price of prices) await pricesTx.store.put({ ...price, ownerBranchId });

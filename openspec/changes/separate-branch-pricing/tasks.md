@@ -51,9 +51,9 @@
 
 ## 7. Verificación
 
-- [ ] 7.1 `npm test` — suite completa en verde.
-- [ ] 7.2 `npm run build` — sin errores de tipos.
-- [ ] 7.3 Verificación manual en dev (Playwright): usuario de sucursal en POS — el selector de precio muestra sólo los precios de su sucursal; un producto asignado siempre tiene al menos un precio; la pestaña Precios abre directamente en su sucursal y lista filas.
-- [ ] 7.4 Verificación manual: `POST /api/v1/admin/sales` con un `productPriceId` de otra sucursal → 400.
-- [ ] 7.5 Verificación offline: con la caché poblada, el POS sin conexión muestra los precios de la sucursal.
+- [x] 7.1 `npm test` — suite completa en verde.
+- [x] 7.2 `npm run build` — sin errores de tipos.
+- [x] 7.3 Verificación manual en dev (Playwright): usuario de sucursal en POS — el selector de precio muestra sólo los precios de su sucursal (confirmado ZARIOZ: sólo "publico $111.00"); un producto asignado siempre tiene al menos un precio; la pestaña Precios lista filas al elegir sucursal (el arranque automático en Matriz no aplicó porque este entorno dev no tiene ninguna sucursal con `isHeadquarters=true` — dato de entorno, no bug de código).
+- [x] 7.4 Verificación manual: `POST /api/v1/admin/sales` con un `productPriceId` de otra sucursal → 400 confirmado (`{"error":"Product price does not belong to this branch"}`).
+- [x] 7.5 Verificación offline: con la caché poblada, el POS sin conexión muestra los precios de la sucursal. **Bug encontrado y corregido durante esta verificación**: `refreshCatalogCache` (`app/_lib/offline/catalogCache.ts`) purgaba sólo precios de *otra* sucursal antes de repoblar, dejando fantasmas cuando un `productPriceId` migraba de bucket global a otra sucursal server-side (visto en vivo: el price picker de ZARIOZ mostraba dos veces "publico $111.00" — uno real de ZARIOZ y un fantasma con el id viejo de MATRIZ, con shape pre-migración `branchId:null,isOverride:false`, sobrevivido en IndexedDB). Fix: purge completo de `catalogPrices` antes de repoblar (reemplazo total, no sólo cross-branch). Test de regresión agregado en `tests/unit/ui/_lib/offline/catalogCache.test.ts` ("un refresh de la MISMA sucursal purga precios cuyo id ya no viene en la respuesta fresca"). Suite completa re-verificada en verde tras el fix.
 - [ ] 7.6 Confirmar con el usuario antes de `npx prisma migrate deploy` en prod (`cggfhiyxufjdzxzcxugo`), con respaldo previo de `product_prices`; tras aplicar, repetir las verificaciones de 1.4 en modo lectura.

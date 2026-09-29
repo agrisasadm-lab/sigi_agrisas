@@ -144,6 +144,52 @@ describe("catalogCache — pull inicial", () => {
     await expect(refreshCatalogCache("b1")).rejects.toThrow(NetworkError);
     expect(mockAuthFetch).not.toHaveBeenCalled();
   });
+
+  it("un refresh de la MISMA sucursal purga precios cuyo id ya no viene en la respuesta fresca", async () => {
+    // Reproduce el caso real: un precio migra server-side de bucket global a otra
+    // sucursal (separate-branch-pricing) y su id deja de aparecer en la respuesta
+    // de /prices?branchId=b1 — el registro viejo no debe sobrevivir en cache como
+    // fantasma (mismo ownerBranchId, id obsoleto).
+    mockAuthFetch.mockImplementation(async (input: string) => {
+      const url = typeof input === "string" ? input : String(input);
+      if (url.includes("/admin/products?")) {
+        return jsonResponse({
+          items: [{ id: "p1", code: "P1", name: "Producto 1", ivaRate: 0.16, iepsRate: null, isActive: true, departmentId: "d1", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z", stock: 42 }],
+          total: 1, page: 1, pageSize: 100,
+        });
+      }
+      if (url.includes("/prices")) {
+        return jsonResponse({ items: [{ id: "pp1", productId: "p1", name: "Menudeo", price: 100, minQuantity: 1, discountPct: 0, isDefault: true }] });
+      }
+      if (url.includes("/dosifications")) return jsonResponse({ items: [] });
+      if (url.includes("/payment-methods")) return jsonResponse({ items: [] });
+      if (url.includes("/folios")) return jsonResponse({ items: [] });
+      if (url.includes("/customers")) return jsonResponse({ items: [], total: 0, page: 1, pageSize: 100 });
+      throw new Error(`unexpected URL in test: ${url}`);
+    });
+    await refreshCatalogCache("b1");
+    expect((await getProductPricesFromCache("p1", "b1")).map((p) => p.id)).toEqual(["pp1"]);
+
+    mockAuthFetch.mockImplementation(async (input: string) => {
+      const url = typeof input === "string" ? input : String(input);
+      if (url.includes("/admin/products?")) {
+        return jsonResponse({
+          items: [{ id: "p1", code: "P1", name: "Producto 1", ivaRate: 0.16, iepsRate: null, isActive: true, departmentId: "d1", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z", stock: 42 }],
+          total: 1, page: 1, pageSize: 100,
+        });
+      }
+      if (url.includes("/prices")) {
+        return jsonResponse({ items: [{ id: "pp2", productId: "p1", name: "Menudeo", price: 100, minQuantity: 1, discountPct: 0, isDefault: true }] });
+      }
+      if (url.includes("/dosifications")) return jsonResponse({ items: [] });
+      if (url.includes("/payment-methods")) return jsonResponse({ items: [] });
+      if (url.includes("/folios")) return jsonResponse({ items: [] });
+      if (url.includes("/customers")) return jsonResponse({ items: [], total: 0, page: 1, pageSize: 100 });
+      throw new Error(`unexpected URL in test: ${url}`);
+    });
+    await refreshCatalogCache("b1");
+    expect((await getProductPricesFromCache("p1", "b1")).map((p) => p.id)).toEqual(["pp2"]);
+  });
 });
 
 describe("catalogCache — búsqueda offline con filtro", () => {
