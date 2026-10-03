@@ -15,7 +15,7 @@ export class CreateProductDosificationUseCase {
     private readonly pricingSettingsRepo: PricingSettingsRepository
   ) {}
 
-  async execute(productId: string, req: CreateProductDosificationRequest): Promise<ProductDosificationDto> {
+  async execute(productId: string, branchId: string, req: CreateProductDosificationRequest): Promise<ProductDosificationDto> {
     const product = await this.productRepo.findById(productId);
     if (!product) throw new ProductNotFoundError(productId);
 
@@ -27,7 +27,7 @@ export class CreateProductDosificationUseCase {
     });
 
     const [defaultPrice, pricingSettings] = await Promise.all([
-      this.priceRepo.findDefaultByProductId(productId),
+      this.priceRepo.findDefaultByProductId(productId, branchId),
       this.pricingSettingsRepo.get(),
     ]);
     return toProductDosificationDto(created, defaultPrice, pricingSettings.dosificationSurchargePct);

@@ -24,6 +24,9 @@ interface CustomersTableProps {
   onSoftDelete: (id: string) => void;
   onReactivate: (id: string) => void;
   onEnter?: (item: Customer) => void;
+  /** Columna "Sucursales" sólo visible con branches:access_all. */
+  isBypass?: boolean;
+  branches?: Array<{ id: string; name: string }>;
 }
 
 export function CustomersTable({
@@ -34,9 +37,12 @@ export function CustomersTable({
   onSoftDelete,
   onReactivate,
   onEnter,
+  isBypass = false,
+  branches = [],
 }: CustomersTableProps) {
   const noop = () => {};
   const { getRowProps } = useTableKeyboard(items, onEnter ?? noop);
+  const branchName = (id: string) => branches.find((b) => b.id === id)?.name ?? id;
 
   if (isLoading) {
     return (
@@ -61,6 +67,9 @@ export function CustomersTable({
             <th className="text-left px-4 py-3 text-label-lg text-on-surface-variant font-medium">Saldo actual</th>
             <th className="text-left px-4 py-3 text-label-lg text-on-surface-variant font-medium">Plazo (días)</th>
             <th className="text-left px-4 py-3 text-label-lg text-on-surface-variant font-medium">Estado</th>
+            {isBypass && (
+              <th className="text-left px-4 py-3 text-label-lg text-on-surface-variant font-medium">Sucursales</th>
+            )}
             {canWrite && (
               <th className="text-right px-4 py-3 text-label-lg text-on-surface-variant font-medium">Acciones</th>
             )}
@@ -92,6 +101,11 @@ export function CustomersTable({
               <td className="px-4 py-3">
                 <CatalogStatusBadge isActive={item.isActive} />
               </td>
+              {isBypass && (
+                <td className="px-4 py-3 text-on-surface-variant max-w-[200px] truncate" title={item.branchIds.map(branchName).join(", ")}>
+                  {item.branchIds.map(branchName).join(", ")}
+                </td>
+              )}
               {canWrite && (
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">

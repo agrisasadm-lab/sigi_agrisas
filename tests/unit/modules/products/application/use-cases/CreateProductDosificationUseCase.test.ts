@@ -6,6 +6,8 @@ import { InMemoryPricingSettingsRepository } from "@/modules/settings/infrastruc
 import { ProductNotFoundError } from "@/modules/products/domain/errors/ProductNotFoundError";
 import { DuplicateDosificationNameError } from "@/modules/products/domain/errors/DuplicateDosificationNameError";
 
+const BRANCH = "66666666-6666-6666-6666-666666666666";
+
 const DEPT = "11111111-1111-1111-1111-111111111111";
 
 describe("CreateProductDosificationUseCase", () => {
@@ -28,20 +30,20 @@ describe("CreateProductDosificationUseCase", () => {
   });
 
   it("creates a dosification", async () => {
-    const result = await useCase.execute(productId, { name: "Por dosis", numParts: 50 });
+    const result = await useCase.execute(productId, BRANCH, { name: "Por dosis", numParts: 50 });
     expect(result.name).toBe("Por dosis");
     expect(result.numParts).toBe(50);
     expect(result.isActive).toBe(true);
   });
 
   it("rejects a duplicate name", async () => {
-    await useCase.execute(productId, { name: "Por dosis", numParts: 10 });
-    await expect(useCase.execute(productId, { name: "Por dosis", numParts: 20 })).rejects.toThrow(
+    await useCase.execute(productId, BRANCH, { name: "Por dosis", numParts: 10 });
+    await expect(useCase.execute(productId, BRANCH, { name: "Por dosis", numParts: 20 })).rejects.toThrow(
       DuplicateDosificationNameError
     );
   });
 
   it("throws ProductNotFoundError when the product does not exist", async () => {
-    await expect(useCase.execute("nope", { name: "X", numParts: 5 })).rejects.toThrow(ProductNotFoundError);
+    await expect(useCase.execute("nope", BRANCH, { name: "X", numParts: 5 })).rejects.toThrow(ProductNotFoundError);
   });
 });

@@ -12,6 +12,7 @@ import { ProductPriceMismatchError } from "../../domain/errors/ProductPriceMisma
 import { ProductPriceNotAvailableForBranchError } from "../../domain/errors/ProductPriceNotAvailableForBranchError";
 import { ProductNotAvailableInBranchError } from "../../domain/errors/ProductNotAvailableInBranchError";
 import { InactiveResourceError } from "../../domain/errors/InactiveResourceError";
+import { CustomerNotAvailableInBranchError } from "../../domain/errors/CustomerNotAvailableInBranchError";
 import { FolioScopeMismatchError } from "@/shared/domain/errors/FolioScopeMismatchError";
 import { isFractionalQuantity } from "@/modules/products/domain/services/isFractionalQuantity";
 
@@ -65,6 +66,7 @@ export class CreateQuoteUseCase {
 
     if (req.customerId && !customer) throw new InactiveResourceError("Customer not found");
     if (req.customerId && customer && !customer.isActive) throw new InactiveResourceError("Customer");
+    if (req.customerId && customer && !customer.branchIds.includes(req.branchId)) throw new CustomerNotAvailableInBranchError();
     if (!branch) throw new InactiveResourceError("Branch not found");
     if (!branch.isActive) throw new InactiveResourceError("Branch");
     if (!folio) throw new InactiveResourceError("Folio not found");
@@ -92,7 +94,7 @@ export class CreateQuoteUseCase {
 
       if (!price) throw new InactiveResourceError("Product price not found");
       if (price.productId !== item.productId) throw new ProductPriceMismatchError();
-      if (price.branchId != null && price.branchId !== req.branchId) {
+      if (price.branchId !== req.branchId) {
         throw new ProductPriceNotAvailableForBranchError();
       }
 

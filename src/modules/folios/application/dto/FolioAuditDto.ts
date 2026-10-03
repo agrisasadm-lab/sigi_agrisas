@@ -1,6 +1,6 @@
 export interface AuditSequenceRaw {
   num: number;
-  doc_type: "sale" | "quote" | "payment";
+  doc_type: "sale" | "quote" | "payment" | "purchase";
   doc_id: string;
   status: string;
   issued_at: Date;
@@ -8,7 +8,7 @@ export interface AuditSequenceRaw {
 
 export interface AuditSequenceItemDto {
   number: number;
-  documentType: "sale" | "quote" | "payment";
+  documentType: "sale" | "quote" | "payment" | "purchase";
   documentId: string;
   status: string;
   issuedAt: string;
@@ -24,4 +24,7 @@ export interface FolioAuditResultDto {
   gaps: number[];
   truncated: boolean;
   sequence: AuditSequenceItemDto[];
+  /** Presente cuando la auditoría se filtró a una sucursal (folio branch-scoped + `?branchId=`). */
+  branchId: string | null;
+  branchCode: string | null;
 }

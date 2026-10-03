@@ -78,6 +78,22 @@ describe("createCustomer", () => {
     expect(sentBody.creditDays).toBeUndefined();
   });
 
+  it("includes branchIds in body when provided", async () => {
+    const mockFetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
+      status: 201,
+      json: async () => baseDto,
+    } as Response);
+
+    await createCustomer(
+      { body: { code: "CLI_001", name: "Cliente ACME", rfc: "SAC120101A12", branchIds: ["b1", "b2"] } },
+      mockFetch,
+    );
+
+    const sentBody = JSON.parse((mockFetch.mock.calls[0][1] as RequestInit).body as string);
+    expect(sentBody.branchIds).toEqual(["b1", "b2"]);
+  });
+
   it("throws CustomerCodeAlreadyInUseError on 409 with 'code already in use'", async () => {
     const mockFetch = jest.fn().mockResolvedValueOnce({
       ok: false,

@@ -41,7 +41,7 @@ function makeLookups(overrides: Partial<PosLookupService> = {}): PosLookupServic
   return {
     async getCustomer(id) {
       if (overrides.getCustomer) return overrides.getCustomer(id);
-      return { id, isActive: true, creditLimit: null, currentBalance: 0, email: null };
+      return { id, isActive: true, creditLimit: null, currentBalance: 0, email: null, branchIds: [BRANCH_ID] };
     },
     async getBranch(id) {
       if (overrides.getBranch) return overrides.getBranch(id);
@@ -61,10 +61,10 @@ function makeLookups(overrides: Partial<PosLookupService> = {}): PosLookupServic
     },
     async getProductPrice(id) {
       if (overrides.getProductPrice) return overrides.getProductPrice(id);
-      return { id, productId: PRODUCT_ID, name: "Menudeo", price: 100, discountPct: null };
+      return { id, productId: PRODUCT_ID, branchId: BRANCH_ID, name: "Menudeo", price: 100, discountPct: null };
     },
-    async getDosificationForSale(id) {
-      if (overrides.getDosificationForSale) return overrides.getDosificationForSale(id);
+    async getDosificationForSale(id, branchId) {
+      if (overrides.getDosificationForSale) return overrides.getDosificationForSale(id, branchId);
       return null;
     },
     async getDosificationSurchargePct() {
@@ -120,7 +120,7 @@ describe("CreateQuoteUseCase", () => {
       repo,
       makeLookups({
         async getProductPrice(id) {
-          return { id, productId: "OTRO_PRODUCT", name: "X", price: 10, discountPct: null };
+          return { id, productId: "OTRO_PRODUCT", branchId: BRANCH_ID, name: "X", price: 10, discountPct: null };
         },
       })
     );
@@ -130,7 +130,7 @@ describe("CreateQuoteUseCase", () => {
   it("rechaza customer inactivo", async () => {
     const uc = new CreateQuoteUseCase(
       repo,
-      makeLookups({ async getCustomer(id) { return { id, isActive: false, creditLimit: null, currentBalance: 0, email: null }; } })
+      makeLookups({ async getCustomer(id) { return { id, isActive: false, creditLimit: null, currentBalance: 0, email: null, branchIds: [BRANCH_ID] }; } })
     );
     await expect(uc.execute(baseCreateReq, USER_ID)).rejects.toThrow(InactiveResourceError);
   });
@@ -525,7 +525,7 @@ describe("ConvertQuoteToSaleUseCase", () => {
       sRepo,
       makeLookups({
         async getProductPrice(idArg) {
-          return { id: idArg, productId: PRODUCT_ID, name: "Menudeo", price: 999, discountPct: null };
+          return { id: idArg, productId: PRODUCT_ID, branchId: BRANCH_ID, name: "Menudeo", price: 999, discountPct: null };
         },
       })
     );

@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 beforeAll(() => {
   HTMLDialogElement.prototype.showModal = jest.fn(function (this: HTMLDialogElement) {
@@ -16,16 +16,19 @@ jest.mock(
 );
 jest.mock("../../../../../../app/_hooks/useBranchesOptions");
 jest.mock("../../../../../../app/_hooks/useCurrentUser");
+jest.mock("../../../../../../app/_hooks/useHeadquarters");
 
 import { useProductPrices } from "../../../../../../app/(private)/catalogs/products/_logic/hooks/useProductPrices";
 import { useBranchesOptions } from "../../../../../../app/_hooks/useBranchesOptions";
 import { useCurrentUser } from "../../../../../../app/_hooks/useCurrentUser";
+import { useHeadquarters } from "../../../../../../app/_hooks/useHeadquarters";
 import { ProductPricesTab } from "../../../../../../app/(private)/catalogs/products/_blocks/ProductPricesTab";
 import type { ProductPrice } from "../../../../../../app/(private)/catalogs/products/_logic/types/domain";
 
 const mockUseProductPrices = useProductPrices as jest.Mock;
 const mockUseBranchesOptions = useBranchesOptions as jest.MockedFunction<typeof useBranchesOptions>;
 const mockUseCurrentUser = useCurrentUser as jest.MockedFunction<typeof useCurrentUser>;
+const mockUseHeadquarters = useHeadquarters as jest.MockedFunction<typeof useHeadquarters>;
 
 const BASE_HOOK = {
   prices: [] as ProductPrice[],
@@ -44,8 +47,7 @@ const makePrices = (overrides: Partial<ProductPrice>[] = []): ProductPrice[] => 
   {
     id: "pr1",
     productId: "p1",
-    branchId: null,
-    isOverride: false,
+    branchId: "b-matriz",
     name: "Menudeo",
     price: 12.0,
     minQuantity: 1,
@@ -58,8 +60,7 @@ const makePrices = (overrides: Partial<ProductPrice>[] = []): ProductPrice[] => 
   {
     id: "pr2",
     productId: "p1",
-    branchId: null,
-    isOverride: false,
+    branchId: "b-matriz",
     name: "Mayoreo",
     price: 10.0,
     minQuantity: 10,
@@ -74,11 +75,20 @@ const makePrices = (overrides: Partial<ProductPrice>[] = []): ProductPrice[] => 
 beforeEach(() => {
   jest.clearAllMocks();
   mockUseBranchesOptions.mockReturnValue({
-    options: [{ id: "b-zarioz", name: "Zarioz" }, { id: "b-huajuapan", name: "Huajuapan" }],
+    options: [
+      { id: "b-matriz", name: "Matriz" },
+      { id: "b-zarioz", name: "Zarioz" },
+      { id: "b-huajuapan", name: "Huajuapan" },
+    ],
     isLoading: false,
     refresh: jest.fn(),
   });
-  // Default: usuario con branches:access_all (ej. admin) — comportamiento previo sin filtrar.
+  mockUseHeadquarters.mockReturnValue({
+    hq: { id: "b-matriz", code: "MATRIZ", name: "Matriz" },
+    isLoading: false,
+    refresh: jest.fn(),
+  });
+  // Default: usuario con branches:access_all (ej. admin) — arranca en la matriz.
   mockUseCurrentUser.mockReturnValue({
     userId: "u1",
     email: "admin@example.com",
@@ -96,7 +106,6 @@ describe("ProductPricesTab — badge Default", () => {
 
     render(<ProductPricesTab productId="p1" canWrite={true} />);
 
-    // La columna header también dice "Default"; verificamos que al menos un <span> badge esté presente
     const allDefault = screen.getAllByText("Default");
     expect(allDefault.some((el) => el.tagName === "SPAN")).toBe(true);
     expect(screen.getAllByRole("row").length).toBeGreaterThan(1);
@@ -142,68 +151,53 @@ describe("ProductPricesTab — estado vacío", () => {
   });
 });
 
-describe("ProductPricesTab — precio por sucursal", () => {
-  it("selector inicia en 'Precio base (todas)' y despacha sin branchId", () => {
+describe("ProductPricesTab — precio por sucursal (sin herencia)", () => {
+  it("con branches:access_all arranca en la matriz y despacha el hook con su branchId", async () => {
     mockUseProductPrices.mockReturnValue({ ...BASE_HOOK, prices: makePrices() });
 
     render(<ProductPricesTab productId="p1" canWrite={true} />);
 
-    expect(screen.getByRole("combobox", { name: /sucursal/i })).toHaveValue("");
-    expect(mockUseProductPrices).toHaveBeenCalledWith("p1", null);
+    await waitFor(() => {
+      expect(screen.getByRole("combobox", { name: /sucursal/i })).toHaveValue("b-matriz");
+    });
+    expect(mockUseProductPrices).toHaveBeenLastCalledWith("p1", "b-matriz");
   });
 
-  it("seleccionar una sucursal despacha el hook con su branchId", () => {
+  it("no ofrece ninguna opción de 'todas las sucursales'", async () => {
     mockUseProductPrices.mockReturnValue({ ...BASE_HOOK, prices: makePrices() });
 
     render(<ProductPricesTab productId="p1" canWrite={true} />);
+
+    await waitFor(() => expect(screen.getByRole("combobox", { name: /sucursal/i })).toHaveValue("b-matriz"));
+    const options = screen.getAllByRole("option");
+    expect(options.map((o) => o.textContent)).not.toContain("Precio base (todas)");
+  });
+
+  it("seleccionar otra sucursal despacha el hook con su branchId", async () => {
+    mockUseProductPrices.mockReturnValue({ ...BASE_HOOK, prices: makePrices() });
+
+    render(<ProductPricesTab productId="p1" canWrite={true} />);
+    await waitFor(() => expect(screen.getByRole("combobox", { name: /sucursal/i })).toHaveValue("b-matriz"));
+
     fireEvent.change(screen.getByRole("combobox", { name: /sucursal/i }), { target: { value: "b-zarioz" } });
 
     expect(mockUseProductPrices).toHaveBeenLastCalledWith("p1", "b-zarioz");
   });
 
-  it("muestra badge 'Override <sucursal>' en una fila override y 'Base' en una heredada", () => {
-    mockUseProductPrices.mockReturnValue({
-      ...BASE_HOOK,
-      prices: makePrices([{ branchId: "b-zarioz", isOverride: true }, {}]),
-    });
+  it("no muestra columna Origen ni acción 'Crear override aquí'", async () => {
+    mockUseProductPrices.mockReturnValue({ ...BASE_HOOK, prices: makePrices() });
 
     render(<ProductPricesTab productId="p1" canWrite={true} />);
+    await waitFor(() => expect(screen.getByRole("combobox", { name: /sucursal/i })).toHaveValue("b-matriz"));
 
-    expect(screen.getByText(/override zarioz/i)).toBeInTheDocument();
-    expect(screen.getByText(/^base$/i)).toBeInTheDocument();
-  });
-
-  it("con sucursal seleccionada, una fila heredada muestra 'Crear override aquí' en vez de Editar/Eliminar", () => {
-    mockUseProductPrices.mockReturnValue({
-      ...BASE_HOOK,
-      prices: makePrices([{ branchId: null, isOverride: false }, {}]),
-    });
-
-    render(<ProductPricesTab productId="p1" canWrite={true} />);
-    fireEvent.change(screen.getByRole("combobox", { name: /sucursal/i }), { target: { value: "b-zarioz" } });
-
-    expect(screen.getAllByRole("button", { name: /crear override aquí/i }).length).toBeGreaterThan(0);
-    expect(screen.queryByTitle("Editar")).not.toBeInTheDocument();
-  });
-
-  it("crear override aquí abre el modal de creación con branchId y nombre pre-cargados", () => {
-    mockUseProductPrices.mockReturnValue({
-      ...BASE_HOOK,
-      prices: makePrices([{ branchId: null, isOverride: false, name: "Precio Publico" }, {}]),
-    });
-
-    render(<ProductPricesTab productId="p1" canWrite={true} />);
-    fireEvent.change(screen.getByRole("combobox", { name: /sucursal/i }), { target: { value: "b-zarioz" } });
-    fireEvent.click(screen.getAllByRole("button", { name: /crear override aquí/i })[0]);
-
-    expect(screen.getByText(/nuevo override de sucursal/i)).toBeInTheDocument();
-    expect(screen.getByText(/sólo aplica a zarioz/i)).toBeInTheDocument();
-    expect(screen.getByDisplayValue("Precio Publico")).toBeInTheDocument();
+    expect(screen.queryByText(/^origen$/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /crear override aquí/i })).not.toBeInTheDocument();
+    expect(screen.getAllByTitle("Editar").length).toBeGreaterThan(0);
   });
 });
 
 describe("ProductPricesTab — filtrado del selector de sucursal por branch scope", () => {
-  it("usuario sin branches:access_all y con sucursal propia ve solo esa sucursal + Precio base", () => {
+  it("usuario sin branches:access_all y con sucursal propia ve solo esa sucursal, ya seleccionada", async () => {
     mockUseCurrentUser.mockReturnValue({
       userId: "u2",
       email: "operador@example.com",
@@ -217,31 +211,22 @@ describe("ProductPricesTab — filtrado del selector de sucursal por branch scop
 
     render(<ProductPricesTab productId="p1" canWrite={true} />);
 
-    const options = screen.getAllByRole("option", { name: /.+/ });
-    const optionLabels = options.map((o) => o.textContent);
-    expect(optionLabels).toEqual(["Precio base (todas)", "Zarioz"]);
+    await waitFor(() => expect(screen.getByRole("combobox", { name: /sucursal/i })).toHaveValue("b-zarioz"));
+    const options = screen.getAllByRole("option");
+    expect(options.map((o) => o.textContent)).toEqual(["Zarioz"]);
   });
 
-  it("usuario con branches:access_all sigue viendo todas las sucursales activas", () => {
-    mockUseCurrentUser.mockReturnValue({
-      userId: "u1",
-      email: "admin@example.com",
-      roles: ["admin"],
-      branchId: null,
-      isLoading: false,
-      can: () => true,
-      refresh: jest.fn(),
-    });
+  it("usuario con branches:access_all sigue viendo todas las sucursales activas", async () => {
     mockUseProductPrices.mockReturnValue({ ...BASE_HOOK, prices: makePrices() });
 
     render(<ProductPricesTab productId="p1" canWrite={true} />);
 
-    const options = screen.getAllByRole("option", { name: /.+/ });
-    const optionLabels = options.map((o) => o.textContent);
-    expect(optionLabels).toEqual(["Precio base (todas)", "Zarioz", "Huajuapan"]);
+    await waitFor(() => expect(screen.getByRole("combobox", { name: /sucursal/i })).toHaveValue("b-matriz"));
+    const options = screen.getAllByRole("option");
+    expect(options.map((o) => o.textContent)).toEqual(["Matriz", "Zarioz", "Huajuapan"]);
   });
 
-  it("usuario sin branches:access_all y sin sucursal asignada ve solo Precio base", () => {
+  it("usuario sin branches:access_all y sin sucursal asignada ve un estado vacío, sin llamar al hook de precios", () => {
     mockUseCurrentUser.mockReturnValue({
       userId: "u3",
       email: "sinsucursal@example.com",
@@ -251,12 +236,11 @@ describe("ProductPricesTab — filtrado del selector de sucursal por branch scop
       can: () => false,
       refresh: jest.fn(),
     });
-    mockUseProductPrices.mockReturnValue({ ...BASE_HOOK, prices: makePrices() });
+    mockUseProductPrices.mockReturnValue({ ...BASE_HOOK, prices: [] });
 
     render(<ProductPricesTab productId="p1" canWrite={true} />);
 
-    const options = screen.getAllByRole("option", { name: /.+/ });
-    const optionLabels = options.map((o) => o.textContent);
-    expect(optionLabels).toEqual(["Precio base (todas)"]);
+    expect(screen.getByText(/necesitas una sucursal asignada/i)).toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: /sucursal/i })).not.toBeInTheDocument();
   });
 });

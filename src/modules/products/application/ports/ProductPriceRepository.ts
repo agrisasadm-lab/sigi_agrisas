@@ -2,8 +2,7 @@ import { ProductPrice } from "../../domain/entities/ProductPrice";
 
 export interface CreateProductPriceData {
   productId: string;
-  /** null/omitted = precio base (aplica a toda sucursal sin override propio). */
-  branchId?: string | null;
+  branchId: string;
   name: string;
   price: number;
   minQuantity: number;
@@ -20,20 +19,18 @@ export interface UpdateProductPriceData {
 }
 
 export interface ProductPriceRepository {
-  /** Precios base únicamente (branchId: null) — comportamiento del listado sin filtro de sucursal. */
-  findByProductId(productId: string): Promise<ProductPrice[]>;
-  /** Conjunto efectivo para una sucursal: sus overrides propios + los base sin override del mismo nombre. */
-  findEffectiveForBranch(productId: string, branchId: string): Promise<ProductPrice[]>;
+  /** Precios de un producto en una sucursal. No hay herencia: sólo las filas de esa sucursal. */
+  findByProductAndBranch(productId: string, branchId: string): Promise<ProductPrice[]>;
   findById(id: string): Promise<ProductPrice | null>;
-  /** branchId omitido/null = default global; branchId presente = default del bucket de esa sucursal. */
-  findDefaultByProductId(productId: string, branchId?: string | null): Promise<ProductPrice | null>;
+  /** Default del producto en esa sucursal. Sin fallback a ninguna otra. */
+  findDefaultByProductId(productId: string, branchId: string): Promise<ProductPrice | null>;
   create(data: CreateProductPriceData): Promise<ProductPrice>;
   update(id: string, data: UpdateProductPriceData): Promise<ProductPrice>;
-  unsetDefaultForProduct(productId: string, branchId: string | null, exceptId?: string): Promise<void>;
-  /** Atomically unsets any existing default in the SAME (productId, branchId) bucket and updates the target price in one operation. */
+  unsetDefaultForProduct(productId: string, branchId: string, exceptId?: string): Promise<void>;
+  /** Atomically unsets any existing default in the SAME (productId, branchId) pair and updates the target price in one operation. */
   unsetDefaultAndUpdate(
     productId: string,
-    branchId: string | null,
+    branchId: string,
     priceId: string,
     data: UpdateProductPriceData
   ): Promise<ProductPrice>;

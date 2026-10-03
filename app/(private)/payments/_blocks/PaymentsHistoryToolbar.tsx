@@ -71,7 +71,10 @@ export function PaymentsHistoryToolbar({
 
   const [customerQuery, setCustomerQuery] = useState("");
   const debouncedCustomerQuery = useDebounce(customerQuery, 300);
-  const { items: customerResults, isLoading: isLoadingCustomers } = useCustomerSearch({ search: debouncedCustomerQuery });
+  const { items: customerResults, isLoading: isLoadingCustomers } = useCustomerSearch({
+    search: debouncedCustomerQuery,
+    branchId: branchId || undefined,
+  });
   const customerOptions = customerResults.map((c) => ({ value: c.id, label: `${c.name} · ${c.rfc}` }));
 
   const [productQuery, setProductQuery] = useState("");

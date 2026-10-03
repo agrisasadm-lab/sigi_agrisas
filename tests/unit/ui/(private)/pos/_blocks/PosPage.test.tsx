@@ -42,7 +42,7 @@ jest.mock("../../../../../../app/(private)/pos/_logic/hooks/useCart", () => ({
 
 // --- options hooks ---
 jest.mock("../../../../../../app/_hooks/useFoliosOptions", () => ({
-  useFoliosOptions: () => ({ options: [], isLoading: false }),
+  useFoliosOptions: () => ({ options: [], isLoading: false, refresh: jest.fn() }),
 }));
 jest.mock("../../../../../../app/_hooks/usePaymentMethodsOptions", () => ({
   usePaymentMethodsOptions: () => ({ options: [], isLoading: false }),
@@ -69,14 +69,40 @@ jest.mock("../../../../../../app/(private)/pos/_logic/hooks/useQuoteSubmission",
 
 // --- heavy UI blocks ---
 jest.mock("../../../../../../app/(private)/pos/_blocks/PosHeader", () => ({
-  PosHeader: ({ mode }: { mode: string }) => <div data-testid="pos-header" data-mode={mode} />,
+  PosHeader: ({
+    mode,
+    onBranchChange,
+  }: {
+    mode: string;
+    onBranchChange?: (id: string) => void;
+  }) => (
+    <div data-testid="pos-header" data-mode={mode}>
+      {onBranchChange && (
+        <button data-testid="change-branch" onClick={() => onBranchChange("b2")}>
+          Cambiar sucursal
+        </button>
+      )}
+    </div>
+  ),
 }));
 jest.mock("../../../../../../app/(private)/pos/_blocks/ProductCatalogPanel", () => ({
   ProductCatalogPanel: () => <div data-testid="catalog" />,
 }));
 jest.mock("../../../../../../app/(private)/pos/_blocks/CartPanel", () => ({
-  CartPanel: ({ onSubmit }: { onSubmit: () => void }) => (
-    <button data-testid="cart-submit" onClick={onSubmit}>Submit</button>
+  CartPanel: ({
+    onSubmit,
+    selectedCustomerId,
+    onCustomerChange,
+  }: {
+    onSubmit: () => void;
+    selectedCustomerId: string;
+    onCustomerChange: (id: string, customer: null) => void;
+  }) => (
+    <>
+      <button data-testid="cart-submit" onClick={onSubmit}>Submit</button>
+      <button data-testid="pick-customer" onClick={() => onCustomerChange("c1", null)}>Elegir cliente</button>
+      <div data-testid="selected-customer-id">{selectedCustomerId}</div>
+    </>
   ),
 }));
 jest.mock("../../../../../../app/(private)/pos/_blocks/SaleConfirmedModal", () => ({
@@ -178,6 +204,30 @@ describe("PosPage — modo sale", () => {
     render(<PosPage />);
     expect(screen.getByTestId("sale-confirmed")).toBeInTheDocument();
     expect(mockRouterPush).not.toHaveBeenCalledWith(expect.stringContaining("/quotes/"));
+  });
+});
+
+describe("PosPage — limpieza de cliente al cambiar de sucursal (bypass)", () => {
+  beforeEach(() => {
+    mockCan.mockImplementation((perm) => {
+      if (perm === "sales:create") return true;
+      if (perm === "branches:access_all") return true;
+      return false;
+    });
+  });
+
+  it("limpia el cliente seleccionado cuando cambia selectedBranchId", async () => {
+    render(<PosPage />);
+
+    await act(async () => {
+      screen.getByTestId("pick-customer").click();
+    });
+    expect(screen.getByTestId("selected-customer-id").textContent).toBe("c1");
+
+    await act(async () => {
+      screen.getByTestId("change-branch").click();
+    });
+    expect(screen.getByTestId("selected-customer-id").textContent).toBe("");
   });
 });
 

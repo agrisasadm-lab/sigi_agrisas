@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import React from "react";
-import { render } from "@testing-library/react";
+import { render, act } from "@testing-library/react";
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: jest.fn() }),
@@ -87,5 +87,30 @@ describe("QuoteCreatePage — gating offline", () => {
     expect(mockQuoteEmitPanel).toHaveBeenCalledWith(
       expect.objectContaining({ offlineBlocked: true })
     );
+  });
+});
+
+describe("QuoteCreatePage — limpieza de cliente al cambiar de sucursal", () => {
+  beforeEach(() => {
+    mockQuoteEmitPanel.mockClear();
+  });
+
+  it("limpia selectedCustomerId cuando onBranchChange dispara con un id distinto", () => {
+    render(<QuoteCreatePage />);
+
+    const lastProps = () => mockQuoteEmitPanel.mock.calls[mockQuoteEmitPanel.mock.calls.length - 1][0] as {
+      onBranchChange: (id: string) => void;
+      onCustomerChange: (id: string) => void;
+    };
+
+    act(() => {
+      lastProps().onCustomerChange("c1");
+    });
+    expect(lastProps()).toEqual(expect.objectContaining({ selectedCustomerId: "c1" }));
+
+    act(() => {
+      lastProps().onBranchChange("b2");
+    });
+    expect(lastProps()).toEqual(expect.objectContaining({ selectedCustomerId: "" }));
   });
 });

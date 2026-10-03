@@ -67,7 +67,9 @@ export class InMemorySaleRepository implements SaleRepository {
   }
 
   async createCompleted(data: CreateSaleData): Promise<SaleSummary> {
-    const folioNum = (folioCounter[data.folioId] = (folioCounter[data.folioId] ?? 0) + 1);
+    // Contador por (folio, sucursal) — espejo de folio_branch_counters, no del contador global.
+    const folioKey = `${data.folioId}|${data.branchId}`;
+    const folioNum = (folioCounter[folioKey] = (folioCounter[folioKey] ?? 0) + 1);
     const now = new Date();
     const items = data.items.map((it) =>
       SaleItem.create({

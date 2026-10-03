@@ -119,4 +119,18 @@ describe("CustomerPicker — badge de adeudo", () => {
     await userEvent.setup().click(screen.getByPlaceholderText(/Buscar por nombre o RFC/i));
     expect(screen.queryByText("+ Nuevo cliente")).not.toBeInTheDocument();
   });
+
+  it("pasa branchId al hook de búsqueda cuando se provee", () => {
+    const spy = jest.spyOn(useCustomerSearchModule, "useCustomerSearch").mockReturnValue({
+      items: [],
+      isLoading: false,
+      total: 0,
+      error: null,
+      refresh: jest.fn(),
+    });
+
+    render(<CustomerPicker value="" onChange={jest.fn()} onOpenQuickAdd={jest.fn()} branchId="b-zarioz" />);
+
+    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ branchId: "b-zarioz" }));
+  });
 });

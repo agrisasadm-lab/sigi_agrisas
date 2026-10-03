@@ -12,6 +12,9 @@ import { AuditFolioSequenceUseCase } from "@/modules/folios/application/use-case
 import { FolioNotFoundError } from "@/modules/folios/domain/errors/FolioNotFoundError";
 import { FolioCodeAlreadyInUseError } from "@/modules/folios/domain/errors/FolioCodeAlreadyInUseError";
 import { FOLIO_SCOPES } from "@/shared/domain/types/FolioScope";
+import { AuthorizationService } from "@/modules/rbac/application/ports/AuthorizationService";
+import { resolveScopedBranchId } from "@/modules/rbac/infrastructure/http/enforceBranchScope";
+import { FolioBranchNotFoundError } from "@/modules/folios/domain/errors/FolioBranchNotFoundError";
 
 const scopeSchema = z.enum(FOLIO_SCOPES as unknown as [string, ...string[]]);
 
@@ -57,7 +60,8 @@ export class FoliosController {
     private readonly createUseCase: CreateFolioUseCase,
     private readonly updateUseCase: UpdateFolioUseCase,
     private readonly softDeleteUseCase: SoftDeleteFolioUseCase,
-    private readonly auditUseCase: AuditFolioSequenceUseCase
+    private readonly auditUseCase: AuditFolioSequenceUseCase,
+    private readonly authzService: AuthorizationService
   ) {}
 
   async list(req: NextRequest): Promise<NextResponse> {
@@ -72,7 +76,20 @@ export class FoliosController {
         return NextResponse.json({ error: "scope must be one of POS, INVENTORY, OPERATIONS" }, { status: 400 });
       scope = scopeParsed.data as import("@/shared/domain/types/FolioScope").FolioScope;
     }
-    return NextResponse.json(await this.listUseCase.execute({ ...parsed.data, scope }));
+    const rawBranchId = searchParams.get("branchId");
+    if (rawBranchId !== null) {
+      const branchIdParsed = uuidSchema.safeParse(rawBranchId);
+      if (!branchIdParsed.success)
+        return NextResponse.json({ error: branchIdParsed.error.errors[0].message }, { status: 400 });
+    }
+    const scoped = await resolveScopedBranchId(req, rawBranchId ?? undefined, this.authzService);
+    if (scoped instanceof NextResponse) return scoped;
+    try {
+      return NextResponse.json(await this.listUseCase.execute({ ...parsed.data, scope, branchId: scoped.branchId }));
+    } catch (err) {
+      if (err instanceof FolioBranchNotFoundError) return NextResponse.json({ error: "Branch not found" }, { status: 404 });
+      throw err;
+    }
   }
 
   async getById(_req: NextRequest, id: string): Promise<NextResponse> {
@@ -140,12 +157,22 @@ export class FoliosController {
     }
   }
 
-  async audit(_req: NextRequest, id: string): Promise<NextResponse> {
+  async audit(req: NextRequest, id: string): Promise<NextResponse> {
     const idParsed = uuidSchema.safeParse(id);
     if (!idParsed.success) return NextResponse.json({ error: idParsed.error.errors[0].message }, { status: 400 });
+    const { searchParams } = new URL(req.url);
+    const rawBranchId = searchParams.get("branchId");
+    if (rawBranchId !== null) {
+      const branchIdParsed = uuidSchema.safeParse(rawBranchId);
+      if (!branchIdParsed.success)
+        return NextResponse.json({ error: branchIdParsed.error.errors[0].message }, { status: 400 });
+    }
+    const scoped = await resolveScopedBranchId(req, rawBranchId ?? undefined, this.authzService);
+    if (scoped instanceof NextResponse) return scoped;
     try {
-      return NextResponse.json(await this.auditUseCase.execute(idParsed.data));
+      return NextResponse.json(await this.auditUseCase.execute(idParsed.data, scoped.branchId));
     } catch (err) {
+      if (err instanceof FolioBranchNotFoundError) return NextResponse.json({ error: "Branch not found" }, { status: 404 });
       const mapped = mapDomainError(err, [[FolioNotFoundError, 404]]);
       if (mapped) return mapped;
       throw err;

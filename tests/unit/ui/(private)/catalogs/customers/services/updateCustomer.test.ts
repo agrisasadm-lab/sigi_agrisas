@@ -69,6 +69,19 @@ describe("updateCustomer", () => {
     expect(sentBody.rfc).toBe("SAC120101A12");
   });
 
+  it("sends branchIds when present in the diff", async () => {
+    const mockFetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => baseDto,
+    } as Response);
+
+    await updateCustomer({ id: "1", body: { branchIds: ["b1", "b2"] } }, mockFetch);
+
+    const sentBody = JSON.parse((mockFetch.mock.calls[0][1] as RequestInit).body as string);
+    expect(sentBody).toEqual({ branchIds: ["b1", "b2"] });
+  });
+
   it("throws CustomerNotFoundError on 404", async () => {
     const mockFetch = jest.fn().mockResolvedValueOnce({
       ok: false,

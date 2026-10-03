@@ -6,8 +6,28 @@ import { GetCustomerUseCase } from "@/modules/customers/application/use-cases/Ge
 import { CreateCustomerUseCase } from "@/modules/customers/application/use-cases/CreateCustomerUseCase";
 import { UpdateCustomerUseCase } from "@/modules/customers/application/use-cases/UpdateCustomerUseCase";
 import { SoftDeleteCustomerUseCase } from "@/modules/customers/application/use-cases/SoftDeleteCustomerUseCase";
+import { AuthorizationService } from "@/modules/rbac/application/ports/AuthorizationService";
 
 const VALID_UUID = "11111111-1111-1111-1111-111111111111";
+// Sucursal del operador "por defecto" que usan todos los tests existentes (no-bypass).
+// La membresía por sucursal no rompe su comportamiento: create() fuerza branchIds=[BRANCH_ID]
+// ignorando el body, y ese mismo header hace visibles los clientes creados así en getById/
+// update/softDelete — el resto de la suite queda intacta.
+const BRANCH_ID = "33333333-3333-3333-3333-333333333333";
+const OTHER_BRANCH_ID = "44444444-4444-4444-4444-444444444444";
+
+// "admin" es el único userId con bypass en estos tests; cualquier otro (incluido el "u1"
+// por defecto de DEFAULT_HEADERS) es un operador de sucursal sin branches:access_all —
+// discrimina por userId, no por un flag fijo, para poder mezclar llamadas de ambos roles
+// contra el MISMO controller (crear como admin, leer como operador ajeno, etc.).
+function makeAuthz(): AuthorizationService {
+  return {
+    userCan: jest.fn().mockImplementation(async (userId: string) => userId === "admin"),
+    listUserPermissions: jest.fn().mockResolvedValue([]),
+    invalidate: jest.fn(),
+    invalidateByRole: jest.fn().mockResolvedValue(undefined),
+  };
+}
 
 function makeController() {
   const repo = new InMemoryCustomerRepository();
@@ -16,29 +36,32 @@ function makeController() {
     new GetCustomerUseCase(repo),
     new CreateCustomerUseCase(repo),
     new UpdateCustomerUseCase(repo),
-    new SoftDeleteCustomerUseCase(repo)
+    new SoftDeleteCustomerUseCase(repo),
+    makeAuthz()
   );
   return { controller, repo };
 }
 
-function postReq(body: unknown): NextRequest {
+const DEFAULT_HEADERS: Record<string, string> = { "x-user-id": "u1", "x-user-branch-id": BRANCH_ID };
+
+function postReq(body: unknown, headers: Record<string, string> = DEFAULT_HEADERS): NextRequest {
   return new NextRequest("http://localhost/customers", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...headers },
     body: JSON.stringify(body),
   });
 }
 
-function patchReq(body: unknown, id = VALID_UUID): NextRequest {
+function patchReq(body: unknown, id = VALID_UUID, headers: Record<string, string> = DEFAULT_HEADERS): NextRequest {
   return new NextRequest(`http://localhost/customers/${id}`, {
     method: "PATCH",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...headers },
     body: JSON.stringify(body),
   });
 }
 
-function getReq(qs = ""): NextRequest {
-  return new NextRequest(`http://localhost/customers${qs}`);
+function getReq(qs = "", headers: Record<string, string> = DEFAULT_HEADERS): NextRequest {
+  return new NextRequest(`http://localhost/customers${qs}`, { headers });
 }
 
 const VALID_BODY = {
@@ -462,5 +485,123 @@ describe("CustomersController — DELETE soft delete", () => {
     expect(reactivate.status).toBe(200);
     const body = await reactivate.json();
     expect(body.isActive).toBe(true);
+  });
+});
+
+// ────────────────────────────────────────────────────────────
+// Branch scoping (membresía por sucursal)
+// ────────────────────────────────────────────────────────────
+
+describe("CustomersController — branch scoping", () => {
+  it("no-bypass: create fuerza branchIds a la sucursal propia, ignorando el body", async () => {
+    const { controller } = makeController();
+    const res = await controller.create(postReq({ ...VALID_BODY, branchIds: [OTHER_BRANCH_ID] }));
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.branchIds).toEqual([BRANCH_ID]);
+  });
+
+  it("no-bypass: list se filtra implícitamente a la sucursal propia", async () => {
+    const { controller } = makeController();
+    await controller.create(postReq(VALID_BODY));
+    const res = await controller.list(getReq());
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.items).toHaveLength(1);
+  });
+
+  it("bypass: create sin branchIds → 400", async () => {
+    const { controller } = makeController();
+    const res = await controller.create(postReq(VALID_BODY, { "x-user-id": "admin" }));
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toMatch(/branchIds/i);
+  });
+
+  it("bypass: create con branchIds los persiste tal cual", async () => {
+    const { controller } = makeController();
+    const res = await controller.create(
+      postReq({ ...VALID_BODY, branchIds: [BRANCH_ID, OTHER_BRANCH_ID] }, { "x-user-id": "admin" })
+    );
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.branchIds.sort()).toEqual([BRANCH_ID, OTHER_BRANCH_ID].sort());
+  });
+
+  it("getById de un cliente ajeno (sin bypass) → 403, no revela 404", async () => {
+    const { controller } = makeController();
+    const createRes = await controller.create(
+      postReq({ ...VALID_BODY, branchIds: [OTHER_BRANCH_ID] }, { "x-user-id": "admin" })
+    );
+    const created = await createRes.json();
+
+    const res = await controller.getById(getReq("", DEFAULT_HEADERS), created.id);
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.required).toBe("branches:access_all");
+  });
+
+  it("update de un cliente ajeno (sin bypass) → 403", async () => {
+    const { controller } = makeController();
+    const createRes = await controller.create(
+      postReq({ ...VALID_BODY, branchIds: [OTHER_BRANCH_ID] }, { "x-user-id": "admin" })
+    );
+    const created = await createRes.json();
+
+    const res = await controller.update(patchReq({ name: "Hackeado" }, created.id, DEFAULT_HEADERS), created.id);
+    expect(res.status).toBe(403);
+  });
+
+  it("softDelete de un cliente ajeno (sin bypass) → 403", async () => {
+    const { controller } = makeController();
+    const createRes = await controller.create(
+      postReq({ ...VALID_BODY, branchIds: [OTHER_BRANCH_ID] }, { "x-user-id": "admin" })
+    );
+    const created = await createRes.json();
+
+    const res = await controller.softDelete(getReq("", DEFAULT_HEADERS), created.id);
+    expect(res.status).toBe(403);
+  });
+
+  it("bypass: update reemplaza el set completo de branchIds", async () => {
+    const { controller } = makeController();
+    const createRes = await controller.create(
+      postReq({ ...VALID_BODY, branchIds: [BRANCH_ID] }, { "x-user-id": "admin" })
+    );
+    const created = await createRes.json();
+
+    const res = await controller.update(
+      patchReq({ branchIds: [OTHER_BRANCH_ID] }, created.id, { "x-user-id": "admin" }),
+      created.id
+    );
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.branchIds).toEqual([OTHER_BRANCH_ID]);
+  });
+
+  it("bypass: update con branchIds vacío → 400", async () => {
+    const { controller } = makeController();
+    const createRes = await controller.create(
+      postReq({ ...VALID_BODY, branchIds: [BRANCH_ID] }, { "x-user-id": "admin" })
+    );
+    const created = await createRes.json();
+
+    const res = await controller.update(
+      patchReq({ branchIds: [] }, created.id, { "x-user-id": "admin" }),
+      created.id
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("no-bypass: operador que envía branchIds en update no cambia nada (se ignora, igual que code)", async () => {
+    const { controller } = makeController();
+    const createRes = await controller.create(postReq(VALID_BODY));
+    const created = await createRes.json();
+
+    const res = await controller.update(patchReq({ branchIds: [OTHER_BRANCH_ID], name: "Actualizado" }), created.id);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.branchIds).toEqual([BRANCH_ID]);
+    expect(body.name).toBe("Actualizado");
   });
 });

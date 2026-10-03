@@ -3,56 +3,42 @@ import { DuplicatePriceNameError } from "@/modules/products/domain/errors/Duplic
 import { DuplicateDefaultPriceError } from "@/modules/products/domain/errors/DuplicateDefaultPriceError";
 
 const PRODUCT_ID = "product-1";
+const MATRIZ = "branch-matriz";
 const ZARIOZ = "branch-zarioz";
 const HUAJUAPAN = "branch-huajuapan";
 
 describe("InMemoryProductPriceRepository — precio por sucursal", () => {
-  it("findByProductId retorna únicamente los precios base", async () => {
+  it("findByProductAndBranch retorna únicamente los precios de esa sucursal", async () => {
     const repo = new InMemoryProductPriceRepository();
-    await repo.create({ productId: PRODUCT_ID, name: "Precio Publico", price: 100, minQuantity: 1, isDefault: true });
-    await repo.create({ productId: PRODUCT_ID, branchId: ZARIOZ, name: "Precio Publico", price: 80, minQuantity: 1, isDefault: false });
+    await repo.create({ productId: PRODUCT_ID, branchId: MATRIZ, name: "Precio Publico", price: 100, minQuantity: 1, isDefault: true });
+    await repo.create({ productId: PRODUCT_ID, branchId: ZARIOZ, name: "Precio Publico", price: 80, minQuantity: 1, isDefault: true });
 
-    const bases = await repo.findByProductId(PRODUCT_ID);
+    const matriz = await repo.findByProductAndBranch(PRODUCT_ID, MATRIZ);
 
-    expect(bases).toHaveLength(1);
-    expect(bases[0].branchId).toBeNull();
-    expect(bases[0].price).toBe(100);
+    expect(matriz).toHaveLength(1);
+    expect(matriz[0].branchId).toBe(MATRIZ);
+    expect(matriz[0].price).toBe(100);
   });
 
-  it("findEffectiveForBranch usa el override cuando existe", async () => {
+  it("no hereda: una sucursal sin precios propios devuelve lista vacía", async () => {
     const repo = new InMemoryProductPriceRepository();
-    await repo.create({ productId: PRODUCT_ID, name: "Precio Publico", price: 100, minQuantity: 1, isDefault: true });
-    await repo.create({ productId: PRODUCT_ID, branchId: ZARIOZ, name: "Precio Publico", price: 80, minQuantity: 1, isDefault: false });
+    await repo.create({ productId: PRODUCT_ID, branchId: MATRIZ, name: "Precio Publico", price: 100, minQuantity: 1, isDefault: true });
 
-    const effective = await repo.findEffectiveForBranch(PRODUCT_ID, ZARIOZ);
+    const huajuapan = await repo.findByProductAndBranch(PRODUCT_ID, HUAJUAPAN);
 
-    expect(effective).toHaveLength(1);
-    expect(effective[0].price).toBe(80);
-    expect(effective[0].branchId).toBe(ZARIOZ);
+    expect(huajuapan).toEqual([]);
   });
 
-  it("findEffectiveForBranch hereda el base cuando la sucursal no tiene override", async () => {
+  it("el mismo name coexiste en sucursales distintas", async () => {
     const repo = new InMemoryProductPriceRepository();
-    await repo.create({ productId: PRODUCT_ID, name: "Precio Publico", price: 100, minQuantity: 1, isDefault: true });
-    await repo.create({ productId: PRODUCT_ID, branchId: ZARIOZ, name: "Precio Publico", price: 80, minQuantity: 1, isDefault: false });
-
-    const effective = await repo.findEffectiveForBranch(PRODUCT_ID, HUAJUAPAN);
-
-    expect(effective).toHaveLength(1);
-    expect(effective[0].price).toBe(100);
-    expect(effective[0].branchId).toBeNull();
-  });
-
-  it("el mismo name coexiste en el bucket base y en un bucket de sucursal", async () => {
-    const repo = new InMemoryProductPriceRepository();
-    await repo.create({ productId: PRODUCT_ID, name: "Precio Publico", price: 100, minQuantity: 1, isDefault: false });
+    await repo.create({ productId: PRODUCT_ID, branchId: MATRIZ, name: "Precio Publico", price: 100, minQuantity: 1, isDefault: false });
 
     await expect(
       repo.create({ productId: PRODUCT_ID, branchId: ZARIOZ, name: "Precio Publico", price: 80, minQuantity: 1, isDefault: false })
     ).resolves.toBeDefined();
   });
 
-  it("dos overrides con el mismo name en la misma sucursal colisionan", async () => {
+  it("dos precios con el mismo name en la misma sucursal colisionan", async () => {
     const repo = new InMemoryProductPriceRepository();
     await repo.create({ productId: PRODUCT_ID, branchId: ZARIOZ, name: "Precio Publico", price: 80, minQuantity: 1, isDefault: false });
 
@@ -61,16 +47,16 @@ describe("InMemoryProductPriceRepository — precio por sucursal", () => {
     ).rejects.toBeInstanceOf(DuplicatePriceNameError);
   });
 
-  it("un default global y un default de sucursal coexisten sin colisionar", async () => {
+  it("cada sucursal tiene su propio default sin colisionar", async () => {
     const repo = new InMemoryProductPriceRepository();
-    await repo.create({ productId: PRODUCT_ID, name: "Precio Publico", price: 100, minQuantity: 1, isDefault: true });
+    await repo.create({ productId: PRODUCT_ID, branchId: MATRIZ, name: "Precio Publico", price: 100, minQuantity: 1, isDefault: true });
 
     await expect(
       repo.create({ productId: PRODUCT_ID, branchId: ZARIOZ, name: "Precio Publico", price: 80, minQuantity: 1, isDefault: true })
     ).resolves.toBeDefined();
   });
 
-  it("un segundo default en el mismo bucket de sucursal colisiona", async () => {
+  it("un segundo default en la misma sucursal colisiona", async () => {
     const repo = new InMemoryProductPriceRepository();
     await repo.create({ productId: PRODUCT_ID, branchId: ZARIOZ, name: "Precio Publico", price: 80, minQuantity: 1, isDefault: true });
 
@@ -79,29 +65,25 @@ describe("InMemoryProductPriceRepository — precio por sucursal", () => {
     ).rejects.toBeInstanceOf(DuplicateDefaultPriceError);
   });
 
-  it("findDefaultByProductId resuelve el default por bucket, con fallback opcional al global", async () => {
+  it("findDefaultByProductId resuelve el default de la sucursal pedida, sin fallback", async () => {
     const repo = new InMemoryProductPriceRepository();
-    await repo.create({ productId: PRODUCT_ID, name: "Precio Publico", price: 100, minQuantity: 1, isDefault: true });
+    await repo.create({ productId: PRODUCT_ID, branchId: MATRIZ, name: "Precio Publico", price: 100, minQuantity: 1, isDefault: true });
     await repo.create({ productId: PRODUCT_ID, branchId: ZARIOZ, name: "Precio Publico", price: 80, minQuantity: 1, isDefault: true });
 
-    const zariozDefault = await repo.findDefaultByProductId(PRODUCT_ID, ZARIOZ);
-    const huajuapanDefault = await repo.findDefaultByProductId(PRODUCT_ID, HUAJUAPAN);
-    const globalDefault = await repo.findDefaultByProductId(PRODUCT_ID);
-
-    expect(zariozDefault?.price).toBe(80);
-    expect(huajuapanDefault).toBeNull();
-    expect(globalDefault?.price).toBe(100);
+    expect((await repo.findDefaultByProductId(PRODUCT_ID, ZARIOZ))?.price).toBe(80);
+    expect((await repo.findDefaultByProductId(PRODUCT_ID, MATRIZ))?.price).toBe(100);
+    expect(await repo.findDefaultByProductId(PRODUCT_ID, HUAJUAPAN)).toBeNull();
   });
 
-  it("unsetDefaultAndUpdate sólo afecta el bucket del precio editado", async () => {
+  it("unsetDefaultAndUpdate sólo afecta la sucursal del precio editado", async () => {
     const repo = new InMemoryProductPriceRepository();
-    const globalDefault = await repo.create({ productId: PRODUCT_ID, name: "Precio Publico", price: 100, minQuantity: 1, isDefault: true });
+    const matrizDefault = await repo.create({ productId: PRODUCT_ID, branchId: MATRIZ, name: "Precio Publico", price: 100, minQuantity: 1, isDefault: true });
     const zariozOther = await repo.create({ productId: PRODUCT_ID, branchId: ZARIOZ, name: "Precio Distri", price: 70, minQuantity: 1, isDefault: false });
 
     const promoted = await repo.unsetDefaultAndUpdate(PRODUCT_ID, ZARIOZ, zariozOther.id, { isDefault: true });
 
     expect(promoted.isDefault).toBe(true);
-    const stillGlobalDefault = await repo.findById(globalDefault.id);
-    expect(stillGlobalDefault?.isDefault).toBe(true);
+    const stillMatrizDefault = await repo.findById(matrizDefault.id);
+    expect(stillMatrizDefault?.isDefault).toBe(true);
   });
 });

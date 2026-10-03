@@ -30,8 +30,7 @@ export interface CreatedProduct extends Product {
 export interface ProductPrice {
   id: string;
   productId: string;
-  branchId: string | null;
-  isOverride: boolean;
+  branchId: string;
   name: string;
   price: number;
   minQuantity: number;

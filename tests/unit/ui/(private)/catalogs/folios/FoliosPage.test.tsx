@@ -82,7 +82,7 @@ describe("FoliosPage", () => {
           currentNumber: 100,
           isActive: true,
           createdAt: new Date(),
-          updatedAt: new Date(),
+          updatedAt: new Date(), branchCurrentNumber: null, nextFolioCode: null,
         },
       ],
       total: 1,

@@ -22,4 +22,5 @@ export interface UpdateCustomerRequest {
   addressState?: string | null;
   addressCountry?: string | null;
   addressZipCode?: string | null;
+  branchIds?: string[];
 }

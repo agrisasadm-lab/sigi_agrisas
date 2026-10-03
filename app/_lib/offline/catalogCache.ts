@@ -52,15 +52,15 @@ async function pullProductsAndStock(branchId: string): Promise<ProductDto[]> {
   });
 }
 
-async function pullPricesFor(productId: string): Promise<ProductPriceDto[]> {
-  const res = await authFetch(`/api/v1/admin/products/${productId}/prices`);
+async function pullPricesFor(productId: string, branchId: string): Promise<ProductPriceDto[]> {
+  const res = await authFetch(`/api/v1/admin/products/${productId}/prices?branchId=${branchId}`);
   if (!res.ok) throw new NetworkError();
   const json = (await res.json()) as { items: ProductPriceDto[] } | ProductPriceDto[];
   return Array.isArray(json) ? json : json.items ?? [];
 }
 
-async function pullDosificationsFor(productId: string): Promise<DosificationOptionDto[]> {
-  const res = await authFetch(`/api/v1/admin/products/${productId}/dosifications`);
+async function pullDosificationsFor(productId: string, branchId: string): Promise<DosificationOptionDto[]> {
+  const res = await authFetch(`/api/v1/admin/products/${productId}/dosifications?branchId=${branchId}`);
   if (!res.ok) throw new NetworkError();
   const json = (await res.json()) as { items: DosificationOptionDto[] } | DosificationOptionDto[];
   return Array.isArray(json) ? json : json.items ?? [];
@@ -73,16 +73,16 @@ async function pullPaymentMethods(): Promise<CachedPaymentMethod[]> {
   return body.items;
 }
 
-async function pullFolios(): Promise<CachedFolio[]> {
-  const res = await authFetch("/api/v1/admin/folios?pageSize=100&includeInactive=false&scope=POS");
+async function pullFolios(branchId: string): Promise<CachedFolio[]> {
+  const res = await authFetch(`/api/v1/admin/folios?pageSize=100&includeInactive=false&scope=POS&branchId=${branchId}`);
   if (!res.ok) throw new NetworkError();
   const body = (await res.json()) as { items: CachedFolio[] };
   return body.items;
 }
 
-async function pullCustomers(): Promise<CustomerDto[]> {
+async function pullCustomers(branchId: string): Promise<CustomerDto[]> {
   return paginate<CustomerDto>(async (page) => {
-    const params = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE), includeInactive: "false" });
+    const params = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE), includeInactive: "false", branchId });
     const res = await authFetch(`/api/v1/admin/customers?${params.toString()}`);
     if (!res.ok) throw new NetworkError();
     const body = (await res.json()) as { items: CustomerDto[]; total: number };
@@ -101,12 +101,12 @@ export async function refreshCatalogCache(ownerBranchId: string): Promise<void> 
   const [products, paymentMethods, folios, customers] = await Promise.all([
     pullProductsAndStock(ownerBranchId),
     pullPaymentMethods(),
-    pullFolios(),
-    pullCustomers(),
+    pullFolios(ownerBranchId),
+    pullCustomers(ownerBranchId),
   ]);
 
-  const pricesByProduct = await mapWithConcurrency(products, PRICE_FETCH_CONCURRENCY, (p) => pullPricesFor(p.id));
-  const dosificationsByProduct = await mapWithConcurrency(products, PRICE_FETCH_CONCURRENCY, (p) => pullDosificationsFor(p.id));
+  const pricesByProduct = await mapWithConcurrency(products, PRICE_FETCH_CONCURRENCY, (p) => pullPricesFor(p.id, ownerBranchId));
+  const dosificationsByProduct = await mapWithConcurrency(products, PRICE_FETCH_CONCURRENCY, (p) => pullDosificationsFor(p.id, ownerBranchId));
 
   const db = await getOfflineDb();
 
@@ -123,6 +123,15 @@ export async function refreshCatalogCache(ownerBranchId: string): Promise<void> 
   await productsTx.done;
 
   const pricesTx = db.transaction("catalogPrices", "readwrite");
+  // Reemplazo completo: purga TODOS los precios cacheados (de esta sucursal y de
+  // cualquier otra) antes de repoblar con la respuesta fresca del server. Un
+  // purge parcial (sólo "otra sucursal") deja huérfano cualquier id que el
+  // server ya no devuelva para la sucursal actual — por ejemplo un precio que
+  // migró de bucket global a otra sucursal server-side sigue existiendo con su
+  // id viejo en la caché y aparece duplicado/obsoleto en el selector del POS.
+  for (const stale of await pricesTx.store.getAll()) {
+    await pricesTx.store.delete(stale.id);
+  }
   for (const prices of pricesByProduct) {
     for (const price of prices) await pricesTx.store.put({ ...price, ownerBranchId });
   }
@@ -172,9 +181,14 @@ export async function searchProductsFromCache(
   return filtered.map((p) => ({ ...p, stock: stockByProduct.get(p.id) ?? p.stock ?? null }));
 }
 
-export async function getProductPricesFromCache(productId: string): Promise<ProductPriceDto[]> {
+export async function getProductPricesFromCache(
+  productId: string,
+  ownerBranchId?: string,
+): Promise<ProductPriceDto[]> {
   const db = await getOfflineDb();
-  return db.getAllFromIndex("catalogPrices", "productId", productId);
+  const rows = await db.getAllFromIndex("catalogPrices", "productId", productId);
+  // Segunda barrera además de la purga del refresh: nunca servir precios de otra sucursal.
+  return ownerBranchId ? rows.filter((r) => r.ownerBranchId === ownerBranchId) : rows;
 }
 
 export async function getProductDosificationsFromCache(productId: string): Promise<DosificationOptionDto[]> {

@@ -10,6 +10,8 @@ export interface FolioDto {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  branchCurrentNumber: number | null;
+  nextFolioCode: string | null;
 }
 
 export interface ListFoliosResponse {

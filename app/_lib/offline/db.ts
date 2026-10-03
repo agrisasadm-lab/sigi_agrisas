@@ -23,6 +23,8 @@ export interface CachedFolio {
   prefix: string | null;
   currentNumber: number;
   isActive: boolean;
+  branchCurrentNumber?: number | null;
+  nextFolioCode?: string | null;
 }
 
 const DB_NAME = "agrisas-offline";

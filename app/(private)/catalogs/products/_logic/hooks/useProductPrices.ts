@@ -20,6 +20,7 @@ interface UseProductPricesResult {
   deleteOne: (priceId: string) => Promise<boolean>;
 }
 
+/** Sin `branchId` no hay nada que pedir: todo precio pertenece a una sucursal. */
 export function useProductPrices(productId: string, branchId: string | null = null): UseProductPricesResult {
   const [prices, setPrices] = useState<ProductPrice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,6 +30,12 @@ export function useProductPrices(productId: string, branchId: string | null = nu
   const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!branchId) {
+      setPrices([]);
+      setIsLoading(false);
+      setError(null);
+      return;
+    }
     const controller = new AbortController();
     let cancelled = false;
     setIsLoading(true);

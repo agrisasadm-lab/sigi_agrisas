@@ -92,9 +92,9 @@ describe("Returns — edge cases (integration real DB)", () => {
       code: `${P}PROD1`, name: "Producto Edge", unit: "kg", departmentId: dept.id, ivaRate: 0.16,
     });
     productId = product.id;
-    const price = await createPrice.execute(productId, { name: "Lista", price: 100, isDefault: true });
+    const price = await createPrice.execute(productId, { branchId: branchId, name: "Lista", price: 100, isDefault: true });
     priceId = price.id;
-    const customer = await createCustomer.execute({ code: `${P}CLI1`, name: "Cliente Edge", rfc: "RED010101001" });
+    const customer = await createCustomer.execute({ code: `${P}CLI1`, name: "Cliente Edge", rfc: "RED010101001", branchIds: [branchId] });
     customerId = customer.id;
     const folio = await folioRepo.create({ code: `${P}FOL1`, name: "Folio Edge", prefix: "EDG", currentNumber: 0, scope: "POS" });
     folioId = folio.id;

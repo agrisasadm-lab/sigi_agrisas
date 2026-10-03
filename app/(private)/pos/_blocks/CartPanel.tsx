@@ -107,6 +107,7 @@ export function CartPanel({
           value={selectedCustomerId}
           onChange={onCustomerChange}
           onOpenQuickAdd={onOpenQuickAdd}
+          branchId={selectedBranchId}
         />
 
         <div>
@@ -122,7 +123,7 @@ export function CartPanel({
               <option value="">— Selecciona folio —</option>
               {folios.map((f) => (
                 <option key={f.id} value={f.id}>
-                  {f.prefix ?? ""}{String(f.currentNumber + 1).padStart(6, "0")} ({f.name})
+                  {f.nextFolioCode ?? `${f.prefix ?? ""}${String(f.currentNumber + 1).padStart(6, "0")}`} ({f.name})
                 </option>
               ))}
             </select>
