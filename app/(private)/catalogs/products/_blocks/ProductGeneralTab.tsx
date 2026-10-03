@@ -191,7 +191,7 @@ export function ProductGeneralTab({ product, canWrite, deptOptions, onUpdated }:
         <label className="block text-label-lg text-on-surface-variant mb-1">Imagen del producto</label>
         <ImageUploadField
           currentUrl={imageUrl}
-          productId={product.id}
+          entityId={product.id}
           canWrite={canWrite}
           onUploaded={(url) => { setImageUrl(url); onUpdated({ ...product, imageUrl: url }); }}
           onDeleted={() => { setImageUrl(null); onUpdated({ ...product, imageUrl: null }); }}
