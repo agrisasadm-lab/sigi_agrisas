@@ -31,7 +31,7 @@ describe("ImageUploadField", () => {
   it("shows placeholder when currentUrl is null", () => {
     render(
       <ImageUploadField
-        currentUrl={null} productId={PRODUCT_ID} canWrite={true}
+        currentUrl={null} entityId={PRODUCT_ID} canWrite={true}
         onUploaded={jest.fn()} onDeleted={jest.fn()}
         uploadFn={jest.fn()} deleteFn={jest.fn()}
       />
@@ -42,7 +42,7 @@ describe("ImageUploadField", () => {
   it("shows image preview when currentUrl is set", () => {
     render(
       <ImageUploadField
-        currentUrl="https://example.com/img.jpg" productId={PRODUCT_ID} canWrite={true}
+        currentUrl="https://example.com/img.jpg" entityId={PRODUCT_ID} canWrite={true}
         onUploaded={jest.fn()} onDeleted={jest.fn()}
         uploadFn={jest.fn()} deleteFn={jest.fn()}
       />
@@ -53,7 +53,7 @@ describe("ImageUploadField", () => {
   it("shows error for invalid MIME type", async () => {
     render(
       <ImageUploadField
-        currentUrl={null} productId={PRODUCT_ID} canWrite={true}
+        currentUrl={null} entityId={PRODUCT_ID} canWrite={true}
         onUploaded={jest.fn()} onDeleted={jest.fn()}
         uploadFn={jest.fn()} deleteFn={jest.fn()}
       />
@@ -68,7 +68,7 @@ describe("ImageUploadField", () => {
   it("shows error when file > 2 MB", async () => {
     render(
       <ImageUploadField
-        currentUrl={null} productId={PRODUCT_ID} canWrite={true}
+        currentUrl={null} entityId={PRODUCT_ID} canWrite={true}
         onUploaded={jest.fn()} onDeleted={jest.fn()}
         uploadFn={jest.fn()} deleteFn={jest.fn()}
       />
@@ -85,7 +85,7 @@ describe("ImageUploadField", () => {
     const onUploaded = jest.fn();
     render(
       <ImageUploadField
-        currentUrl={null} productId={PRODUCT_ID} canWrite={true}
+        currentUrl={null} entityId={PRODUCT_ID} canWrite={true}
         onUploaded={onUploaded} onDeleted={jest.fn()}
         uploadFn={uploadFn} deleteFn={jest.fn()}
       />
@@ -100,7 +100,7 @@ describe("ImageUploadField", () => {
   it("does not show upload controls when canWrite=false", () => {
     render(
       <ImageUploadField
-        currentUrl="https://example.com/img.jpg" productId={PRODUCT_ID} canWrite={false}
+        currentUrl="https://example.com/img.jpg" entityId={PRODUCT_ID} canWrite={false}
         onUploaded={jest.fn()} onDeleted={jest.fn()}
         uploadFn={jest.fn()} deleteFn={jest.fn()}
       />

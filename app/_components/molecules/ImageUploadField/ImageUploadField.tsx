@@ -9,22 +9,24 @@ const MAX_BYTES = 2 * 1024 * 1024;
 
 interface ImageUploadFieldProps {
   currentUrl: string | null;
-  productId: string;
+  entityId: string;
   canWrite: boolean;
   onUploaded: (newUrl: string) => void;
   onDeleted: () => void;
-  uploadFn: (productId: string, file: File) => Promise<string>;
-  deleteFn: (productId: string) => Promise<void>;
+  uploadFn: (entityId: string, file: File) => Promise<string>;
+  deleteFn: (entityId: string) => Promise<void>;
+  confirmDeleteDescription?: string;
 }
 
 export function ImageUploadField({
   currentUrl,
-  productId,
+  entityId,
   canWrite,
   onUploaded,
   onDeleted,
   uploadFn,
   deleteFn,
+  confirmDeleteDescription = "¿Confirmas eliminar la imagen del producto?",
 }: ImageUploadFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(currentUrl);
@@ -46,7 +48,7 @@ export function ImageUploadField({
     const objectUrl = URL.createObjectURL(file);
     setPreview(objectUrl);
     try {
-      const url = await uploadFn(productId, file);
+      const url = await uploadFn(entityId, file);
       setPreview(url);
       URL.revokeObjectURL(objectUrl);
       onUploaded(url);
@@ -62,7 +64,7 @@ export function ImageUploadField({
     setConfirmDelete(false);
     setIsUploading(true);
     try {
-      await deleteFn(productId);
+      await deleteFn(entityId);
       setPreview(null);
       onDeleted();
     } catch {
@@ -145,7 +147,7 @@ export function ImageUploadField({
       <ConfirmDialog
         open={confirmDelete}
         title="Eliminar imagen"
-        description="¿Confirmas eliminar la imagen del producto?"
+        description={confirmDeleteDescription}
         confirmLabel="Eliminar"
         cancelLabel="Cancelar"
         onConfirm={handleDelete}

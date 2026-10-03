@@ -28,6 +28,7 @@ model User {
   payments                CustomerPayment[]
   purchasesCreated        Purchase[]           @relation("UserPurchasesCreated")
   providerPaymentsCreated ProviderPayment[]    @relation("UserProviderPaymentsCreated")
+  expensesCreated         Expense[]            @relation("UserExpensesCreated")
   passwordSetupTokens     PasswordSetupToken[]
 
   @@index([branchId])
@@ -208,13 +209,14 @@ model Branch {
   returns               Return[]
   payments              CustomerPayment[]
   invoices              Invoice[]
-  waybillsAsOrigin      Waybill[]           @relation("WaybillOrigin")
-  waybillsAsDestination Waybill[]           @relation("WaybillDestination")
+  waybillsAsOrigin      Waybill[]            @relation("WaybillOrigin")
+  waybillsAsDestination Waybill[]            @relation("WaybillDestination")
   inventoryMovements    InventoryMovement[]
   purchases             Purchase[]
   providerPayments      ProviderPayment[]
   productPrices         ProductPrice[]
   printerConfig         BranchPrinterConfig?
+  expenses              Expense[]
   customers             CustomerBranch[]
   folioCounters         FolioBranchCounter[]
 
@@ -238,18 +240,18 @@ model BranchPrinterConfig {
 }
 
 model Vehicle {
-  id                String   @id @default(uuid())
-  code              String   @unique @db.VarChar(32)
-  plate             String   @db.VarChar(20)
-  vehicleConfig     String   @map("vehicle_config") @db.VarChar(10)
-  permitType        String   @map("permit_type") @db.VarChar(10)
-  permitNumber      String   @map("permit_number") @db.VarChar(50)
-  insuranceCompany  String   @map("insurance_company") @db.VarChar(150)
-  insurancePolicy   String   @map("insurance_policy") @db.VarChar(50)
-  notes             String?  @db.Text
-  isActive          Boolean  @default(true) @map("is_active")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  id               String   @id @default(uuid())
+  code             String   @unique @db.VarChar(32)
+  plate            String   @db.VarChar(20)
+  vehicleConfig    String   @map("vehicle_config") @db.VarChar(10)
+  permitType       String   @map("permit_type") @db.VarChar(10)
+  permitNumber     String   @map("permit_number") @db.VarChar(50)
+  insuranceCompany String   @map("insurance_company") @db.VarChar(150)
+  insurancePolicy  String   @map("insurance_policy") @db.VarChar(50)
+  notes            String?  @db.Text
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   waybills Waybill[]
 
@@ -331,22 +333,22 @@ model TaxRate {
 }
 
 model Product {
-  id              String    @id @default(uuid())
-  code            String    @unique @db.VarChar(32)
-  name            String    @db.VarChar(200)
-  unit            String    @db.VarChar(32)
-  satProductCode  String?   @map("sat_product_code") @db.VarChar(16)
-  departmentId    String    @map("department_id")
-  taxRateId       String?   @map("tax_rate_id")
-  ivaRate         Decimal?  @map("iva_rate") @db.Decimal(5, 4)
-  iepsRate        Decimal?  @map("ieps_rate") @db.Decimal(5, 4)
-  imageUrl        String?   @map("image_url") @db.Text
-  manufactureDate DateTime? @map("manufacture_date") @db.Date
-  acquisitionPrice Decimal? @map("acquisition_price") @db.Decimal(12, 4)
-  isTaxable       Boolean   @default(false) @map("is_taxable")
-  isActive        Boolean   @default(true) @map("is_active")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  id               String    @id @default(uuid())
+  code             String    @unique @db.VarChar(32)
+  name             String    @db.VarChar(200)
+  unit             String    @db.VarChar(32)
+  satProductCode   String?   @map("sat_product_code") @db.VarChar(16)
+  departmentId     String    @map("department_id")
+  taxRateId        String?   @map("tax_rate_id")
+  ivaRate          Decimal?  @map("iva_rate") @db.Decimal(5, 4)
+  iepsRate         Decimal?  @map("ieps_rate") @db.Decimal(5, 4)
+  imageUrl         String?   @map("image_url") @db.Text
+  manufactureDate  DateTime? @map("manufacture_date") @db.Date
+  acquisitionPrice Decimal?  @map("acquisition_price") @db.Decimal(12, 4)
+  isTaxable        Boolean   @default(false) @map("is_taxable")
+  isActive         Boolean   @default(true) @map("is_active")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
 
   department    Department            @relation(fields: [departmentId], references: [id], onDelete: Restrict)
   taxRate       TaxRate?              @relation(fields: [taxRateId], references: [id], onDelete: SetNull)
@@ -1181,4 +1183,25 @@ model ProviderPayment {
   @@index([providerId, status])
   @@index([branchId, createdAt])
   @@map("provider_payments")
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  branchId    String   @map("branch_id")
+  concept     String   @db.VarChar(200)
+  amount      Decimal  @db.Decimal(14, 4)
+  notes       String?  @db.Text
+  photoUrl    String?  @map("photo_url")
+  expenseDate DateTime @map("expense_date") @db.Date
+  creatorId   String   @map("creator_id") @db.Uuid
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  branch  Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  creator User   @relation("UserExpensesCreated", fields: [creatorId], references: [id], onDelete: Restrict)
+
+  @@index([branchId])
+  @@index([expenseDate])
+  @@map("expenses")
 }

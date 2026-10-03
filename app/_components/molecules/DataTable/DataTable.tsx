@@ -1,4 +1,4 @@
-import { HTMLAttributes, TdHTMLAttributes, ThHTMLAttributes } from "react";
+import { HTMLAttributes, TdHTMLAttributes, ThHTMLAttributes, forwardRef } from "react";
 import { cn } from "../../../_lib/cn";
 
 export function Table({ className, ...props }: HTMLAttributes<HTMLTableElement>) {
@@ -22,14 +22,18 @@ interface TrProps extends HTMLAttributes<HTMLTableRowElement> {
   hoverable?: boolean;
 }
 
-export function Tr({ className, hoverable = true, ...props }: TrProps) {
-  return (
-    <tr
-      className={cn(hoverable && "hover:bg-surface-container-low", className)}
-      {...props}
-    />
-  );
-}
+export const Tr = forwardRef<HTMLTableRowElement, TrProps>(
+  ({ className, hoverable = true, ...props }, ref) => {
+    return (
+      <tr
+        ref={ref}
+        className={cn(hoverable && "hover:bg-surface-container-low", className)}
+        {...props}
+      />
+    );
+  }
+);
+Tr.displayName = "Tr";
 
 interface ThProps extends ThHTMLAttributes<HTMLTableCellElement> {
   align?: "left" | "right";

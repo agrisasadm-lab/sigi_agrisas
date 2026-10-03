@@ -69,7 +69,7 @@ export function TicketSettingsForm({ settings, canWrite, onChange }: TicketSetti
         <p className="text-label-md text-on-surface mb-2">Logo del ticket</p>
         <ImageUploadField
           currentUrl={settings.logoUrl}
-          productId="ticket-logo"
+          entityId="ticket-logo"
           canWrite={canWrite}
           onUploaded={(logoUrl) => onChange({ ...settings, logoUrl })}
           onDeleted={() => onChange({ ...settings, logoUrl: null })}

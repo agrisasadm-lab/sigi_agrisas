@@ -79,6 +79,9 @@ const PERMISSIONS = [
   { key: "waybills:stamp", description: "Timbrar traspasos con Complemento Carta Porte ante el SAT" },
   { key: "settings:read", description: "Ver configuración global del negocio" },
   { key: "settings:write", description: "Editar configuración global del negocio (plantilla de ticket)" },
+  { key: "expenses:read", description: "Leer gastos" },
+  { key: "expenses:write", description: "Crear/editar/desactivar gastos" },
+  { key: "expenses:report_read", description: "Consultar reporte de gastos y exportar PDF/Excel" },
 ];
 
 const ROLES: Array<{
@@ -119,6 +122,7 @@ const ROLES: Array<{
       "billing:read", "billing:write", "billing:cancel", "billing:manage_csd",
       "waybills:read", "waybills:write", "waybills:cancel", "waybills:stamp",
       "settings:read", "settings:write",
+      "expenses:read", "expenses:write", "expenses:report_read",
     ],
   },
   {
@@ -149,6 +153,7 @@ const ROLES: Array<{
       "billing:read", "billing:write", "billing:cancel",
       "waybills:read", "waybills:write", "waybills:cancel", "waybills:stamp",
       "settings:read",
+      "expenses:read", "expenses:write", "expenses:report_read",
     ],
   },
   {
@@ -178,6 +183,7 @@ const ROLES: Array<{
       "billing:read",
       "waybills:read",
       "settings:read",
+      "expenses:read", "expenses:report_read",
     ],
   },
 ];
