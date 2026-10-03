@@ -25,6 +25,7 @@ export interface CustomerProps {
   addressState: string | null;
   addressCountry: string | null;
   addressZipCode: string | null;
+  branchIds: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -56,6 +57,7 @@ export class Customer {
   readonly addressState: string | null;
   readonly addressCountry: string | null;
   readonly addressZipCode: string | null;
+  readonly branchIds: string[];
   readonly createdAt: Date;
   readonly updatedAt: Date;
 
@@ -86,6 +88,7 @@ export class Customer {
     this.addressState = props.addressState;
     this.addressCountry = props.addressCountry;
     this.addressZipCode = props.addressZipCode;
+    this.branchIds = props.branchIds;
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;
   }

@@ -1,5 +1,6 @@
 import { prisma } from "@/shared/infrastructure/prisma/client";
 import { PrismaDepartmentRepository } from "@/modules/departments/infrastructure/repositories/PrismaDepartmentRepository";
+import { PrismaBranchRepository } from "@/modules/branches/infrastructure/repositories/PrismaBranchRepository";
 import { PrismaProductRepository } from "@/modules/products/infrastructure/repositories/PrismaProductRepository";
 import { PrismaProductPriceRepository } from "@/modules/products/infrastructure/repositories/PrismaProductPriceRepository";
 import { PrismaProductDosificationRepository } from "@/modules/products/infrastructure/repositories/PrismaProductDosificationRepository";
@@ -14,10 +15,12 @@ import { PrismaPricingSettingsRepository } from "@/modules/settings/infrastructu
 
 const PCODE = "PRODTEST_PROD_1";
 const DCODE = "PRODTEST_DEPT_1";
+const BCODE = "PRODTEST_BR_1";
 
 async function cleanup() {
   await prisma.product.deleteMany({ where: { code: { startsWith: "PRODTEST_" } } });
   await prisma.department.deleteMany({ where: { code: { startsWith: "PRODTEST_" } } });
+  await prisma.branch.deleteMany({ where: { code: { startsWith: "PRODTEST_" } } });
 }
 
 afterAll(async () => {
@@ -27,6 +30,7 @@ afterAll(async () => {
 
 describe("Products CRUD — integration (real DB)", () => {
   const departmentRepo = new PrismaDepartmentRepository(prisma);
+  const branchRepo = new PrismaBranchRepository(prisma);
   const productRepo = new PrismaProductRepository(prisma);
   const priceRepo = new PrismaProductPriceRepository(prisma);
   const dosificationRepo = new PrismaProductDosificationRepository(prisma);
@@ -36,17 +40,20 @@ describe("Products CRUD — integration (real DB)", () => {
   const updateProduct = new UpdateProductUseCase(productRepo, departmentRepo);
   const listProducts = new ListProductsUseCase(productRepo);
   const softDeleteProduct = new SoftDeleteProductUseCase(productRepo);
-  const createPrice = new CreateProductPriceUseCase(productRepo, priceRepo);
+  const createPrice = new CreateProductPriceUseCase(productRepo, priceRepo, branchRepo);
   const createDosification = new CreateProductDosificationUseCase(productRepo, priceRepo, dosificationRepo, pricingSettingsRepo);
   const listDosifications = new ListProductDosificationsUseCase(productRepo, priceRepo, dosificationRepo, pricingSettingsRepo);
 
   let departmentId: string;
+  let branchId: string;
   let productId: string;
 
   beforeAll(async () => {
     await cleanup();
     const dept = await departmentRepo.create({ code: DCODE, name: "Departamento Integración" });
     departmentId = dept.id;
+    const branch = await branchRepo.create({ code: BCODE, name: "Sucursal Integración" });
+    branchId = branch.id;
   });
 
   it("creates a product", async () => {
@@ -58,15 +65,15 @@ describe("Products CRUD — integration (real DB)", () => {
   });
 
   it("adds two prices (one default)", async () => {
-    const def = await createPrice.execute(productId, { name: "Menudeo", price: 100, isDefault: true });
-    const bulk = await createPrice.execute(productId, { name: "Mayoreo", price: 80, minQuantity: 10 });
+    const def = await createPrice.execute(productId, { branchId, name: "Menudeo", price: 100, isDefault: true });
+    const bulk = await createPrice.execute(productId, { branchId, name: "Mayoreo", price: 80, minQuantity: 10 });
     expect(def.isDefault).toBe(true);
     expect(bulk.isDefault).toBe(false);
   });
 
   it("adds a dosification and computes its unit price using the default price", async () => {
-    await createDosification.execute(productId, { name: "Por dosis", numParts: 10 });
-    const result = await listDosifications.execute(productId);
+    await createDosification.execute(productId, branchId, { name: "Por dosis", numParts: 10 });
+    const result = await listDosifications.execute(productId, branchId);
     const dose = result.items.find((d) => d.name === "Por dosis");
     expect(dose).toBeDefined();
     expect(dose?.requiresDefaultPrice).toBe(false);

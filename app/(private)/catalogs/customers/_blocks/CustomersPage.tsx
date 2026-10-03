@@ -3,6 +3,8 @@
 import { useState, useCallback } from "react";
 import { useCurrentUser } from "../../../../_hooks/useCurrentUser";
 import { useDebounce } from "../../../../_hooks/useDebounce";
+import { useBranchesOptions } from "../../../../_hooks/useBranchesOptions";
+import { useHeadquarters } from "../../../../_hooks/useHeadquarters";
 import { useCustomers } from "../_logic/hooks/useCustomers";
 import { useCustomerMutations } from "../_logic/hooks/useCustomerMutations";
 import { CustomersTable } from "./CustomersTable";
@@ -14,6 +16,7 @@ import { CatalogEmpty } from "../../_blocks/CatalogEmpty";
 import { CatalogError } from "../../_blocks/CatalogError";
 import { ConfirmDialog } from "../../../../_components/molecules/ConfirmDialog/ConfirmDialog";
 import { Skeleton } from "../../../../_components/atoms/Skeleton/Skeleton";
+import { Select } from "../../../../_components/atoms/Select/Select";
 import { EmptyState } from "../../../../_components/molecules/EmptyState/EmptyState";
 import { CustomerCodeAlreadyInUseError, CustomerRfcAlreadyInUseError } from "../_logic/errors";
 import type { Customer } from "../_logic/types/domain";
@@ -27,7 +30,11 @@ interface ModalState {
 }
 
 export function CustomersPage() {
-  const { can } = useCurrentUser();
+  const { can, branchId: ownBranchId } = useCurrentUser();
+  const isBypass = can("branches:access_all");
+  const { options: branchOptions } = useBranchesOptions();
+  const { hq } = useHeadquarters();
+  const [branchFilter, setBranchFilter] = useState("");
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -48,6 +55,7 @@ export function CustomersPage() {
     pageSize,
     search: effectiveSearch,
     includeInactive,
+    branchId: isBypass ? branchFilter || undefined : undefined,
   });
   const { isSaving, createOne, updateOne, softDeleteOne, reactivateOne, clearError } = useCustomerMutations();
 
@@ -184,20 +192,38 @@ export function CustomersPage() {
         title="Clientes"
         description="Gestiona los clientes, sus datos fiscales y crédito"
         toolbar={
-          <CatalogToolbar
-            canWrite={canWrite === true}
-            onCreate={handleCreate}
-            searchValue={searchInput}
-            onSearchChange={handleSearchChange}
-            includeInactive={includeInactive}
-            onIncludeInactiveChange={(val) => {
-              setIncludeInactive(val);
-              setPage(1);
-            }}
-            searchPlaceholder="Buscar por nombre, razón social o RFC..."
-            searchScope="server"
-            createButtonLabel="Nuevo cliente"
-          />
+          <div className="flex flex-col gap-3">
+            {isBypass === true && (
+              <div className="flex items-center gap-2">
+                <label htmlFor="customers-branch-filter" className="text-label-lg text-on-surface-variant">Sucursal</label>
+                <Select
+                  id="customers-branch-filter"
+                  value={branchFilter}
+                  onChange={(e) => { setBranchFilter(e.target.value); setPage(1); }}
+                  className="w-auto"
+                >
+                  <option value="">Todas las sucursales</option>
+                  {branchOptions.map((b) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </Select>
+              </div>
+            )}
+            <CatalogToolbar
+              canWrite={canWrite === true}
+              onCreate={handleCreate}
+              searchValue={searchInput}
+              onSearchChange={handleSearchChange}
+              includeInactive={includeInactive}
+              onIncludeInactiveChange={(val) => {
+                setIncludeInactive(val);
+                setPage(1);
+              }}
+              searchPlaceholder="Buscar por nombre, razón social o RFC..."
+              searchScope="server"
+              createButtonLabel="Nuevo cliente"
+            />
+          </div>
         }
       >
         {error ? (
@@ -218,6 +244,8 @@ export function CustomersPage() {
             onSoftDelete={(id) => setConfirmDeleteId(id)}
             onReactivate={handleReactivate}
             onEnter={canWrite === true ? handleEdit : undefined}
+            isBypass={isBypass === true}
+            branches={branchOptions}
           />
         )}
 
@@ -250,6 +278,10 @@ export function CustomersPage() {
         mutationError={mutationError}
         onSave={handleSave}
         onClose={handleCloseModal}
+        branches={branchOptions}
+        isBypass={isBypass === true}
+        ownBranchId={ownBranchId}
+        headquartersId={hq?.id ?? null}
       />
 
       <ConfirmDialog

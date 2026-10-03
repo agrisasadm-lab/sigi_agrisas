@@ -94,7 +94,7 @@ describe("NewInvoicePage + PartialInvoiceForm (real, sin mockear) — sucursal m
   it("el catálogo y la resolución de precio usan siempre la sucursal matriz, sin selector", async () => {
     setupBypassAdmin();
     mockGetProductPrices.mockResolvedValueOnce([
-      { id: "price-hq", productId: "prod-infinito-1l", name: "Precio Publico", price: 1076, minQuantity: 1, discountPct: 0, isDefault: true },
+      { id: "price-hq", productId: "prod-infinito-1l", branchId: HQ_ID, name: "Precio Publico", price: 1076, minQuantity: 1, discountPct: 0, isDefault: true },
     ]);
     const user = userEvent.setup();
     render(<NewInvoicePage />);

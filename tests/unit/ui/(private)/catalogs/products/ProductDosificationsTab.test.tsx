@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 
 beforeAll(() => {
   HTMLDialogElement.prototype.showModal = jest.fn(function (this: HTMLDialogElement) {
@@ -14,12 +14,21 @@ jest.mock(
   "../../../../../../app/(private)/catalogs/products/_logic/hooks/useProductDosifications",
   () => ({ useProductDosifications: jest.fn() })
 );
+jest.mock("../../../../../../app/_hooks/useBranchesOptions");
+jest.mock("../../../../../../app/_hooks/useCurrentUser");
+jest.mock("../../../../../../app/_hooks/useHeadquarters");
 
 import { useProductDosifications } from "../../../../../../app/(private)/catalogs/products/_logic/hooks/useProductDosifications";
+import { useBranchesOptions } from "../../../../../../app/_hooks/useBranchesOptions";
+import { useCurrentUser } from "../../../../../../app/_hooks/useCurrentUser";
+import { useHeadquarters } from "../../../../../../app/_hooks/useHeadquarters";
 import { ProductDosificationsTab } from "../../../../../../app/(private)/catalogs/products/_blocks/ProductDosificationsTab";
 import type { ProductDosification } from "../../../../../../app/(private)/catalogs/products/_logic/types/domain";
 
 const mockUseDosifications = useProductDosifications as jest.Mock;
+const mockUseBranchesOptions = useBranchesOptions as jest.MockedFunction<typeof useBranchesOptions>;
+const mockUseCurrentUser = useCurrentUser as jest.MockedFunction<typeof useCurrentUser>;
+const mockUseHeadquarters = useHeadquarters as jest.MockedFunction<typeof useHeadquarters>;
 
 const BASE_HOOK = {
   dosifications: [] as ProductDosification[],
@@ -48,10 +57,31 @@ const makeDosification = (overrides: Partial<ProductDosification> = {}): Product
   ...overrides,
 });
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockUseBranchesOptions.mockReturnValue({
+    options: [{ id: "b-matriz", name: "Matriz" }, { id: "b-zarioz", name: "Zarioz" }],
+    isLoading: false,
+    refresh: jest.fn(),
+  });
+  mockUseHeadquarters.mockReturnValue({
+    hq: { id: "b-matriz", code: "MATRIZ", name: "Matriz" },
+    isLoading: false,
+    refresh: jest.fn(),
+  });
+  mockUseCurrentUser.mockReturnValue({
+    userId: "u1",
+    email: "admin@example.com",
+    roles: ["admin"],
+    branchId: null,
+    isLoading: false,
+    can: () => true,
+    refresh: jest.fn(),
+  });
+});
 
 describe("ProductDosificationsTab — computedUnitPrice", () => {
-  it("muestra el precio unitario calculado cuando requiresDefaultPrice es false", () => {
+  it("muestra el precio unitario calculado cuando requiresDefaultPrice es false", async () => {
     mockUseDosifications.mockReturnValue({
       ...BASE_HOOK,
       dosifications: [makeDosification({ computedUnitPrice: 10.7, requiresDefaultPrice: false })],
@@ -59,10 +89,10 @@ describe("ProductDosificationsTab — computedUnitPrice", () => {
 
     render(<ProductDosificationsTab productId="p1" canWrite={true} />);
 
-    expect(screen.getByText("$10.70")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("$10.70")).toBeInTheDocument());
   });
 
-  it("muestra 'Requiere precio default' cuando requiresDefaultPrice es true", () => {
+  it("muestra 'Requiere precio default' cuando requiresDefaultPrice es true", async () => {
     mockUseDosifications.mockReturnValue({
       ...BASE_HOOK,
       dosifications: [makeDosification({ computedUnitPrice: null, requiresDefaultPrice: true })],
@@ -70,12 +100,12 @@ describe("ProductDosificationsTab — computedUnitPrice", () => {
 
     render(<ProductDosificationsTab productId="p1" canWrite={true} />);
 
-    expect(screen.getByText(/requiere precio default/i)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText(/requiere precio default/i)).toBeInTheDocument());
   });
 });
 
 describe("ProductDosificationsTab — gating de permisos", () => {
-  it("canWrite=true muestra botón 'Nueva dosificación'", () => {
+  it("canWrite=true muestra botón 'Nueva dosificación'", async () => {
     mockUseDosifications.mockReturnValue({
       ...BASE_HOOK,
       dosifications: [makeDosification()],
@@ -83,10 +113,10 @@ describe("ProductDosificationsTab — gating de permisos", () => {
 
     render(<ProductDosificationsTab productId="p1" canWrite={true} />);
 
-    expect(screen.getByRole("button", { name: /nueva dosificación/i })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("button", { name: /nueva dosificación/i })).toBeInTheDocument());
   });
 
-  it("canWrite=false oculta acciones y muestra caption de solo lectura", () => {
+  it("canWrite=false oculta acciones y muestra caption de solo lectura", async () => {
     mockUseDosifications.mockReturnValue({
       ...BASE_HOOK,
       dosifications: [makeDosification()],
@@ -94,17 +124,17 @@ describe("ProductDosificationsTab — gating de permisos", () => {
 
     render(<ProductDosificationsTab productId="p1" canWrite={false} />);
 
+    await waitFor(() => expect(screen.getByText(/solo lectura/i)).toBeInTheDocument());
     expect(screen.queryByRole("button", { name: /nueva dosificación/i })).not.toBeInTheDocument();
-    expect(screen.getByText(/solo lectura/i)).toBeInTheDocument();
   });
 });
 
 describe("ProductDosificationsTab — estado vacío", () => {
-  it("muestra mensaje cuando no hay dosificaciones", () => {
+  it("muestra mensaje cuando no hay dosificaciones", async () => {
     mockUseDosifications.mockReturnValue({ ...BASE_HOOK, dosifications: [] });
 
     render(<ProductDosificationsTab productId="p1" canWrite={true} />);
 
-    expect(screen.getByText(/sin dosificaciones configuradas/i)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText(/sin dosificaciones configuradas/i)).toBeInTheDocument());
   });
 });

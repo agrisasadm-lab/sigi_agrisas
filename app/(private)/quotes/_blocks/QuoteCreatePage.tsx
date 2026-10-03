@@ -36,12 +36,12 @@ export function QuoteCreatePage() {
   const isBypass = can("branches:access_all");
   const { isOnline, offlineEnabled, ownerBranchId } = useOfflineSync();
 
-  const { options: folios, isLoading: foliosLoading } = useFoliosOptions({ scope: "POS" });
   const { dosificationSurchargePct } = usePricingSettingsOptions();
   const { lines, totals, addLine, updateQuantity, updateDiscountPct, changeTier, removeLine, clear } = useCart(dosificationSurchargePct);
   const { status, quote, queuedQuote, error: submitError, submit, reset: resetSubmit } = useQuoteSubmission();
 
   const { branches, selectedBranchId, setSelectedBranchId } = useBypassBranchOptions(isBypass, userBranchId ?? null);
+  const { options: folios, isLoading: foliosLoading } = useFoliosOptions({ scope: "POS", branchId: selectedBranchId || null });
   const [selectedFolioId, setSelectedFolioId] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
@@ -57,6 +57,11 @@ export function QuoteCreatePage() {
       setModal("quoteQueued");
     }
   }, [status, quote, queuedQuote, router]);
+
+  // Al cambiar de sucursal (bypass), el cliente ya seleccionado puede no pertenecer a la nueva.
+  useEffect(() => {
+    setSelectedCustomerId("");
+  }, [selectedBranchId]);
 
   function handleNewQuote() {
     clear();
@@ -203,6 +208,7 @@ export function QuoteCreatePage() {
             setModal(null);
           }}
           onClose={() => setModal(null)}
+          branchId={selectedBranchId || undefined}
         />
       )}
 

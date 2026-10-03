@@ -45,6 +45,7 @@ const BASE_ENTITY: Customer = {
   addressState: null,
   addressCountry: null,
   addressZipCode: null,
+  branchIds: ["11111111-1111-1111-1111-111111111111"],
   createdAt: new Date("2026-05-25"),
   updatedAt: new Date("2026-05-25"),
 };
@@ -57,6 +58,10 @@ const defaultProps = {
   mutationError: null,
   onSave: jest.fn(),
   onClose: jest.fn(),
+  branches: [{ id: "11111111-1111-1111-1111-111111111111", name: "Matriz" }, { id: "22222222-2222-2222-2222-222222222222", name: "Zarioz" }],
+  isBypass: false,
+  ownBranchId: "11111111-1111-1111-1111-111111111111",
+  headquartersId: "11111111-1111-1111-1111-111111111111",
 };
 
 beforeEach(() => {

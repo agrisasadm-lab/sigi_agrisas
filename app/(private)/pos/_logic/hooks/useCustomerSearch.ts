@@ -8,6 +8,7 @@ interface UseCustomerSearchParams {
   search: string;
   page?: number;
   pageSize?: number;
+  branchId?: string;
 }
 
 interface UseCustomerSearchResult {
@@ -22,6 +23,7 @@ export function useCustomerSearch({
   search,
   page = 1,
   pageSize = 20,
+  branchId,
 }: UseCustomerSearchParams): UseCustomerSearchResult {
   const [items, setItems] = useState<CustomerDto[]>([]);
   const [total, setTotal] = useState(0);
@@ -34,7 +36,7 @@ export function useCustomerSearch({
     setIsLoading(true);
     setError(null);
 
-    searchCustomers({ search, page, pageSize, signal: controller.signal })
+    searchCustomers({ search, page, pageSize, branchId, signal: controller.signal })
       .then((result) => {
         setItems(result.items);
         setTotal(result.total);
@@ -47,7 +49,7 @@ export function useCustomerSearch({
       });
 
     return () => controller.abort();
-  }, [search, page, pageSize, tick]);
+  }, [search, page, pageSize, branchId, tick]);
 
   const refresh = useCallback(() => setTick((t) => t + 1), []);
 

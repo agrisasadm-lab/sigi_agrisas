@@ -5,11 +5,15 @@ import { Icon } from "../../../../_components/atoms/Icon/Icon";
 import { Skeleton } from "../../../../_components/atoms/Skeleton/Skeleton";
 import { auditFolio } from "../_logic/services/listFolios";
 import type { FolioAuditResult } from "../_logic/types/domain";
+import { useCurrentUser } from "../../../../_hooks/useCurrentUser";
+import { useBypassBranchOptions } from "../../../../_hooks/useBypassBranchOptions";
+import { isBranchScopedFolioCode } from "@/shared/domain/folios/branchScopedFolioCodes";
 
 const DOC_TYPE_LABEL: Record<string, string> = {
   sale: "Venta",
   quote: "Cotización",
   payment: "Abono",
+  purchase: "Compra",
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -38,6 +42,13 @@ export function FolioAuditModal({ folioId, open, onClose }: FolioAuditModalProps
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [auditBranchId, setAuditBranchId] = useState<string>("");
+
+  const { can, branchId: ownBranchId } = useCurrentUser();
+  const isBypass = can("branches:access_all");
+  const { branches } = useBypassBranchOptions(isBypass, ownBranchId ?? null);
+  // Sólo se sabe si el folio es branch-scoped tras la primera carga (sin branchId).
+  const isBranchScoped = data ? isBranchScopedFolioCode(data.code) : false;
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -62,17 +73,18 @@ export function FolioAuditModal({ folioId, open, onClose }: FolioAuditModalProps
       setData(null);
       setError(null);
       setPage(1);
+      setAuditBranchId("");
       return;
     }
     setIsLoading(true);
     setError(null);
     setData(null);
     setPage(1);
-    auditFolio(folioId)
+    auditFolio(folioId, auditBranchId || null)
       .then(setData)
       .catch(() => setError("No se pudo cargar la auditoría."))
       .finally(() => setIsLoading(false));
-  }, [open, folioId]);
+  }, [open, folioId, auditBranchId]);
 
   const pageItems = data ? data.sequence.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) : [];
   const totalPages = data ? Math.ceil(data.sequence.length / PAGE_SIZE) : 0;
@@ -108,6 +120,23 @@ export function FolioAuditModal({ folioId, open, onClose }: FolioAuditModalProps
 
         {data && (
           <>
+            {isBranchScoped && (
+              <div className="flex items-center gap-2">
+                <label htmlFor="audit-branch-scope" className="text-label-sm text-on-surface-variant">Sucursal</label>
+                <select
+                  id="audit-branch-scope"
+                  value={auditBranchId}
+                  onChange={(e) => setAuditBranchId(e.target.value)}
+                  className="px-3 py-1.5 rounded-md border border-outline-variant bg-surface-container-lowest text-body-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">Global (histórico)</option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div className="flex flex-wrap gap-4">
               <div className="flex flex-col">
                 <span className="text-label-sm text-on-surface-variant">Folio</span>

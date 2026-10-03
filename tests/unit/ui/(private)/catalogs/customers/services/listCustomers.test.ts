@@ -68,6 +68,48 @@ describe("listCustomers", () => {
     expect(calledUrl).toContain("search=acme");
   });
 
+  it("includes branchId in URL when set", async () => {
+    const mockFetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ items: [], total: 0, page: 1, pageSize: 20 }),
+    } as Response);
+
+    await listCustomers({ page: 1, pageSize: 20, branchId: "b1" }, mockFetch);
+
+    const calledUrl = mockFetch.mock.calls[0][0] as string;
+    expect(calledUrl).toContain("branchId=b1");
+  });
+
+  it("omits branchId from URL when not set", async () => {
+    const mockFetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ items: [], total: 0, page: 1, pageSize: 20 }),
+    } as Response);
+
+    await listCustomers({ page: 1, pageSize: 20 }, mockFetch);
+
+    const calledUrl = mockFetch.mock.calls[0][0] as string;
+    expect(calledUrl).not.toContain("branchId=");
+  });
+
+  it("maps branchIds from the DTO", async () => {
+    const mockFetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        items: [{ ...baseDto, branchIds: ["b1", "b2"] }],
+        total: 1,
+        page: 1,
+        pageSize: 20,
+      }),
+    } as Response);
+
+    const result = await listCustomers({ page: 1, pageSize: 20 }, mockFetch);
+    expect(result.items[0].branchIds).toEqual(["b1", "b2"]);
+  });
+
   it("omits search when single character", async () => {
     const mockFetch = jest.fn().mockResolvedValueOnce({
       ok: true,

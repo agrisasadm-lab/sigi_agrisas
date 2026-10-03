@@ -25,7 +25,8 @@ interface UseProductDosificationsResult {
   reactivateOne: (dosificationId: string) => Promise<ProductDosification | null>;
 }
 
-export function useProductDosifications(productId: string): UseProductDosificationsResult {
+/** `branchId` fija la sucursal cuyo precio default alimenta `computedUnitPrice`. */
+export function useProductDosifications(productId: string, branchId: string | null = null): UseProductDosificationsResult {
   const [dosifications, setDosifications] = useState<ProductDosification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,11 +35,17 @@ export function useProductDosifications(productId: string): UseProductDosificati
   const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!branchId) {
+      setDosifications([]);
+      setIsLoading(false);
+      setError(null);
+      return;
+    }
     const controller = new AbortController();
     let cancelled = false;
     setIsLoading(true);
     setError(null);
-    listDosifications({ productId }, undefined, controller.signal)
+    listDosifications({ productId, branchId }, undefined, controller.signal)
       .then((data) => {
         if (!cancelled) setDosifications(data);
       })
@@ -53,7 +60,7 @@ export function useProductDosifications(productId: string): UseProductDosificati
       cancelled = true;
       controller.abort();
     };
-  }, [productId, tick]);
+  }, [productId, branchId, tick]);
 
   const refresh = useCallback(() => setTick((t) => t + 1), []);
   const clearSaveError = useCallback(() => setSaveError(null), []);
@@ -62,7 +69,7 @@ export function useProductDosifications(productId: string): UseProductDosificati
     setIsSaving(true);
     setSaveError(null);
     try {
-      const result = await createDosification({ productId, body });
+      const result = await createDosification({ productId, branchId: branchId!, body });
       refresh();
       return result;
     } catch (err) {
@@ -72,14 +79,14 @@ export function useProductDosifications(productId: string): UseProductDosificati
     } finally {
       setIsSaving(false);
     }
-  }, [productId, refresh]);
+  }, [productId, branchId, refresh]);
 
   const updateOne = useCallback(async (dosificationId: string, body: UpdateDosificationBody): Promise<ProductDosification | null> => {
     if (Object.keys(body).length === 0) return null;
     setIsSaving(true);
     setSaveError(null);
     try {
-      const result = await updateDosification({ productId, dosificationId, body });
+      const result = await updateDosification({ productId, dosificationId, branchId: branchId!, body });
       refresh();
       return result;
     } catch (err) {
@@ -89,7 +96,7 @@ export function useProductDosifications(productId: string): UseProductDosificati
     } finally {
       setIsSaving(false);
     }
-  }, [productId, refresh]);
+  }, [productId, branchId, refresh]);
 
   const softDeleteOne = useCallback(async (dosificationId: string): Promise<boolean> => {
     setIsSaving(true);
@@ -104,7 +111,7 @@ export function useProductDosifications(productId: string): UseProductDosificati
     } finally {
       setIsSaving(false);
     }
-  }, [productId, refresh]);
+  }, [productId, branchId, refresh]);
 
   const reactivateOne = useCallback(
     async (dosificationId: string): Promise<ProductDosification | null> =>

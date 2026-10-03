@@ -34,13 +34,14 @@ async function safeRethrow(err: unknown): Promise<never> {
 }
 
 export async function listDosifications(
-  { productId }: { productId: string },
+  { productId, branchId }: { productId: string; branchId: string },
   fetchImpl = authFetch,
   signal?: AbortSignal,
 ): Promise<ProductDosification[]> {
+  const qs = `?branchId=${encodeURIComponent(branchId)}`;
   let res: Response;
   try {
-    res = await fetchImpl(`/api/v1/admin/products/${productId}/dosifications`, { signal });
+    res = await fetchImpl(`/api/v1/admin/products/${productId}/dosifications${qs}`, { signal });
   } catch (err) {
     return safeRethrow(err);
   }
@@ -51,12 +52,12 @@ export async function listDosifications(
 }
 
 export async function createDosification(
-  { productId, body }: { productId: string; body: CreateDosificationBody },
+  { productId, branchId, body }: { productId: string; branchId: string; body: CreateDosificationBody },
   fetchImpl = authFetch,
 ): Promise<ProductDosification> {
   let res: Response;
   try {
-    res = await fetchImpl(`/api/v1/admin/products/${productId}/dosifications`, {
+    res = await fetchImpl(`/api/v1/admin/products/${productId}/dosifications?branchId=${encodeURIComponent(branchId)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -71,12 +72,12 @@ export async function createDosification(
 }
 
 export async function updateDosification(
-  { productId, dosificationId, body }: { productId: string; dosificationId: string; body: UpdateDosificationBody },
+  { productId, dosificationId, branchId, body }: { productId: string; dosificationId: string; branchId: string; body: UpdateDosificationBody },
   fetchImpl = authFetch,
 ): Promise<ProductDosification> {
   let res: Response;
   try {
-    res = await fetchImpl(`/api/v1/admin/products/${productId}/dosifications/${dosificationId}`, {
+    res = await fetchImpl(`/api/v1/admin/products/${productId}/dosifications/${dosificationId}?branchId=${encodeURIComponent(branchId)}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),

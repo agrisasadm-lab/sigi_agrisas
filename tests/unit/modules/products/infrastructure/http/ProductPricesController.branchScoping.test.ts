@@ -45,10 +45,12 @@ function makePostReq(body: unknown, headers: Record<string, string> = {}) {
 }
 
 describe("ProductPricesController — precio por sucursal", () => {
-  it("GET sin branchId retorna 200 con sólo precios base", async () => {
+  it("GET sin branchId retorna 400", async () => {
     const { controller, productId } = await buildController();
     const res = await controller.list(makeGetReq(`http://localhost/api/v1/admin/products/${productId}/prices`), productId);
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe("branchId is required");
   });
 
   it("GET con branchId de formato inválido retorna 400", async () => {
@@ -86,12 +88,11 @@ describe("ProductPricesController — precio por sucursal", () => {
     expect(res.status).toBe(401);
   });
 
-  it("POST sin branchId (precio base) no pasa por enforceBranchScope", async () => {
+  it("POST sin branchId retorna 400: no existe precio sin sucursal", async () => {
     const { controller, productId } = await buildController();
     const res = await controller.create(makePostReq({ name: "Precio Publico", price: 100 }), productId);
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.branchId).toBeNull();
-    expect(body.isOverride).toBe(false);
+    expect(body.error).toBe("branchId is required");
   });
 });

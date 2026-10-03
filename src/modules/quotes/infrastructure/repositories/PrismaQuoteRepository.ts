@@ -14,7 +14,7 @@ import { QuoteItem } from "../../domain/entities/QuoteItem";
 import { QuoteStatus } from "../../domain/value-objects/QuoteStatus";
 import { QuoteJoinedFields } from "../../application/mappers/toQuoteDto";
 import { InactiveResourceError } from "../../domain/errors/InactiveResourceError";
-import { allocateFolio } from "@/shared/infrastructure/folios/allocateFolio";
+import { allocateBranchFolio } from "@/shared/infrastructure/folios/allocateBranchFolio";
 
 type PrismaQuoteWithJoins = {
   id: string;
@@ -210,7 +210,7 @@ export class PrismaQuoteRepository implements QuoteRepository {
     const quoteId = randomUUID();
 
     const summary = await this.prisma.$transaction(async (tx) => {
-      const { folioNumber, folioCode } = await allocateFolio(tx, data.folioId);
+      const { folioNumber, folioCode } = await allocateBranchFolio(tx, data.folioId, data.branchId);
 
       // Use raw INSERT to support nullable customer_id (Prisma client was generated
       // before the NOT NULL constraint was dropped, so ORM validation rejects null).

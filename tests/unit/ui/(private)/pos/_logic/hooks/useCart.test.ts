@@ -21,6 +21,7 @@ const product: ProductDto = {
 const price: ProductPriceDto = {
   id: "price-1",
   productId: "prod-1",
+  branchId: "b1",
   name: "Precio base",
   price: 100,
   minQuantity: 1,
@@ -31,6 +32,7 @@ const price: ProductPriceDto = {
 const price2: ProductPriceDto = {
   id: "price-2",
   productId: "prod-1",
+  branchId: "b1",
   name: "Precio mayoreo",
   price: 80,
   minQuantity: 10,

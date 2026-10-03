@@ -119,7 +119,7 @@ The system SHALL provide a single modal component `ProductEditModal` that handle
 - **THEN** the modal stays open and an inline error "El departamento no existe o está inactivo." appears under the department field
 
 ### Requirement: Product detail screen with tabs
-The system SHALL provide a detail screen at `/catalogs/products/[id]` reachable from the list's "Gestionar" action, requiring `products:read`. The screen SHALL load the product via `GET /api/v1/admin/products/:id` and render its `code` and `name` as a header plus three tabs: "General", "Precios", "Dosificaciones". The "General" tab SHALL embed the same editable fields as `ProductEditModal` — including `manufactureDate` — with a "Guardar cambios" button (diff submit, disabled when no changes) gated by `products:write`. A 404 on load SHALL render a "Producto no encontrado" state with a link back to `/catalogs/products`.
+The system SHALL provide a detail screen at `/catalogs/products/[id]` reachable from the list's "Gestionar" action, requiring `products:read`. The screen SHALL load the product via `GET /api/v1/admin/products/:id` and render its `code` and `name` as a header plus three tabs: "General", "Precios", "Dosificaciones". The "General" tab SHALL embed the same editable fields as `ProductEditModal` — including `manufactureDate` — with a "Guardar cambios" button (diff submit, disabled when no changes) gated by `products:write`. A 404 on load SHALL render a "Producto no encontrado" state with a link back to `/catalogs/products`. The initially active tab SHALL be determined by the `tab` query parameter (`?tab=general|prices|dosifications`) when present and valid; an absent or invalid value SHALL default to "General". Manually switching tabs after load does not update the URL.
 
 #### Scenario: Detail loads and shows tabs
 - **WHEN** a user with `products:read` opens `/catalogs/products/<id>` for an existing product
@@ -137,10 +137,19 @@ The system SHALL provide a detail screen at `/catalogs/products/[id]` reachable 
 - **WHEN** a user with only `products:read` opens the detail
 - **THEN** the General tab fields are disabled and the "Guardar cambios" button is not rendered
 
-### Requirement: Product prices management in the Precios tab
-The "Precios" tab SHALL show a branch selector above the prices table: "Precio base (todas)" (default selection) plus one option per active branch. Selecting "Precio base" dispatches `GET /api/v1/admin/products/:id/prices` (no `branchId`) and lists only base prices. Selecting a branch dispatches `GET /api/v1/admin/products/:id/prices?branchId=<id>` and lists that branch's effective prices (its own overrides plus inherited base rows).
+#### Scenario: Deep-link opens directly on the Precios tab
+- **WHEN** a user opens `/catalogs/products/<id>?tab=prices`
+- **THEN** the "Precios" tab is active on load, without needing to click the tab
 
-The table columns are: `Nombre`, `Precio` (currency), `Cantidad mín.` (`minQuantity`), `Descuento` (`discountPct` as `"%"` or `"—"`), `Default` (a badge on the default row of the selected bucket), `Origen` (badge "Base" or "Override <sucursal>" driven by the DTO's `isOverride`), and `Acciones`. A "Nuevo precio" button (gated by `products:write`) SHALL open a `ProductPriceModal` for creation, pre-filling `branchId` with the currently selected branch (or `null` for "Precio base"). Rows SHALL offer "Editar" and "Eliminar" (hard delete with `ConfirmDialog`); when a branch is selected and the row shown is an inherited base row (`isOverride: false`), the row action SHALL instead read "Crear override aquí" — editing an inherited row is not possible without first materializing an override for that branch. The modal SHALL validate `name` (required), `price >= 0`, `minQuantity >= 1`, `discountPct` 0–100 (or empty → null), and `isDefault` (boolean); `branchId` is not editable once a price is created. After any mutation that changes the default price, the table SHALL re-fetch so the moved default badge is reflected. When the user lacks `products:write`, the table SHALL render read-only with a caption "Solo lectura — requiere products:write".
+#### Scenario: Invalid tab query param falls back to General
+- **WHEN** a user opens `/catalogs/products/<id>?tab=unknown` (or with no `tab` param)
+- **THEN** the "General" tab is active on load, same as today
+
+
+### Requirement: Product prices management in the Precios tab
+The "Precios" tab SHALL show a branch selector above the prices table: "Precio base (todas)" (default selection) plus one option per active branch **the user is authorized to select**. When the user has `branches:access_all`, the selector SHALL list "Precio base (todas)" plus one option per active branch (unchanged from prior behavior). When the user does NOT have `branches:access_all`, the selector SHALL list "Precio base (todas)" plus only the user's own assigned branch (`branchId` from `useCurrentUser()`); if the user has no assigned branch, the selector SHALL show only "Precio base (todas)". Selecting "Precio base" dispatches `GET /api/v1/admin/products/:id/prices` (no `branchId`) and lists only base prices. Selecting a branch dispatches `GET /api/v1/admin/products/:id/prices?branchId=<id>` and lists that branch's effective prices (its own overrides plus inherited base rows).
+
+The table columns are: `Nombre`, `Precio` (currency), `Cantidad mín.` (`minQuantity`), `Descuento` (`discountPct` as `"%"` or `"—"`), `Default` (a badge on the default row of the selected bucket), `Origen` (badge "Base" or "Override <sucursal>" driven by the DTO's `isOverride`), and `Acciones`. A "Nuevo precio" button (gated by `products:write`) SHALL open a `ProductPriceModal` for creation, pre-filling `branchId` with the currently selected branch (or `null` for "Precio base"). Rows SHALL offer "Editar" and "Eliminar" (hard delete with `ConfirmDialog`); when a branch is selected and the row shown is an inherited base row (`isOverride: false`), the row action SHALL instead read "Crear override aquí" — editing an inherited row is not possible without first materializing an override for that branch. The modal SHALL validate `name` (required), `price >= 0`, `minQuantity >= 1`, `discountPct` 0–100 (or empty → null), and `isDefault` (boolean); `branchId` is not editable once a price is created. After any mutation that changes the default price, the table SHALL re-fetch so the moved default badge is reflected. When the user lacks `products:write`, the table SHALL render read-only with a caption "Solo lectura — requiere products:write". When a price mutation fails with a 403 whose `required` field is `"branches:access_all"` (the backend's branch-scope guard), the error banner SHALL show "No puedes crear precios para otra sucursal." instead of the raw backend error text.
 
 #### Scenario: Prices table lists prices with default badge
 - **WHEN** the Precios tab opens for a product with prices
@@ -186,7 +195,21 @@ The table columns are: `Nombre`, `Precio` (currency), `Cantidad mín.` (`minQuan
 - **WHEN** the user switches the selector from a branch back to "Precio base (todas)"
 - **THEN** a `GET .../prices` request without `branchId` is dispatched and only base rows (`branchId: null`) are shown
 
----
+#### Scenario: Branch selector is limited to the user's own branch without access_all
+- **WHEN** a user without `branches:access_all` and with `branchId` set to "ZARIOZ" opens the branch selector in the Precios tab
+- **THEN** the selector shows only "Precio base (todas)" and "ZARIOZ" — no other active branches are listed
+
+#### Scenario: Branch selector stays unfiltered with access_all
+- **WHEN** a user with `branches:access_all` (e.g. `admin`) opens the branch selector in the Precios tab
+- **THEN** the selector shows "Precio base (todas)" plus every active branch, unchanged from prior behavior
+
+#### Scenario: User without an assigned branch sees only the base option
+- **WHEN** a user without `branches:access_all` and with `branchId: null` opens the branch selector in the Precios tab
+- **THEN** the selector shows only "Precio base (todas)" — no branch-specific option is listed
+
+#### Scenario: Branch-scope 403 shows a translated error instead of the raw backend text
+- **WHEN** a price create/update request fails with a 403 response whose `required` field is `"branches:access_all"`
+- **THEN** the error banner shows "No puedes crear precios para otra sucursal." instead of the raw "Forbidden" text from the backend
 
 ### Requirement: Product dosifications management in the Dosificaciones tab
 The "Dosificaciones" tab SHALL list the product's dosifications via `GET /api/v1/admin/products/:id/dosifications` in a table with columns: `Nombre`, `Partes` (`numParts`), `Precio unitario` (`computedUnitPrice` as currency, or the notice "Requiere precio default" when `requiresDefaultPrice === true`), `Estado` (badge), and `Acciones`. A "Nueva dosificación" button (gated by `products:write`) SHALL open a `ProductDosificationModal`; rows SHALL offer "Editar" and "Eliminar" (soft delete with `ConfirmDialog`) plus "Reactivar" for inactive rows. The modal SHALL validate `name` (required) and `numParts >= 2`. When the user lacks `products:write`, the table SHALL render read-only with a caption "Solo lectura — requiere products:write".

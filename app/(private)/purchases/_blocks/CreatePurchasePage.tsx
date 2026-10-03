@@ -47,7 +47,7 @@ export function CreatePurchasePage() {
 
   const [productQuery, setProductQuery] = useState("");
   const debouncedProductQuery = useDebounce(productQuery, 300);
-  const { items: productOptions, isLoading: isLoadingProducts } = useProductSearch({ search: debouncedProductQuery });
+  const { items: productOptions, isLoading: isLoadingProducts } = useProductSearch({ search: debouncedProductQuery, branchId: branchId || undefined });
   const productComboOptions = productOptions.map((p) => ({ value: p.id, label: `${p.code} · ${p.name}` }));
 
   const [satApplying, setSatApplying] = useState(false);
@@ -242,14 +242,28 @@ export function CreatePurchasePage() {
 
       <div className="bg-surface-container-low rounded-lg border border-outline-variant p-4 space-y-3">
         <label className="text-label-sm text-on-surface-variant mb-1 block">Agregar producto</label>
-        <Combobox
-          value=""
-          onChange={handleAddProduct}
-          onSearch={setProductQuery}
-          options={productComboOptions}
-          isLoading={isLoadingProducts}
-          placeholder="Buscar por código o nombre..."
-        />
+        {branchId ? (
+          <Combobox
+            value=""
+            onChange={handleAddProduct}
+            onSearch={setProductQuery}
+            options={productComboOptions}
+            isLoading={isLoadingProducts}
+            placeholder="Buscar por código o nombre..."
+          />
+        ) : (
+          <>
+            <Combobox
+              value=""
+              onChange={() => {}}
+              onSearch={() => {}}
+              options={[]}
+              disabled
+              placeholder="Selecciona una sucursal para buscar productos"
+            />
+            <p className="text-label-sm text-on-surface-variant">Selecciona una sucursal para buscar productos.</p>
+          </>
+        )}
 
         {form.lines.length === 0 ? (
           <p className="py-6 text-center text-body-sm text-on-surface-variant">

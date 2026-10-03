@@ -6,22 +6,27 @@ import {
 } from "../../application/ports/DepartmentPriceListRepository";
 import { DepartmentPriceListFilters } from "../../domain/value-objects/DepartmentPriceListFilters";
 import { resolveUnitDescriptions } from "@/shared/infrastructure/sat-codes/resolveUnitDescriptions";
-import { resolveEffectivePrices } from "@/modules/products/domain/services/resolveEffectivePrices";
 
 export class PrismaDepartmentPriceListRepository implements DepartmentPriceListRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
   async findRows(filters: DepartmentPriceListFilters): Promise<RawPriceListRow[]> {
+    // Cada precio pertenece a una sucursal (no hay precio base compartido). Sin
+    // `branchId` el reporte usa la matriz como lista de referencia — es donde la
+    // migración `separate_branch_pricing` dejó los antiguos precios base.
+    const scopeBranchId =
+      filters.branchId ??
+      (await this.prisma.branch.findFirst({ where: { isHeadquarters: true }, select: { id: true } }))?.id ??
+      null;
+
     const products = await this.prisma.product.findMany({
       where: {
         ...(filters.departmentId ? { departmentId: filters.departmentId } : {}),
       },
       include: {
         department: true,
-        // Sin branchId: sólo precios base. Con branchId: base + overrides propios
-        // de la sucursal, resueltos al conjunto efectivo abajo.
         prices: {
-          where: filters.branchId ? { OR: [{ branchId: null }, { branchId: filters.branchId }] } : { branchId: null },
+          where: scopeBranchId ? { branchId: scopeBranchId } : { id: { in: [] } },
           orderBy: [{ isDefault: "desc" }, { name: "asc" }],
         },
       },
@@ -58,9 +63,7 @@ export class PrismaDepartmentPriceListRepository implements DepartmentPriceListR
         acquisitionPrice: product.acquisitionPrice as unknown as Decimal | null,
       };
 
-      const effectivePrices = filters.branchId
-        ? resolveEffectivePrices(product.prices, filters.branchId)
-        : product.prices;
+      const effectivePrices = product.prices;
 
       if (effectivePrices.length === 0) {
         rows.push({

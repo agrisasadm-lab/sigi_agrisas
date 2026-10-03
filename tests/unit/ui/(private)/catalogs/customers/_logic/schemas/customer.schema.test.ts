@@ -39,3 +39,38 @@ describe("customer.schema — taxRegime y cfdiUse", () => {
     expect(parsed.success).toBe(true);
   });
 });
+
+describe("customer.schema — branchIds", () => {
+  const UUID_1 = "11111111-1111-1111-1111-111111111111";
+  const UUID_2 = "22222222-2222-2222-2222-222222222222";
+
+  it("createCustomerSchema acepta branchIds con al menos un uuid", () => {
+    const parsed = createCustomerSchema.safeParse({ ...BASE, branchIds: [UUID_1] });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("createCustomerSchema rechaza branchIds vacío", () => {
+    const parsed = createCustomerSchema.safeParse({ ...BASE, branchIds: [] });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("createCustomerSchema rechaza branchIds con ids no-uuid", () => {
+    const parsed = createCustomerSchema.safeParse({ ...BASE, branchIds: ["b1"] });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("createCustomerSchema es válido sin branchIds (campo opcional)", () => {
+    const parsed = createCustomerSchema.safeParse({ ...BASE });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("updateCustomerSchema acepta branchIds con múltiples uuids", () => {
+    const parsed = updateCustomerSchema.safeParse({ branchIds: [UUID_1, UUID_2] });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("updateCustomerSchema rechaza branchIds vacío", () => {
+    const parsed = updateCustomerSchema.safeParse({ branchIds: [] });
+    expect(parsed.success).toBe(false);
+  });
+});

@@ -12,6 +12,7 @@ import type { CustomerDto } from "../_logic/types/api";
 interface CustomerQuickAddModalProps {
   onCreated: (customer: CustomerDto) => void;
   onClose: () => void;
+  branchId?: string | null;
 }
 
 interface FieldErrors {
@@ -26,7 +27,7 @@ interface FieldErrors {
   phone?: string;
 }
 
-export function CustomerQuickAddModal({ onCreated, onClose }: CustomerQuickAddModalProps) {
+export function CustomerQuickAddModal({ onCreated, onClose, branchId }: CustomerQuickAddModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
 
@@ -96,7 +97,10 @@ export function CustomerQuickAddModal({ onCreated, onClose }: CustomerQuickAddMo
 
     setIsSubmitting(true);
     try {
-      const customer = await createCustomer(result.data);
+      const customer = await createCustomer({
+        ...result.data,
+        ...(branchId ? { branchIds: [branchId] } : {}),
+      });
       onCreated(customer);
     } catch (err) {
       if (err instanceof CustomerCodeAlreadyInUseError) {

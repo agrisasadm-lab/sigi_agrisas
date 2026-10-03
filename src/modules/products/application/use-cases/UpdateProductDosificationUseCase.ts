@@ -16,6 +16,7 @@ export class UpdateProductDosificationUseCase {
   async execute(
     productId: string,
     dosificationId: string,
+    branchId: string,
     req: UpdateProductDosificationRequest
   ): Promise<ProductDosificationDto> {
     const existing = await this.dosificationRepo.findById(dosificationId);
@@ -25,7 +26,7 @@ export class UpdateProductDosificationUseCase {
 
     const updated = await this.dosificationRepo.update(dosificationId, req);
     const [defaultPrice, pricingSettings] = await Promise.all([
-      this.priceRepo.findDefaultByProductId(productId),
+      this.priceRepo.findDefaultByProductId(productId, branchId),
       this.pricingSettingsRepo.get(),
     ]);
     return toProductDosificationDto(updated, defaultPrice, pricingSettings.dosificationSurchargePct);

@@ -25,6 +25,7 @@ export interface CustomerDto {
   addressState: string | null;
   addressCountry: string | null;
   addressZipCode: string | null;
+  branchIds: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -41,11 +42,14 @@ export interface ListCustomersParams {
   pageSize: number;
   includeInactive?: boolean;
   search?: string;
+  branchId?: string;
 }
 
 export interface CreateCustomerBody {
   code: string;
   name: string;
+  /** Obligatorio con bypass (branches:access_all); ignorado sin él — el backend fuerza la sucursal propia. */
+  branchIds?: string[];
   rfc?: string | null;
   legalName?: string | null;
   taxRegime?: string | null;
@@ -72,6 +76,8 @@ export interface CreateCustomerBody {
 
 export interface UpdateCustomerBody {
   name?: string;
+  /** Sólo aplica con bypass — reemplaza el set completo. Un operador sin bypass no puede tocarlo. */
+  branchIds?: string[];
   rfc?: string | null;
   legalName?: string | null;
   taxRegime?: string | null;

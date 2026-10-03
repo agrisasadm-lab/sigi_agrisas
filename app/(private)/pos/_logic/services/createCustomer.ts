@@ -12,6 +12,7 @@ export interface CreateCustomerBody {
   taxZipCode?: string;
   email?: string;
   phone?: string;
+  branchIds?: string[];
 }
 
 export async function createCustomer(

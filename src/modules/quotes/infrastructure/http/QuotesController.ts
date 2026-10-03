@@ -24,6 +24,7 @@ import { EmptyQuoteError } from "../../domain/errors/EmptyQuoteError";
 import { ProductPriceMismatchError } from "../../domain/errors/ProductPriceMismatchError";
 import { ProductPriceNotAvailableForBranchError } from "../../domain/errors/ProductPriceNotAvailableForBranchError";
 import { ProductNotAvailableInBranchError } from "../../domain/errors/ProductNotAvailableInBranchError";
+import { CustomerNotAvailableInBranchError } from "../../domain/errors/CustomerNotAvailableInBranchError";
 import { InactiveResourceError } from "../../domain/errors/InactiveResourceError";
 import { FolioScopeMismatchError } from "@/shared/domain/errors/FolioScopeMismatchError";
 import { QUOTE_STATUSES, QuoteStatus, isQuoteStatus } from "../../domain/value-objects/QuoteStatus";
@@ -333,6 +334,9 @@ export class QuotesController {
       return NextResponse.json({ error: err.message }, { status: 400 });
     }
     if (err instanceof ProductNotAvailableInBranchError) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
+    if (err instanceof CustomerNotAvailableInBranchError) {
       return NextResponse.json({ error: err.message }, { status: 400 });
     }
     if (err instanceof InactiveResourceError) {

@@ -25,6 +25,7 @@ export interface Customer {
   addressState: string | null;
   addressCountry: string | null;
   addressZipCode: string | null;
+  branchIds: string[];
   createdAt: Date;
   updatedAt: Date;
 }

@@ -1,5 +1,12 @@
-import { PrismaClient } from "@prisma/client";
-import { FolioRepository, FindAllFoliosOptions, CreateFolioData, UpdateFolioData, AuditCounts } from "@/modules/folios/application/ports/FolioRepository";
+import { PrismaClient, Prisma } from "@prisma/client";
+import {
+  FolioRepository,
+  FindAllFoliosOptions,
+  CreateFolioData,
+  UpdateFolioData,
+  AuditCounts,
+  BranchCountersResult,
+} from "@/modules/folios/application/ports/FolioRepository";
 import { Folio } from "@/modules/folios/domain/entities/Folio";
 import { FolioScope } from "@/shared/domain/types/FolioScope";
 import { FolioNotFoundError } from "@/modules/folios/domain/errors/FolioNotFoundError";
@@ -36,6 +43,9 @@ export class PrismaFolioRepository implements FolioRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
   async findAll({ page, pageSize, includeInactive, scope }: FindAllFoliosOptions): Promise<{ items: Folio[]; total: number }> {
+    // El catálogo de folios es global — `branchId` (si viene) no filtra qué folios
+    // aparecen, sólo enriquece cada uno con su contador de esa sucursal (ver
+    // ListFoliosUseCase → findBranchCounters).
     const where: { isActive?: boolean; scope?: string } = {};
     if (!includeInactive) where.isActive = true;
     if (scope) where.scope = scope;
@@ -90,20 +100,45 @@ export class PrismaFolioRepository implements FolioRepository {
     }
   }
 
-  async findAuditSequence(folioId: string): Promise<AuditSequenceRaw[]> {
+  async findBranchCounters(folioIds: string[], branchId: string): Promise<BranchCountersResult | null> {
+    const branch = await this.prisma.branch.findUnique({ where: { id: branchId }, select: { code: true } });
+    if (!branch) return null;
+    const rows = await this.prisma.folioBranchCounter.findMany({
+      where: { branchId, folioId: { in: folioIds } },
+      select: { folioId: true, currentNumber: true },
+    });
+    return { branchCode: branch.code, counters: new Map(rows.map((r) => [r.folioId, r.currentNumber])) };
+  }
+
+  async findAuditSequence(folioId: string, branchId?: string, likePattern?: string, legacyOnlyRegex?: string): Promise<AuditSequenceRaw[]> {
     type RawRow = { num: unknown; doc_type: string; doc_id: string; status: string; issued_at: Date };
+    // Filtro branch-scoped opcional: aplica SÓLO cuando el caller resolvió un
+    // patrón (folio branch-scoped + branchId) — ver AuditFolioSequenceUseCase.
+    // Sin `branchId`, si el folio ES branch-scoped, `legacyOnlyRegex` excluye los
+    // documentos con formato nuevo (branch-suffixed) para no mezclar series —
+    // sin él (folio no branch-scoped), comportamiento histórico sin cambio.
+    const branchFilter =
+      branchId && likePattern
+        ? Prisma.sql`AND branch_id = ${branchId} AND folio_code LIKE ${likePattern} ESCAPE '\\'`
+        : legacyOnlyRegex
+          ? Prisma.sql`AND folio_code ~ ${legacyOnlyRegex}`
+          : Prisma.empty;
     const rows = await this.prisma.$queryRaw<RawRow[]>`
       SELECT folio_number AS num, 'sale' AS doc_type, id AS doc_id, status, created_at AS issued_at
       FROM sales
-      WHERE folio_id = ${folioId} AND folio_number IS NOT NULL
+      WHERE folio_id = ${folioId} AND folio_number IS NOT NULL ${branchFilter}
       UNION ALL
       SELECT folio_number, 'quote', id, status, created_at
       FROM quotes
-      WHERE folio_id = ${folioId} AND folio_number IS NOT NULL
+      WHERE folio_id = ${folioId} AND folio_number IS NOT NULL ${branchFilter}
+      UNION ALL
+      SELECT folio_number, 'purchase', id, status, created_at
+      FROM purchases
+      WHERE folio_id = ${folioId} AND folio_number IS NOT NULL ${branchFilter}
       UNION ALL
       SELECT folio_number, 'payment', id, status, created_at
       FROM customer_payments
-      WHERE folio_id = ${folioId} AND folio_number IS NOT NULL
+      WHERE folio_id = ${folioId} AND folio_number IS NOT NULL ${branchFilter}
       ORDER BY num ASC
       LIMIT 10001
     `;
@@ -116,18 +151,26 @@ export class PrismaFolioRepository implements FolioRepository {
     }));
   }
 
-  async getAuditCounts(folioId: string): Promise<AuditCounts> {
+  async getAuditCounts(folioId: string, branchId?: string, likePattern?: string, legacyOnlyRegex?: string): Promise<AuditCounts> {
     type CountRow = { with_number: unknown; without_number: unknown };
+    const branchFilter =
+      branchId && likePattern
+        ? Prisma.sql`AND branch_id = ${branchId} AND folio_code LIKE ${likePattern} ESCAPE '\\'`
+        : legacyOnlyRegex
+          ? Prisma.sql`AND folio_code ~ ${legacyOnlyRegex}`
+          : Prisma.empty;
     const [row] = await this.prisma.$queryRaw<CountRow[]>`
       SELECT
         COUNT(*) FILTER (WHERE folio_number IS NOT NULL)::int AS with_number,
         COUNT(*) FILTER (WHERE folio_number IS NULL)::int AS without_number
       FROM (
-        SELECT folio_number FROM sales WHERE folio_id = ${folioId}
+        SELECT folio_number FROM sales WHERE folio_id = ${folioId} ${branchFilter}
         UNION ALL
-        SELECT folio_number FROM quotes WHERE folio_id = ${folioId}
+        SELECT folio_number FROM quotes WHERE folio_id = ${folioId} ${branchFilter}
         UNION ALL
-        SELECT folio_number FROM customer_payments WHERE folio_id = ${folioId}
+        SELECT folio_number FROM purchases WHERE folio_id = ${folioId} ${branchFilter}
+        UNION ALL
+        SELECT folio_number FROM customer_payments WHERE folio_id = ${folioId} ${branchFilter}
       ) t
     `;
     return {

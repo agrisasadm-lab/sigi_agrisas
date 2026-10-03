@@ -6,13 +6,15 @@ import { CreateCustomerUseCase } from "@/modules/customers/application/use-cases
 import { UpdateCustomerUseCase } from "@/modules/customers/application/use-cases/UpdateCustomerUseCase";
 import { SoftDeleteCustomerUseCase } from "@/modules/customers/application/use-cases/SoftDeleteCustomerUseCase";
 import { CustomersController } from "@/modules/customers/infrastructure/http/CustomersController";
+import { rbacContainer } from "@/modules/rbac/infrastructure/di/container";
+import { branchRepo } from "@/modules/branches/infrastructure/di/container";
 
 const customerRepo = new PrismaCustomerRepository(prisma);
 
 const listCustomersUseCase = new ListCustomersUseCase(customerRepo);
 const getCustomerUseCase = new GetCustomerUseCase(customerRepo);
-const createCustomerUseCase = new CreateCustomerUseCase(customerRepo);
-const updateCustomerUseCase = new UpdateCustomerUseCase(customerRepo);
+const createCustomerUseCase = new CreateCustomerUseCase(customerRepo, branchRepo);
+const updateCustomerUseCase = new UpdateCustomerUseCase(customerRepo, branchRepo);
 const softDeleteCustomerUseCase = new SoftDeleteCustomerUseCase(customerRepo);
 
 export const customersController = new CustomersController(
@@ -20,7 +22,8 @@ export const customersController = new CustomersController(
   getCustomerUseCase,
   createCustomerUseCase,
   updateCustomerUseCase,
-  softDeleteCustomerUseCase
+  softDeleteCustomerUseCase,
+  rbacContainer.authorizationService
 );
 
 export { customerRepo };

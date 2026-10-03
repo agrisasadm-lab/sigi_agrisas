@@ -1,8 +1,8 @@
 export interface ProductPriceProps {
   id: string;
   productId: string;
-  /** null = precio base (aplica a toda sucursal sin override propio); no-null = override exclusivo de esa sucursal. */
-  branchId: string | null;
+  /** Sucursal dueña del precio. Todo precio pertenece a exactamente una. */
+  branchId: string;
   name: string;
   price: number;
   minQuantity: number;
@@ -15,7 +15,7 @@ export interface ProductPriceProps {
 export class ProductPrice {
   readonly id: string;
   readonly productId: string;
-  readonly branchId: string | null;
+  readonly branchId: string;
   readonly name: string;
   readonly price: number;
   readonly minQuantity: number;

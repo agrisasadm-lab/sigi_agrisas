@@ -30,13 +30,14 @@ export function toCustomer(dto: CustomerDto): Customer {
     addressState: dto.addressState,
     addressCountry: dto.addressCountry,
     addressZipCode: dto.addressZipCode,
+    branchIds: dto.branchIds,
     createdAt: new Date(dto.createdAt),
     updatedAt: new Date(dto.updatedAt),
   };
 }
 
 export async function listCustomers(
-  { page, pageSize, includeInactive, search }: ListCustomersParams,
+  { page, pageSize, includeInactive, search, branchId }: ListCustomersParams,
   fetchImpl = authFetch,
   signal?: AbortSignal,
 ): Promise<{ items: Customer[]; total: number; page: number; pageSize: number }> {
@@ -44,6 +45,7 @@ export async function listCustomers(
   if (includeInactive) params.set("includeInactive", "true");
   const trimmed = search?.trim();
   if (trimmed && trimmed.length >= 2) params.set("search", trimmed);
+  if (branchId) params.set("branchId", branchId);
 
   let res: Response;
   try {

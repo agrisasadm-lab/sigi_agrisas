@@ -1,9 +1,7 @@
 export interface ProductPriceDto {
   id: string;
   productId: string;
-  branchId: string | null;
-  /** `branchId !== null` — convenience flag so the UI doesn't re-derive it. */
-  isOverride: boolean;
+  branchId: string;
   name: string;
   price: number;
   minQuantity: number;

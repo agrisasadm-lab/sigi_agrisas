@@ -11,7 +11,7 @@ The system SHALL expose `GET /api/v1/admin/products` that returns a paginated li
 
 **`stock` field**: when the request includes `branchId`, the system SHALL join `branch_inventory` filtered by `(branch_id = branchId, product_id = product.id)` (unique pair) and set `stock = branch_inventory.quantity` for that product, or `stock = null` if no `branch_inventory` row exists for that pair. When the request omits `branchId`, `stock` is always `null` (no branch context to resolve stock against). This does NOT require the `inventory:read` permission — `products:read` alone is sufficient, since it is the same list endpoint, only enriched with an extra field.
 
-**Branch scope mode (`inventory-api` — Configurable inventory scope mode)**: when the deployment's inventory scope mode is `branch` AND the request includes `branchId`, the endpoint additionally SHALL filter the result set — not just the `stock` field — to only products that have a `branch_inventory` row for that `branchId` (a row with `quantity = 0` still counts as present; the row represents assignment, not just quantity). The `total` count SHALL reflect this filter. `branchId` is resolved server-side per branch scoping (`rbac` — `branches:access_all` bypass semantics): a caller without the bypass permission is forced to their own `x-user-branch-id`; a caller with the bypass and no `branchId` sees the unfiltered catalog. When the scope mode is `general` (the default), `branchId` continues to affect ONLY the `stock` field, exactly as before this change — the result set is never filtered.
+**Branch scope mode (`inventory-api` — Configurable inventory scope mode)**: the endpoint only applies branch-scope filtering (and only resolves/enforces a caller's own branch) when the request **explicitly includes `branchId`** in the query string. When `branchId` is present AND the deployment's inventory scope mode is `branch`, the endpoint additionally SHALL filter the result set — not just the `stock` field — to only products that have a `branch_inventory` row for that `branchId` (a row with `quantity = 0` still counts as present; the row represents assignment, not just quantity). The `total` count SHALL reflect this filter. The explicit `branchId` is resolved server-side per branch scoping (`rbac` — `branches:access_all` bypass semantics): a caller without the bypass permission passing a `branchId` MUST match their own `x-user-branch-id` (mismatch → 403); a caller with the bypass may pass any `branchId`. **When `branchId` is omitted, the result set is NEVER filtered by branch — regardless of the inventory scope mode, and regardless of whether the caller has `branches:access_all` or an assigned branch at all.** When the scope mode is `general` (the default), an explicit `branchId` continues to affect ONLY the `stock` field, exactly as before this change — the result set is never filtered by branch in `general` mode even with an explicit `branchId`.
 
 #### Scenario: Admin lists active products
 - **WHEN** an authenticated user with `products:read` sends `GET /api/v1/admin/products`
@@ -61,29 +61,25 @@ The system SHALL expose `GET /api/v1/admin/products` that returns a paginated li
 - **WHEN** a listed product has `unit` as free text not captured from the catalog (data prior to this change)
 - **THEN** the corresponding item includes `unitDescription: null`
 
-#### Scenario: Branch scope mode excludes unassigned products
+#### Scenario: Branch scope mode with explicit branchId excludes unassigned products
 - **WHEN** the inventory scope mode is `branch`, the request includes `?branchId=<B1>`, and product `P2` has no `branch_inventory` row for `(B1, P2)`
 - **THEN** the response does NOT include `P2`, and `total` does not count it
 
-#### Scenario: Branch scope mode includes assigned product with zero stock
+#### Scenario: Branch scope mode with explicit branchId includes assigned product with zero stock
 - **WHEN** the inventory scope mode is `branch`, the request includes `?branchId=<B1>`, and product `P3` has a `branch_inventory` row for `(B1, P3)` with `quantity = 0`
 - **THEN** the response includes `P3` with `stock: 0`
 
-#### Scenario: Branch scope mode implicitly scopes to the caller's own branch when branchId is omitted
-- **WHEN** the inventory scope mode is `branch` and an operator without `branches:access_all` (assigned to `B1`) sends `GET /api/v1/admin/products` without `branchId`
-- **THEN** the system resolves the effective `branchId` to `B1` and filters the catalog accordingly (same `resolveScopedBranchId` pattern already used by other list endpoints — `inventory-api`, `sales`, etc.)
+#### Scenario: Branch scope mode without branchId never filters, regardless of caller
+- **WHEN** the inventory scope mode is `branch` and any authenticated user with `products:read` (with or without `branches:access_all`, with or without an assigned branch) sends `GET /api/v1/admin/products` without `branchId`
+- **THEN** the system returns the unfiltered catalog — identical to `general` mode behavior — and does not require an assigned branch or `branches:access_all` to succeed
 
 #### Scenario: Branch scope mode rejects an explicit mismatched branchId
 - **WHEN** the inventory scope mode is `branch` and an operator without `branches:access_all` (assigned to `B1`) sends `GET /api/v1/admin/products?branchId=B2`
 - **THEN** the system returns HTTP 403 `{ "error": "Forbidden", "required": "branches:access_all" }` — it does not silently override to `B1`
 
-#### Scenario: Branch scope mode rejects an operator with no assigned branch
-- **WHEN** the inventory scope mode is `branch` and an operator without `branches:access_all` and without an assigned branch (`x-user-branch-id` empty) calls the endpoint
-- **THEN** the system returns HTTP 403 `{ "error": "Forbidden", "required": "branches:access_all" }`
-
-#### Scenario: Branch scope mode with bypass and no branchId returns the full catalog
-- **WHEN** the inventory scope mode is `branch` and an authenticated user with `branches:access_all` sends `GET /api/v1/admin/products` without `branchId`
-- **THEN** the system returns the unfiltered catalog, identical to `general` mode behavior
+#### Scenario: Branch scope mode with explicit branchId matching own branch filters correctly
+- **WHEN** the inventory scope mode is `branch` and an operator without `branches:access_all` (assigned to `B1`) sends `GET /api/v1/admin/products?branchId=B1`
+- **THEN** the system filters the catalog to `B1`'s assigned products, exactly as when any other caller passes an authorized `branchId`
 
 ### Requirement: Get product detail
 The system SHALL expose `GET /api/v1/admin/products/:id` that returns a single product by UUID. Requires `products:read`. Returns the entity regardless of `isActive`. The response includes `imageUrl: string | null`. Returns HTTP 404 if not found.

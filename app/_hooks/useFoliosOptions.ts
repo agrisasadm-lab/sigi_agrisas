@@ -13,6 +13,10 @@ export interface FolioOption {
   scope: FolioScope;
   currentNumber: number;
   isActive: boolean;
+  /** Consecutivo de la sucursal pedida (`branchId`). `null` sin `branchId` o si el folio no es branch-scoped. */
+  branchCurrentNumber: number | null;
+  /** Siguiente `folioCode` que emitiría esa sucursal. `null` en los mismos casos que `branchCurrentNumber`. */
+  nextFolioCode: string | null;
 }
 
 interface CacheEntry {
@@ -24,19 +28,20 @@ interface CacheEntry {
 const CACHE_TTL_MS = 60_000;
 const cache: Map<string, CacheEntry> = new Map();
 
-function cacheKey(scope?: FolioScope): string {
-  return scope ?? "_all";
+function cacheKey(scope: FolioScope | undefined, branchId: string | null | undefined): string {
+  return `${scope ?? "_all"}|${branchId ?? "_"}`;
 }
 
-async function fetchFolios(scope?: FolioScope): Promise<FolioOption[]> {
-  const key = cacheKey(scope);
+async function fetchFolios(scope: FolioScope | undefined, branchId: string | null | undefined): Promise<FolioOption[]> {
+  const key = cacheKey(scope, branchId);
   const entry = cache.get(key);
   if (entry && Date.now() < entry.expiresAt) return entry.options;
   if (entry?.promise) return entry.promise;
 
-  const url = scope
-    ? `/api/v1/admin/folios?pageSize=100&includeInactive=false&scope=${scope}`
-    : "/api/v1/admin/folios?pageSize=100&includeInactive=false";
+  const params = new URLSearchParams({ pageSize: "100", includeInactive: "false" });
+  if (scope) params.set("scope", scope);
+  if (branchId) params.set("branchId", branchId);
+  const url = `/api/v1/admin/folios?${params.toString()}`;
 
   const promise = authFetch(url)
     .then((res) => res.json())
@@ -49,6 +54,8 @@ async function fetchFolios(scope?: FolioScope): Promise<FolioOption[]> {
         scope: f.scope as FolioScope,
         currentNumber: f.currentNumber as number,
         isActive: f.isActive as boolean,
+        branchCurrentNumber: (f.branchCurrentNumber as number | null | undefined) ?? null,
+        nextFolioCode: (f.nextFolioCode as string | null | undefined) ?? null,
       }));
       cache.set(key, { options, expiresAt: Date.now() + CACHE_TTL_MS });
       return options;
@@ -70,33 +77,36 @@ interface UseFoliosOptionsResult {
 
 export interface UseFoliosOptionsArgs {
   scope?: FolioScope;
+  /** Cuando está presente, cada opción incluye `branchCurrentNumber`/`nextFolioCode` para esta sucursal. */
+  branchId?: string | null;
 }
 
 export function useFoliosOptions(args?: UseFoliosOptionsArgs): UseFoliosOptionsResult {
   const scope = args?.scope;
+  const branchId = args?.branchId;
   const [options, setOptions] = useState<FolioOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const load = useCallback(() => {
     let cancelled = false;
     setIsLoading(true);
-    fetchFolios(scope).then((opts) => {
+    fetchFolios(scope, branchId).then((opts) => {
       if (!cancelled) {
         setOptions(opts);
         setIsLoading(false);
       }
     });
     return () => { cancelled = true; };
-  }, [scope]);
+  }, [scope, branchId]);
 
   useEffect(() => {
     return load();
   }, [load]);
 
   const refresh = useCallback(() => {
-    cache.delete(cacheKey(scope));
+    cache.delete(cacheKey(scope, branchId));
     load();
-  }, [load, scope]);
+  }, [load, scope, branchId]);
 
   return { options, isLoading, refresh };
 }

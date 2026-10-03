@@ -17,7 +17,7 @@ function makeId(): string {
 export class InMemoryCustomerRepository implements CustomerRepository {
   private store: Customer[] = [];
 
-  async findAll({ page, pageSize, includeInactive, search }: FindAllOptions): Promise<{ items: Customer[]; total: number }> {
+  async findAll({ page, pageSize, includeInactive, search, branchId }: FindAllOptions): Promise<{ items: Customer[]; total: number }> {
     let items = includeInactive ? this.store : this.store.filter((c) => c.isActive);
 
     if (search) {
@@ -28,6 +28,10 @@ export class InMemoryCustomerRepository implements CustomerRepository {
           (c.legalName ?? "").toLowerCase().includes(q) ||
           (c.rfc ?? "").toLowerCase().includes(q)
       );
+    }
+
+    if (branchId) {
+      items = items.filter((c) => c.branchIds.includes(branchId));
     }
 
     const total = items.length;
@@ -75,6 +79,7 @@ export class InMemoryCustomerRepository implements CustomerRepository {
       addressState: data.addressState ?? null,
       addressCountry: data.addressCountry ?? "MEX",
       addressZipCode: data.addressZipCode ?? null,
+      branchIds: [...data.branchIds],
       createdAt: now,
       updatedAt: now,
     });
@@ -125,6 +130,7 @@ export class InMemoryCustomerRepository implements CustomerRepository {
       addressState: "addressState" in data ? data.addressState ?? null : existing.addressState,
       addressCountry: "addressCountry" in data ? data.addressCountry ?? null : existing.addressCountry,
       addressZipCode: "addressZipCode" in data ? data.addressZipCode ?? null : existing.addressZipCode,
+      branchIds: data.branchIds !== undefined ? [...data.branchIds] : existing.branchIds,
       createdAt: existing.createdAt,
       updatedAt: new Date(),
     });

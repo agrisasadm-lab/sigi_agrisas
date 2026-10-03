@@ -1,6 +1,6 @@
 export interface CreateProductPriceRequest {
-  /** null/omitted = precio base (aplica a toda sucursal sin override propio). */
-  branchId?: string | null;
+  /** Sucursal dueña del precio. Obligatorio: no existe precio compartido entre sucursales. */
+  branchId: string;
   name: string;
   price: number;
   minQuantity?: number;

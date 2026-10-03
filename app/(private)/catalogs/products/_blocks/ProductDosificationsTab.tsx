@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useProductDosifications } from "../_logic/hooks/useProductDosifications";
+import { usePriceBranchSelection } from "../_logic/hooks/usePriceBranchSelection";
 import { useTableKeyboard } from "../../../../_hooks/useTableKeyboard";
 import { DuplicateDosificationNameError } from "../_logic/errors";
 import { ConfirmDialog } from "../../../../_components/molecules/ConfirmDialog/ConfirmDialog";
@@ -104,7 +105,8 @@ function DosifModal({
 }
 
 export function ProductDosificationsTab({ productId, canWrite }: ProductDosificationsTabProps) {
-  const { dosifications, isLoading, error, isSaving, saveError, refresh, createOne, updateOne, softDeleteOne, reactivateOne } = useProductDosifications(productId);
+  const { branches, selectedBranchId, setSelectedBranchId, hasNoBranch } = usePriceBranchSelection();
+  const { dosifications, isLoading, error, isSaving, saveError, refresh, createOne, updateOne, softDeleteOne, reactivateOne } = useProductDosifications(productId, selectedBranchId);
   const [modal, setModal] = useState<DosifModalState | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
@@ -126,6 +128,13 @@ export function ProductDosificationsTab({ productId, canWrite }: ProductDosifica
     }
   };
 
+  if (hasNoBranch) {
+    return (
+      <p className="p-6 text-center text-on-surface-variant text-body-md">
+        Necesitas una sucursal asignada para administrar dosificaciones. Pídele a un administrador que te asigne una.
+      </p>
+    );
+  }
   if (isLoading) return <div className="space-y-2 p-4">{Array.from({length:3}).map((_,i) => <Skeleton key={i} className="h-10 w-full rounded-md" />)}</div>;
   if (error) return <p className="p-4 text-error text-label-lg">{error}</p>;
 
@@ -133,6 +142,21 @@ export function ProductDosificationsTab({ productId, canWrite }: ProductDosifica
     <div className="space-y-4">
       {!canWrite && <p className="text-label-sm text-on-surface-variant px-1">Solo lectura — requiere products:write</p>}
       {saveError && <p className="text-label-sm text-error bg-error-container/30 px-3 py-2 rounded-md">{saveError}</p>}
+
+      <div className="flex items-center gap-2 px-1">
+        <label htmlFor="dosification-branch-scope" className="text-label-lg text-on-surface-variant">Sucursal</label>
+        <select
+          id="dosification-branch-scope"
+          value={selectedBranchId ?? ""}
+          onChange={(e) => setSelectedBranchId(e.target.value || null)}
+          disabled={branches.length === 0}
+          className="px-3 py-1.5 rounded-md border border-outline-variant bg-surface-container-lowest text-body-md focus:outline-none focus:ring-2 focus:ring-primary"
+        >
+          {branches.map((b) => (
+            <option key={b.id} value={b.id}>{b.name}</option>
+          ))}
+        </select>
+      </div>
 
       <div className="bg-surface-container-low rounded-lg border border-outline-variant overflow-hidden">
         <div className="px-4 py-3 border-b border-outline-variant flex items-center justify-between">
@@ -167,7 +191,7 @@ export function ProductDosificationsTab({ productId, canWrite }: ProductDosifica
                   <td className="px-4 py-2 text-right">{d.numParts}</td>
                   <td className="px-4 py-2 text-right">
                     {d.requiresDefaultPrice
-                      ? <span className="text-on-surface-variant text-label-sm">Requiere precio default</span>
+                      ? <span className="text-on-surface-variant text-label-sm">Requiere precio default en esta sucursal</span>
                       : d.computedUnitPrice != null ? `$${d.computedUnitPrice.toFixed(2)}` : "—"
                     }
                   </td>

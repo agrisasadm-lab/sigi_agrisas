@@ -98,12 +98,12 @@ function makeLookups(overrides?: Partial<PosLookupService>): PosLookupService {
     getProductPrice: jest.fn().mockResolvedValue({
       id: "pp1",
       productId: "p1",
-      branchId: null,
+      branchId: ZARIOZ,
       name: "Precio Publico",
       price: 100,
       discountPct: null,
     }),
-    getCustomer: jest.fn().mockResolvedValue({ id: "c1", isActive: true, creditLimit: null, currentBalance: 0 }),
+    getCustomer: jest.fn().mockResolvedValue({ id: "c1", isActive: true, creditLimit: null, currentBalance: 0, branchIds: [ZARIOZ] }),
     getBranch: jest.fn().mockResolvedValue({ id: ZARIOZ, isActive: true }),
     getFolio: jest.fn().mockResolvedValue({ id: "f1", code: "VENTA", prefix: null, scope: "POS", isActive: true }),
     getPaymentMethod: jest.fn().mockResolvedValue({ id: "pm1", isActive: true, isCredit: false }),
@@ -130,14 +130,14 @@ const baseReq = {
 };
 
 describe("CreateSaleUseCase — precio por sucursal", () => {
-  it("usa el precio base cuando branchId de la fila es null", async () => {
+  it("usa el precio de la sucursal de la venta", async () => {
     const repo = makeRepo();
     await new CreateSaleUseCase(repo, makeLookups()).execute(baseReq, "user-1");
     const call = (repo.createCompleted as jest.Mock).mock.calls[0][0] as CreateSaleData;
     expect(call.items[0].unitPrice).toBe(100);
   });
 
-  it("usa el override cuando branchId de la fila coincide con la sucursal de la venta", async () => {
+  it("usa el precio propio cuando la sucursal tiene uno distinto al de otras", async () => {
     const repo = makeRepo();
     const lookups = makeLookups({
       getProductPrice: jest.fn().mockResolvedValue({

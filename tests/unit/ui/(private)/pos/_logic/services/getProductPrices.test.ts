@@ -10,7 +10,7 @@ function mockFetch(status: number, body: unknown) {
 }
 
 function makePrice(name: string, isDefault: boolean) {
-  return { id: name, productId: "p1", name, price: 100, minQuantity: 1, discountPct: null, isDefault };
+  return { id: name, productId: "p1", branchId: "branch-1", name, price: 100, minQuantity: 1, discountPct: null, isDefault };
 }
 
 describe("getProductPrices", () => {
@@ -23,7 +23,7 @@ describe("getProductPrices", () => {
     ];
     const fetchImpl = mockFetch(200, { items });
 
-    const result = await getProductPrices("p1", null, fetchImpl);
+    const result = await getProductPrices("p1", "branch-1", fetchImpl);
 
     expect(result.map((p) => p.name)).toEqual([
       "Precio Publico",
@@ -35,7 +35,7 @@ describe("getProductPrices", () => {
 
   it("throws NetworkError on non-ok response", async () => {
     const fetchImpl = mockFetch(500, {});
-    await expect(getProductPrices("p1", null, fetchImpl)).rejects.toThrow(NetworkError);
+    await expect(getProductPrices("p1", "branch-1", fetchImpl)).rejects.toThrow(NetworkError);
   });
 
   it("dispatches ?branchId= when a branch is given", async () => {
@@ -44,9 +44,10 @@ describe("getProductPrices", () => {
     expect(fetchImpl).toHaveBeenCalledWith("/api/v1/admin/products/p1/prices?branchId=branch-1");
   });
 
-  it("omits branchId from the URL when not given", async () => {
+  it("returns an empty list without calling fetch when branchId is missing", async () => {
     const fetchImpl = mockFetch(200, { items: [] });
-    await getProductPrices("p1", null, fetchImpl);
-    expect(fetchImpl).toHaveBeenCalledWith("/api/v1/admin/products/p1/prices");
+    const result = await getProductPrices("p1", null, fetchImpl);
+    expect(result).toEqual([]);
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 });

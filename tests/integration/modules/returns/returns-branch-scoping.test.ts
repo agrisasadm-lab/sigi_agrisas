@@ -141,9 +141,10 @@ describe("Returns — branch scoping (integration real DB)", () => {
     const product = await createProduct.execute({
       code: `${P}PROD1`, name: "Producto Scope", unit: "kg", departmentId: dept.id, ivaRate: 0.16,
     });
-    const price = await createPrice.execute(product.id, { name: "Lista", price: 100, isDefault: true });
+    const priceA = await createPrice.execute(product.id, { branchId: branchAId, name: "Lista", price: 100, isDefault: true });
+    const priceB = await createPrice.execute(product.id, { branchId: branchBId, name: "Lista", price: 100, isDefault: true });
 
-    const customer = await createCustomer.execute({ code: `${P}CLI1`, name: "Cliente Scope", rfc: "CSC010101001" });
+    const customer = await createCustomer.execute({ code: `${P}CLI1`, name: "Cliente Scope", rfc: "CSC010101001", branchIds: [branchAId, branchBId] });
     const folioA = await folioRepo.create({ code: `${P}FOL_A`, name: "Folio A", prefix: "FA", currentNumber: 0, scope: "POS" });
     const folioB = await folioRepo.create({ code: `${P}FOL_B`, name: "Folio B", prefix: "FB", currentNumber: 0, scope: "POS" });
     const pm = await pmRepo.create({ code: `${P}PM1`, name: "Efectivo Scope" });
@@ -169,14 +170,14 @@ describe("Returns — branch scoping (integration real DB)", () => {
     });
 
     const saleA = await createSale.execute(
-      { branchId: branchAId, customerId: customer.id, paymentMethodId: pm.id, folioId: folioA.id, items: [{ productId: product.id, productPriceId: price.id, quantity: 5 }] },
+      { branchId: branchAId, customerId: customer.id, paymentMethodId: pm.id, folioId: folioA.id, items: [{ productId: product.id, productPriceId: priceA.id, quantity: 5 }] },
       opAId
     );
     saleAId = saleA.dto.id;
     saleAItemId = saleA.dto.items[0].id;
 
     const saleB = await createSale.execute(
-      { branchId: branchBId, customerId: customer.id, paymentMethodId: pm.id, folioId: folioB.id, items: [{ productId: product.id, productPriceId: price.id, quantity: 5 }] },
+      { branchId: branchBId, customerId: customer.id, paymentMethodId: pm.id, folioId: folioB.id, items: [{ productId: product.id, productPriceId: priceB.id, quantity: 5 }] },
       opBId
     );
     saleBId = saleB.dto.id;

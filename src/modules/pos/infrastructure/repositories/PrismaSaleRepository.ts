@@ -13,7 +13,7 @@ import { SaleItem } from "../../domain/entities/SaleItem";
 import { SaleJoinedFields } from "../../application/mappers/toSaleDto";
 import { InactiveResourceError } from "../../domain/errors/InactiveResourceError";
 import { SaleHasActivePaymentsError } from "@/modules/payments/domain/errors/SaleHasActivePaymentsError";
-import { allocateFolio } from "@/shared/infrastructure/folios/allocateFolio";
+import { allocateBranchFolio } from "@/shared/infrastructure/folios/allocateBranchFolio";
 import { recordInventoryMovement, type LowStockSignal } from "@/shared/infrastructure/inventory/recordInventoryMovement";
 import { inventoryQuantityOf } from "@/shared/domain/services/inventoryQuantityOf";
 import type { AdminNotificationService } from "@/shared/application/services/AdminNotificationService";
@@ -309,7 +309,7 @@ export class PrismaSaleRepository implements SaleRepository {
     const lowStockSignals: LowStockSignal[] = [];
 
     const summary = await this.prisma.$transaction(async (tx) => {
-      const { folioNumber, folioCode } = await allocateFolio(tx, data.folioId);
+      const { folioNumber, folioCode } = await allocateBranchFolio(tx, data.folioId, data.branchId);
       const completedAt = new Date();
 
       for (const item of data.items) {
@@ -385,7 +385,7 @@ export class PrismaSaleRepository implements SaleRepository {
     const lowStockSignals: LowStockSignal[] = [];
 
     const summary = await this.prisma.$transaction(async (tx) => {
-      const { folioNumber, folioCode } = await allocateFolio(tx, data.folioId);
+      const { folioNumber, folioCode } = await allocateBranchFolio(tx, data.folioId, data.branchId);
       const completedAt = new Date();
 
       for (const item of data.items) {
