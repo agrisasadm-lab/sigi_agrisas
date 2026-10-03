@@ -47,7 +47,6 @@ export function PosPage() {
   const isBypass = can("branches:access_all");
   const { isOnline, offlineEnabled, ownerBranchId } = useOfflineSync();
 
-  const { options: folios, isLoading: foliosLoading } = useFoliosOptions({ scope: "POS" });
   const { options: paymentMethods, isLoading: pmLoading } = usePaymentMethodsOptions();
   const { dosificationSurchargePct } = usePricingSettingsOptions();
   const {
@@ -83,6 +82,7 @@ export function PosPage() {
     canCreate === false && canQuote === true ? "quote" : "sale"
   );
   const { branches, selectedBranchId, setSelectedBranchId } = useBypassBranchOptions(isBypass, userBranchId ?? null);
+  const { options: folios, isLoading: foliosLoading, refresh: refreshFolios } = useFoliosOptions({ scope: "POS", branchId: selectedBranchId || null });
   const [selectedFolioId, setSelectedFolioId] = useState<string>("");
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string>("");
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
@@ -120,6 +120,11 @@ export function PosPage() {
     }
   }, [canCreate, canQuote]);
 
+  // Al cambiar de sucursal (bypass), el cliente ya seleccionado puede no pertenecer a la nueva.
+  useEffect(() => {
+    setSelectedCustomerId("");
+  }, [selectedBranchId]);
+
   // Prompt on unload when cart has items
   useEffect(() => {
     if (lines.length === 0) return;
@@ -132,8 +137,10 @@ export function PosPage() {
   useEffect(() => {
     if ((saleStatus === "succeeded" && sale) || (saleStatus === "queued-offline" && queuedSale)) {
       setModal("confirmed");
+      // El consecutivo de la sucursal avanzó — refrescar el preview del siguiente folio.
+      if (saleStatus === "succeeded") refreshFolios();
     }
-  }, [saleStatus, sale, queuedSale]);
+  }, [saleStatus, sale, queuedSale, refreshFolios]);
 
   // Handle quote success → redirect (online) or show provisional confirmation (offline)
   useEffect(() => {
@@ -174,7 +181,7 @@ export function PosPage() {
     // Dosification lines are not supported by the quotes module (out of scope) — only offered in sale mode.
     const [prices, dosifications] = await Promise.all([
       getProductPrices(product.id, selectedBranchId || null),
-      isQuoteMode ? Promise.resolve([]) : getProductDosifications(product.id),
+      isQuoteMode ? Promise.resolve([]) : getProductDosifications(product.id, selectedBranchId || null),
     ]);
     setPricePicker({ product, prices, dosifications, isLoading: false });
     setModal("pricePicker");
@@ -380,6 +387,7 @@ export function PosPage() {
         <CustomerQuickAddModal
           onCreated={handleCustomerCreated}
           onClose={() => setModal(null)}
+          branchId={selectedBranchId || undefined}
         />
       )}
 

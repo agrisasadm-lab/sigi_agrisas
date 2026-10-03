@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/prisma/client";
+import { PrismaBranchRepository } from "@/modules/branches/infrastructure/repositories/PrismaBranchRepository";
 import { PrismaCustomerRepository } from "@/modules/customers/infrastructure/repositories/PrismaCustomerRepository";
 import { ListCustomersUseCase } from "@/modules/customers/application/use-cases/ListCustomersUseCase";
 import { GetCustomerUseCase } from "@/modules/customers/application/use-cases/GetCustomerUseCase";
@@ -16,6 +17,7 @@ const TEST_RFC_2 = "XAX020202002";
 
 async function cleanup() {
   await prisma.customer.deleteMany({ where: { code: { startsWith: PREFIX } } });
+  await prisma.branch.deleteMany({ where: { code: { startsWith: PREFIX } } });
 }
 
 afterAll(async () => {
@@ -25,6 +27,7 @@ afterAll(async () => {
 
 describe("Customers CRUD — integration (real DB)", () => {
   const repo = new PrismaCustomerRepository(prisma);
+  const branchRepo = new PrismaBranchRepository(prisma);
   const listUseCase = new ListCustomersUseCase(repo);
   const getUseCase = new GetCustomerUseCase(repo);
   const createUseCase = new CreateCustomerUseCase(repo);
@@ -32,9 +35,12 @@ describe("Customers CRUD — integration (real DB)", () => {
   const softDeleteUseCase = new SoftDeleteCustomerUseCase(repo);
 
   let createdId: string;
+  let branchId: string;
 
   beforeAll(async () => {
     await cleanup();
+    const branch = await branchRepo.create({ code: `${PREFIX}BR1`, name: "Sucursal Integración" });
+    branchId = branch.id;
   });
 
   it("crea un cliente con campos mínimos; currentBalance=0", async () => {
@@ -42,6 +48,7 @@ describe("Customers CRUD — integration (real DB)", () => {
       code: TEST_CODE,
       name: "Cliente Integración",
       rfc: TEST_RFC,
+      branchIds: [branchId],
     });
     createdId = result.id;
     expect(result.code).toBe(TEST_CODE);
@@ -96,6 +103,7 @@ describe("Customers CRUD — integration (real DB)", () => {
       code: `${PREFIX}CLI002`,
       name: "Cliente Dos",
       rfc: TEST_RFC_2,
+      branchIds: [branchId],
     });
     await expect(
       updateUseCase.execute(second.id, { rfc: TEST_RFC })
@@ -104,7 +112,7 @@ describe("Customers CRUD — integration (real DB)", () => {
 
   it("code duplicado en create → CustomerCodeAlreadyInUseError", async () => {
     await expect(
-      createUseCase.execute({ code: TEST_CODE, name: "Duplicado", rfc: "DUP010101001" })
+      createUseCase.execute({ code: TEST_CODE, name: "Duplicado", rfc: "DUP010101001", branchIds: [branchId] })
     ).rejects.toThrow(CustomerCodeAlreadyInUseError);
   });
 

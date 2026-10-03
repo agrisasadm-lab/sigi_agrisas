@@ -85,6 +85,7 @@ describe("Sales — POST /sales con quoteId (integration real DB)", () => {
   let cashierId: string;
   let productId: string;
   let priceId: string;
+  let otherPriceId: string;
   let quoteFolioId: string;
   let fiscalFolioId: string;
   let pmId: string;
@@ -97,11 +98,13 @@ describe("Sales — POST /sales con quoteId (integration real DB)", () => {
     productId = (await createProduct.execute({
       code: `${P}P1`, name: "Prod", unit: "kg", departmentId: dept.id, ivaRate: 0.16,
     })).id;
-    priceId = (await createPrice.execute(productId, { name: "Lista", price: 100, isDefault: true })).id;
-    customerId = (await createCustomer.execute({ code: `${P}C1`, name: "Cli 1", rfc: "CLI010101001" })).id;
-    otherCustomerId = (await createCustomer.execute({ code: `${P}C2`, name: "Cli 2", rfc: "CLI020202002" })).id;
-    quoteFolioId = (await folioRepo.create({ code: `${P}COT`, name: "Cot", prefix: "COT", currentNumber: 0, scope: "POS" })).id;
-    fiscalFolioId = (await folioRepo.create({ code: `${P}FAC`, name: "Fac", prefix: "FAC", currentNumber: 0, scope: "POS" })).id;
+    priceId = (await createPrice.execute(productId, { branchId, name: "Lista", price: 100, isDefault: true })).id;
+    otherPriceId = (await createPrice.execute(productId, { branchId: otherBranchId, name: "Lista", price: 100, isDefault: true })).id;
+    customerId = (await createCustomer.execute({ code: `${P}C1`, name: "Cli 1", rfc: "CLI010101001", branchIds: [branchId, otherBranchId] })).id;
+    otherCustomerId = (await createCustomer.execute({ code: `${P}C2`, name: "Cli 2", rfc: "CLI020202002", branchIds: [branchId] })).id;
+    // Prefijos ÚNICOS por archivo — ver comentario equivalente en quotes-branch-scoping.test.ts.
+    quoteFolioId = (await folioRepo.create({ code: `${P}COT`, name: "Cot", prefix: "SWQ-", currentNumber: 0, scope: "POS" })).id;
+    fiscalFolioId = (await folioRepo.create({ code: `${P}FAC`, name: "Fac", prefix: "SWF-", currentNumber: 0, scope: "POS" })).id;
     pmId = (await pmRepo.create({ code: `${P}PM`, name: "Efectivo" })).id;
     cashierId = (await prisma.user.create({
       data: { email: `${P}u@test.com`, passwordHash: "x", name: "Cashier" },
@@ -109,12 +112,13 @@ describe("Sales — POST /sales con quoteId (integration real DB)", () => {
   });
 
   async function newAuthorizedQuote(opts: { branch?: string; customer?: string }) {
+    const quoteBranchId = opts.branch ?? branchId;
     const { dto } = await createQuote.execute(
       {
-        branchId: opts.branch ?? branchId,
+        branchId: quoteBranchId,
         customerId: opts.customer ?? customerId,
         folioId: quoteFolioId,
-        items: [{ productId, productPriceId: priceId, quantity: 5 }],
+        items: [{ productId, productPriceId: quoteBranchId === otherBranchId ? otherPriceId : priceId, quantity: 5 }],
       },
       cashierId
     );

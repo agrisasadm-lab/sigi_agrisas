@@ -14,13 +14,14 @@ export class ListProductDosificationsUseCase {
     private readonly pricingSettingsRepo: PricingSettingsRepository
   ) {}
 
-  async execute(productId: string): Promise<ListProductDosificationsResponse> {
+  /** `branchId` determina el precio default que alimenta `computedUnitPrice`. */
+  async execute(productId: string, branchId: string): Promise<ListProductDosificationsResponse> {
     const product = await this.productRepo.findById(productId);
     if (!product) throw new ProductNotFoundError(productId);
 
     const [dosifications, defaultPrice, pricingSettings] = await Promise.all([
       this.dosificationRepo.findByProductId(productId),
-      this.priceRepo.findDefaultByProductId(productId),
+      this.priceRepo.findDefaultByProductId(productId, branchId),
       this.pricingSettingsRepo.get(),
     ]);
 

@@ -3,4 +3,5 @@ export interface ListCustomersRequest {
   pageSize: number;
   includeInactive: boolean;
   search?: string;
+  branchId?: string;
 }

@@ -12,13 +12,14 @@ interface CustomerPickerProps {
   value: string;
   onChange: (customerId: string, customer: CustomerDto | null) => void;
   onOpenQuickAdd: () => void;
+  branchId?: string;
 }
 
-export function CustomerPicker({ value, onChange, onOpenQuickAdd }: CustomerPickerProps) {
+export function CustomerPicker({ value, onChange, onOpenQuickAdd, branchId }: CustomerPickerProps) {
   const { can } = useCurrentUser();
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 300);
-  const { items, isLoading } = useCustomerSearch({ search: debouncedSearch });
+  const { items, isLoading } = useCustomerSearch({ search: debouncedSearch, branchId });
 
   const canWrite = can("customers:write");
 

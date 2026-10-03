@@ -14,10 +14,10 @@ import { enforceBranchScope } from "@/modules/rbac/infrastructure/http/enforceBr
 
 const productIdSchema = z.string().uuid("Invalid product ID format");
 const priceIdSchema = z.string().uuid("Invalid price ID format");
-const branchIdQuerySchema = z.string().uuid("Invalid branchId").optional();
+const branchIdQuerySchema = z.string().uuid("Invalid branchId");
 
 const createBodySchema = z.object({
-  branchId: z.string().uuid("Invalid branchId").nullable().optional(),
+  branchId: z.string({ required_error: "branchId is required" }).uuid("Invalid branchId"),
   name: z.string().min(1).max(60),
   price: z.number().min(0, "price must be >= 0"),
   minQuantity: z.number().int().min(1, "minQuantity must be >= 1").optional(),
@@ -43,20 +43,42 @@ const updateBodySchema = z
     { message: "At least one field must be provided" }
   );
 
+/** Lectura mínima para resolver la sucursal dueña de un precio antes de autorizar una escritura. */
+export interface ProductPriceOwnerLookup {
+  findById(priceId: string): Promise<{ branchId: string } | null>;
+}
+
 export class ProductPricesController {
   constructor(
     private readonly listUseCase: ListProductPricesUseCase,
     private readonly createUseCase: CreateProductPriceUseCase,
     private readonly updateUseCase: UpdateProductPriceUseCase,
-    private readonly deleteUseCase: DeleteProductPriceUseCase
+    private readonly deleteUseCase: DeleteProductPriceUseCase,
+    private readonly ownerLookup?: ProductPriceOwnerLookup
   ) {}
+
+  /**
+   * Editar o borrar un precio exige pertenecer a su sucursal (o tener
+   * `branches:access_all`). Devuelve la respuesta de error o `null` si pasa.
+   * Un precio inexistente no se resuelve aquí: lo reporta el use case como 404.
+   */
+  private async enforceOwnerBranch(req: NextRequest, priceId: string): Promise<NextResponse | null> {
+    if (!this.ownerLookup) return null;
+    const existing = await this.ownerLookup.findById(priceId);
+    if (!existing) return null;
+    return enforceBranchScope(req, existing.branchId);
+  }
 
   async list(req: NextRequest, productId: string): Promise<NextResponse> {
     const parsed = productIdSchema.safeParse(productId);
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
     }
-    const branchIdParsed = branchIdQuerySchema.safeParse(req.nextUrl.searchParams.get("branchId") ?? undefined);
+    const rawBranchId = req.nextUrl.searchParams.get("branchId");
+    if (!rawBranchId) {
+      return NextResponse.json({ error: "branchId is required" }, { status: 400 });
+    }
+    const branchIdParsed = branchIdQuerySchema.safeParse(rawBranchId);
     if (!branchIdParsed.success) {
       return NextResponse.json({ error: branchIdParsed.error.errors[0].message }, { status: 400 });
     }
@@ -80,10 +102,8 @@ export class ProductPricesController {
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
     }
-    if (parsed.data.branchId) {
-      const scopeError = await enforceBranchScope(req, parsed.data.branchId);
-      if (scopeError) return scopeError;
-    }
+    const scopeError = await enforceBranchScope(req, parsed.data.branchId);
+    if (scopeError) return scopeError;
     try {
       const price = await this.createUseCase.execute(idParsed.data, parsed.data);
       return NextResponse.json(price, { status: 201 });
@@ -110,6 +130,8 @@ export class ProductPricesController {
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
     }
+    const ownerError = await this.enforceOwnerBranch(req, priceParsed.data);
+    if (ownerError) return ownerError;
     try {
       const price = await this.updateUseCase.execute(pidParsed.data, priceParsed.data, parsed.data);
       return NextResponse.json(price);
@@ -130,6 +152,8 @@ export class ProductPricesController {
     if (!priceParsed.success) {
       return NextResponse.json({ error: priceParsed.error.errors[0].message }, { status: 400 });
     }
+    const ownerError = await this.enforceOwnerBranch(_req, priceParsed.data);
+    if (ownerError) return ownerError;
     try {
       await this.deleteUseCase.execute(pidParsed.data, priceParsed.data);
       return new NextResponse(null, { status: 204 });

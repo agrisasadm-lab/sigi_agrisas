@@ -50,7 +50,8 @@ export const productPricesController = new ProductPricesController(
   new ListProductPricesUseCase(productRepo, priceRepo, branchRepo),
   new CreateProductPriceUseCase(productRepo, priceRepo, branchRepo),
   new UpdateProductPriceUseCase(priceRepo),
-  new DeleteProductPriceUseCase(priceRepo)
+  new DeleteProductPriceUseCase(priceRepo),
+  priceRepo
 );
 
 export const productDosificationsController = new ProductDosificationsController(

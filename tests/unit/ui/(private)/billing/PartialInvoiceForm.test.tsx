@@ -117,8 +117,8 @@ describe("PartialInvoiceForm — handleAddProduct preselects default price", () 
 
   it("preloads the default price's unitPrice, not 0", async () => {
     mockGetProductPrices.mockResolvedValueOnce([
-      { id: "price-1", productId: "prod-1", name: "Precio menudeo", price: 50, minQuantity: 1, discountPct: 0, isDefault: false },
-      { id: "price-2", productId: "prod-1", name: "Precio mayoreo", price: 250, minQuantity: 10, discountPct: 0, isDefault: true },
+      { id: "price-1", productId: "prod-1", branchId: "b1", name: "Precio menudeo", price: 50, minQuantity: 1, discountPct: 0, isDefault: false },
+      { id: "price-2", productId: "prod-1", branchId: "b1", name: "Precio mayoreo", price: 250, minQuantity: 10, discountPct: 0, isDefault: true },
     ]);
     render(<PartialInvoiceForm />);
     const user = userEvent.setup();
@@ -132,7 +132,7 @@ describe("PartialInvoiceForm — handleAddProduct preselects default price", () 
 
   it("passes effectiveBranchId to getProductPrices when adding from the catalog (regression: was omitted, causing branch-scoped-only prices to resolve empty)", async () => {
     mockGetProductPrices.mockResolvedValueOnce([
-      { id: "price-1", productId: "prod-1", name: "Precio sucursal", price: 100, minQuantity: 1, discountPct: 0, isDefault: true },
+      { id: "price-1", productId: "prod-1", branchId: "b1", name: "Precio sucursal", price: 100, minQuantity: 1, discountPct: 0, isDefault: true },
     ]);
     render(<PartialInvoiceForm />);
     const user = userEvent.setup();
@@ -146,7 +146,7 @@ describe("PartialInvoiceForm — handleAddProduct preselects default price", () 
 
   it("falls back to the first price when none is marked default", async () => {
     mockGetProductPrices.mockResolvedValueOnce([
-      { id: "price-1", productId: "prod-1", name: "Único precio", price: 75, minQuantity: 1, discountPct: 0, isDefault: false },
+      { id: "price-1", productId: "prod-1", branchId: "b1", name: "Único precio", price: 75, minQuantity: 1, discountPct: 0, isDefault: false },
     ]);
     render(<PartialInvoiceForm />);
     const user = userEvent.setup();
@@ -175,8 +175,8 @@ describe("PartialInvoiceForm — handleChangeTier passes the same effectiveBranc
 
   it("calls getProductPrices with effectiveBranchId on both the initial catalog add and the tier-change click", async () => {
     mockGetProductPrices.mockResolvedValue([
-      { id: "price-1", productId: "prod-1", name: "Precio menudeo", price: 50, minQuantity: 1, discountPct: 0, isDefault: false },
-      { id: "price-2", productId: "prod-1", name: "Precio mayoreo", price: 250, minQuantity: 10, discountPct: 0, isDefault: true },
+      { id: "price-1", productId: "prod-1", branchId: "b1", name: "Precio menudeo", price: 50, minQuantity: 1, discountPct: 0, isDefault: false },
+      { id: "price-2", productId: "prod-1", branchId: "b1", name: "Precio mayoreo", price: 250, minQuantity: 10, discountPct: 0, isDefault: true },
     ]);
     render(<PartialInvoiceForm />);
     const user = userEvent.setup();
@@ -197,7 +197,7 @@ describe("PartialInvoiceForm — changing branchId does not retroactively re-pri
 
   it("a line added under branch A keeps its unitPrice after the branchId prop changes to branch B", async () => {
     mockGetProductPrices.mockResolvedValueOnce([
-      { id: "price-a", productId: "prod-1", name: "Precio sucursal A", price: 100, minQuantity: 1, discountPct: 0, isDefault: true },
+      { id: "price-a", productId: "prod-1", branchId: "b1", name: "Precio sucursal A", price: 100, minQuantity: 1, discountPct: 0, isDefault: true },
     ]);
     const { rerender } = render(<PartialInvoiceForm branchId="branch-a" />);
     const user = userEvent.setup();

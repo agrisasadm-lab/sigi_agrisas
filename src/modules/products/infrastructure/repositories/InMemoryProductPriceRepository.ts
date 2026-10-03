@@ -5,7 +5,6 @@ import {
 } from "../../application/ports/ProductPriceRepository";
 import { ProductPrice } from "../../domain/entities/ProductPrice";
 import { sortProductPricesForDisplay } from "../../domain/services/sortProductPricesForDisplay";
-import { resolveEffectivePrices } from "../../domain/services/resolveEffectivePrices";
 import { ProductPriceNotFoundError } from "../../domain/errors/ProductPriceNotFoundError";
 import { DuplicatePriceNameError } from "../../domain/errors/DuplicatePriceNameError";
 import { DuplicateDefaultPriceError } from "../../domain/errors/DuplicateDefaultPriceError";
@@ -16,44 +15,31 @@ function makeId(): string {
   return `test-price-${++idCounter}`;
 }
 
-/** Trata `branchId` como su propio bucket: `null` (base) nunca colisiona con un branchId específico. */
-function sameBucket(a: string | null, b: string | null): boolean {
-  return a === b;
-}
-
 export class InMemoryProductPriceRepository implements ProductPriceRepository {
   private store: ProductPrice[] = [];
 
-  async findByProductId(productId: string): Promise<ProductPrice[]> {
+  async findByProductAndBranch(productId: string, branchId: string): Promise<ProductPrice[]> {
     return sortProductPricesForDisplay(
-      this.store.filter((p) => p.productId === productId && p.branchId === null)
+      this.store.filter((p) => p.productId === productId && p.branchId === branchId)
     );
-  }
-
-  async findEffectiveForBranch(productId: string, branchId: string): Promise<ProductPrice[]> {
-    const rows = this.store.filter(
-      (p) => p.productId === productId && (p.branchId === null || p.branchId === branchId)
-    );
-    return sortProductPricesForDisplay(resolveEffectivePrices(rows, branchId));
   }
 
   async findById(id: string): Promise<ProductPrice | null> {
     return this.store.find((p) => p.id === id) ?? null;
   }
 
-  async findDefaultByProductId(productId: string, branchId?: string | null): Promise<ProductPrice | null> {
-    const scope = branchId ?? null;
-    return this.store.find((p) => p.productId === productId && sameBucket(p.branchId, scope) && p.isDefault) ?? null;
+  async findDefaultByProductId(productId: string, branchId: string): Promise<ProductPrice | null> {
+    return this.store.find((p) => p.productId === productId && p.branchId === branchId && p.isDefault) ?? null;
   }
 
   async create(data: CreateProductPriceData): Promise<ProductPrice> {
-    const scope = data.branchId ?? null;
-    if (this.store.some((p) => p.productId === data.productId && sameBucket(p.branchId, scope) && p.name === data.name)) {
+    const scope = data.branchId;
+    if (this.store.some((p) => p.productId === data.productId && p.branchId === scope && p.name === data.name)) {
       throw new DuplicatePriceNameError(data.name);
     }
     if (
       data.isDefault &&
-      this.store.some((p) => p.productId === data.productId && sameBucket(p.branchId, scope) && p.isDefault)
+      this.store.some((p) => p.productId === data.productId && p.branchId === scope && p.isDefault)
     ) {
       throw new DuplicateDefaultPriceError();
     }
@@ -83,7 +69,7 @@ export class InMemoryProductPriceRepository implements ProductPriceRepository {
       data.name !== undefined &&
       data.name !== existing.name &&
       this.store.some(
-        (p, i) => i !== idx && p.productId === existing.productId && sameBucket(p.branchId, existing.branchId) && p.name === data.name
+        (p, i) => i !== idx && p.productId === existing.productId && p.branchId === existing.branchId && p.name === data.name
       )
     ) {
       throw new DuplicatePriceNameError(data.name);
@@ -91,7 +77,7 @@ export class InMemoryProductPriceRepository implements ProductPriceRepository {
     if (
       data.isDefault === true &&
       this.store.some(
-        (p, i) => i !== idx && p.productId === existing.productId && sameBucket(p.branchId, existing.branchId) && p.isDefault
+        (p, i) => i !== idx && p.productId === existing.productId && p.branchId === existing.branchId && p.isDefault
       )
     ) {
       throw new DuplicateDefaultPriceError();
@@ -113,9 +99,9 @@ export class InMemoryProductPriceRepository implements ProductPriceRepository {
     return updated;
   }
 
-  async unsetDefaultForProduct(productId: string, branchId: string | null, exceptId?: string): Promise<void> {
+  async unsetDefaultForProduct(productId: string, branchId: string, exceptId?: string): Promise<void> {
     this.store = this.store.map((p) =>
-      p.productId === productId && sameBucket(p.branchId, branchId) && p.isDefault && p.id !== exceptId
+      p.productId === productId && p.branchId === branchId && p.isDefault && p.id !== exceptId
         ? ProductPrice.create({ ...p, isDefault: false, updatedAt: new Date() })
         : p
     );
@@ -123,7 +109,7 @@ export class InMemoryProductPriceRepository implements ProductPriceRepository {
 
   async unsetDefaultAndUpdate(
     productId: string,
-    branchId: string | null,
+    branchId: string,
     priceId: string,
     data: UpdateProductPriceData
   ): Promise<ProductPrice> {

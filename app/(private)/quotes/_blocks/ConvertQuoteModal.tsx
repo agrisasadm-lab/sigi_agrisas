@@ -26,7 +26,7 @@ export function ConvertQuoteModal({
   convert,
 }: ConvertQuoteModalProps) {
   const router = useRouter();
-  const { options: folios, isLoading: foliosLoading } = useFoliosOptions({ scope: "POS" });
+  const { options: folios, isLoading: foliosLoading } = useFoliosOptions({ scope: "POS", branchId: quote.branchId });
   const { options: paymentMethods, isLoading: pmLoading } = usePaymentMethodsOptions();
 
   const [folioId, setFolioId] = useState("");
@@ -88,7 +88,7 @@ export function ConvertQuoteModal({
               <option value="">— Selecciona folio fiscal —</option>
               {folios.map((f) => (
                 <option key={f.id} value={f.id}>
-                  {f.prefix ? `${f.prefix}-` : ""}{f.currentNumber + 1} ({f.name})
+                  {f.nextFolioCode ?? `${f.prefix ? `${f.prefix}-` : ""}${f.currentNumber + 1}`} ({f.name})
                 </option>
               ))}
             </select>

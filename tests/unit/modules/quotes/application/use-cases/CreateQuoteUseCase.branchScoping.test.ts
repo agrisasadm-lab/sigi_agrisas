@@ -15,7 +15,7 @@ const USER_ID = "00000000-0000-0000-0000-000000000001";
 function makeLookups(overrides: Partial<PosLookupService> = {}): PosLookupService {
   return {
     async getCustomer(id) {
-      return { id, isActive: true, creditLimit: null, currentBalance: 0, email: null };
+      return { id, isActive: true, creditLimit: null, currentBalance: 0, email: null, branchIds: [ZARIOZ] };
     },
     async getBranch(id) {
       return { id, isActive: true };
@@ -30,7 +30,7 @@ function makeLookups(overrides: Partial<PosLookupService> = {}): PosLookupServic
       return { id, code: "FERT_001", name: "Fertilizante", ivaRate: 0.16, iepsRate: null, isTaxable: true, isActive: true };
     },
     async getProductPrice(id) {
-      return { id, productId: PRODUCT_ID, branchId: null, name: "Menudeo", price: 100, discountPct: null };
+      return { id, productId: PRODUCT_ID, branchId: ZARIOZ, name: "Menudeo", price: 100, discountPct: null };
     },
     async getDosificationForSale() {
       return null;
@@ -60,7 +60,7 @@ describe("CreateQuoteUseCase — precio por sucursal", () => {
     repo.reset();
   });
 
-  it("usa el override cuando pertenece a la sucursal de la cotización", async () => {
+  it("usa el precio que pertenece a la sucursal de la cotización", async () => {
     const lookups = makeLookups({
       getProductPrice: async (id) => ({ id, productId: PRODUCT_ID, branchId: ZARIOZ, name: "Menudeo", price: 80, discountPct: null }),
     });
@@ -75,6 +75,11 @@ describe("CreateQuoteUseCase — precio por sucursal", () => {
     await expect(new CreateQuoteUseCase(repo, lookups).execute(baseCreateReq, USER_ID)).rejects.toThrow(
       ProductPriceNotAvailableForBranchError
     );
+  });
+
+  it("acepta el precio de la propia sucursal", async () => {
+    const result = await new CreateQuoteUseCase(repo, makeLookups()).execute(baseCreateReq, USER_ID);
+    expect(result.dto.items[0].unitPrice).toBe(100);
   });
 });
 
@@ -98,4 +103,5 @@ describe("UpdateQuoteUseCase — precio por sucursal", () => {
       })
     ).rejects.toThrow(ProductPriceNotAvailableForBranchError);
   });
+
 });

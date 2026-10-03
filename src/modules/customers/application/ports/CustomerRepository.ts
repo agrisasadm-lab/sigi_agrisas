@@ -25,6 +25,7 @@ export interface CreateCustomerData {
   addressState?: string | null;
   addressCountry?: string | null;
   addressZipCode?: string | null;
+  branchIds: string[];
 }
 
 export interface UpdateCustomerData {
@@ -51,6 +52,7 @@ export interface UpdateCustomerData {
   addressState?: string | null;
   addressCountry?: string | null;
   addressZipCode?: string | null;
+  branchIds?: string[];
 }
 
 export interface FindAllOptions {
@@ -58,6 +60,7 @@ export interface FindAllOptions {
   pageSize: number;
   includeInactive: boolean;
   search?: string;
+  branchId?: string;
 }
 
 export interface CustomerRepository {

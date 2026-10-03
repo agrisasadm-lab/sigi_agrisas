@@ -13,7 +13,7 @@ const ACTIVE_ITEM: Folio = {
   currentNumber: 100,
   isActive: true,
   createdAt: new Date("2026-05-01"),
-  updatedAt: new Date("2026-05-01"),
+  updatedAt: new Date("2026-05-01"), branchCurrentNumber: null, nextFolioCode: null,
 };
 
 const INACTIVE_ITEM: Folio = {
@@ -25,7 +25,7 @@ const INACTIVE_ITEM: Folio = {
   currentNumber: 0,
   isActive: false,
   createdAt: new Date("2026-05-01"),
-  updatedAt: new Date("2026-05-01"),
+  updatedAt: new Date("2026-05-01"), branchCurrentNumber: null, nextFolioCode: null,
 };
 
 describe("FoliosTable", () => {

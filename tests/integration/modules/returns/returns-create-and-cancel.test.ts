@@ -96,10 +96,10 @@ describe("Returns — create y cancel (integration real DB)", () => {
     });
     productId = product.id;
 
-    const price = await createPrice.execute(productId, { name: "Lista", price: 100, isDefault: true });
+    const price = await createPrice.execute(productId, { branchId: branchId, name: "Lista", price: 100, isDefault: true });
     priceId = price.id;
 
-    const customer = await createCustomer.execute({ code: `${P}CLI1`, name: "Cliente Returns", rfc: "CRT010101001" });
+    const customer = await createCustomer.execute({ code: `${P}CLI1`, name: "Cliente Returns", rfc: "CRT010101001", branchIds: [branchId] });
     customerId = customer.id;
 
     const folio = await folioRepo.create({ code: `${P}FOL1`, name: "Folio Returns", prefix: "RET", currentNumber: 0, scope: "POS" });

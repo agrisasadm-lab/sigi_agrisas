@@ -125,7 +125,7 @@ export function QuoteEmitPanel({
               <option value="">— Selecciona folio —</option>
               {folios.map((f) => (
                 <option key={f.id} value={f.id}>
-                  {f.prefix ? `${f.prefix}-` : ""}{f.currentNumber + 1} ({f.name})
+                  {f.nextFolioCode ?? `${f.prefix ? `${f.prefix}-` : ""}${f.currentNumber + 1}`} ({f.name})
                 </option>
               ))}
             </select>
@@ -136,6 +136,7 @@ export function QuoteEmitPanel({
           value={selectedCustomerId}
           onChange={onCustomerChange}
           onOpenQuickAdd={onOpenQuickAdd}
+          branchId={selectedBranchId}
         />
 
         <div>

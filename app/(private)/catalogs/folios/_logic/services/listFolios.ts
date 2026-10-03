@@ -13,6 +13,8 @@ function toFolio(dto: FolioDto): Folio {
     isActive: dto.isActive,
     createdAt: new Date(dto.createdAt),
     updatedAt: new Date(dto.updatedAt),
+    branchCurrentNumber: dto.branchCurrentNumber,
+    nextFolioCode: dto.nextFolioCode,
   };
 }
 
@@ -42,10 +44,11 @@ export async function listFolios(
   };
 }
 
-export async function auditFolio(id: string, fetchImpl = authFetch): Promise<FolioAuditResult> {
+export async function auditFolio(id: string, branchId?: string | null, fetchImpl = authFetch): Promise<FolioAuditResult> {
+  const qs = branchId ? `?branchId=${branchId}` : "";
   let res: Response;
   try {
-    res = await fetchImpl(`/api/v1/admin/folios/${id}/audit`);
+    res = await fetchImpl(`/api/v1/admin/folios/${id}/audit${qs}`);
   } catch (err) {
     if (err instanceof NetworkError || err instanceof UnauthenticatedError || err instanceof ForbiddenError) throw err;
     throw new NetworkError();

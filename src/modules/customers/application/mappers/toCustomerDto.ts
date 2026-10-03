@@ -29,6 +29,7 @@ export function toCustomerDto(c: Customer): CustomerDto {
     addressState: c.addressState,
     addressCountry: c.addressCountry,
     addressZipCode: c.addressZipCode,
+    branchIds: c.branchIds,
     createdAt: c.createdAt.toISOString(),
     updatedAt: c.updatedAt.toISOString(),
   };

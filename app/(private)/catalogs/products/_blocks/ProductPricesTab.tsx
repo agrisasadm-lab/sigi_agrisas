@@ -2,9 +2,9 @@
 
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useProductPrices } from "../_logic/hooks/useProductPrices";
-import { useBranchesOptions } from "../../../../_hooks/useBranchesOptions";
+
 import { useTableKeyboard } from "../../../../_hooks/useTableKeyboard";
-import { useCurrentUser } from "../../../../_hooks/useCurrentUser";
+import { usePriceBranchSelection } from "../_logic/hooks/usePriceBranchSelection";
 import { DuplicatePriceNameError, DuplicateDefaultPriceError } from "../_logic/errors";
 import { ConfirmDialog } from "../../../../_components/molecules/ConfirmDialog/ConfirmDialog";
 import { Badge } from "../../../../_components/atoms/Badge/Badge";
@@ -111,7 +111,7 @@ function PriceModal({
     if (isNaN(p) || p < 0) errs.price = "El precio debe ser 0 o mayor.";
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     if (mode === "create") {
-      onSave({ branchId: createBranchId ?? null, name: name.trim(), price: p, minQuantity: parseInt(minQuantity) || 1, discountPct: discountPct.trim() ? parseFloat(discountPct) : null, isDefault });
+      onSave({ branchId: createBranchId!, name: name.trim(), price: p, minQuantity: parseInt(minQuantity) || 1, discountPct: discountPct.trim() ? parseFloat(discountPct) : null, isDefault });
     } else {
       onSave(buildDiff());
     }
@@ -124,7 +124,7 @@ function PriceModal({
       <form onSubmit={handleSubmit} noValidate>
         <div className="px-6 pt-6 pb-4 border-b border-outline-variant">
           <h2 className="text-title-md font-semibold text-on-surface">
-            {mode === "create" ? (createBranchId ? "Nuevo override de sucursal" : "Nuevo precio base") : "Editar precio"}
+            {mode === "create" ? "Nuevo precio" : "Editar precio"}
           </h2>
           {mode === "create" && createBranchId && (
             <p className="text-label-sm text-on-surface-variant mt-1">Sólo aplica a {createBranchName ?? "esta sucursal"}.</p>
@@ -167,15 +167,8 @@ function PriceModal({
 }
 
 export function ProductPricesTab({ productId, canWrite }: ProductPricesTabProps) {
-  const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
-  const { options: branches } = useBranchesOptions();
-  const { branchId: userBranchId, can } = useCurrentUser();
-  const canAccessAllBranches = can("branches:access_all");
-  const visibleBranches = useMemo(() => {
-    if (canAccessAllBranches !== false) return branches;
-    return branches.filter((b) => b.id === userBranchId);
-  }, [branches, canAccessAllBranches, userBranchId]);
-  const branchName = (id: string | null) => (id ? branches.find((b) => b.id === id)?.name ?? id : null);
+  const { branches: visibleBranches, selectedBranchId, setSelectedBranchId, hasNoBranch, branchName } =
+    usePriceBranchSelection();
 
   const { prices, isLoading, error, isSaving, saveError, clearSaveError, refresh, createOne, updateOne, deleteOne } = useProductPrices(productId, selectedBranchId);
   const [modal, setModal] = useState<PriceModalState | null>(null);
@@ -184,11 +177,6 @@ export function ProductPricesTab({ productId, canWrite }: ProductPricesTabProps)
   const [defaultError, setDefaultError] = useState<string | null>(null);
 
   const openEditModal = (p: ProductPrice) => {
-    if (selectedBranchId && !p.isOverride) {
-      setNameError(null); setDefaultError(null);
-      setModal({ mode: "create", entity: null, createBranchId: selectedBranchId, prefillName: p.name });
-      return;
-    }
     setNameError(null); setDefaultError(null); setModal({ mode: "edit", entity: p });
   };
   const noop = () => {};
@@ -206,6 +194,13 @@ export function ProductPricesTab({ productId, canWrite }: ProductPricesTabProps)
     }
   };
 
+  if (hasNoBranch) {
+    return (
+      <p className="p-6 text-center text-on-surface-variant text-body-md">
+        Necesitas una sucursal asignada para administrar precios. Pídele a un administrador que te asigne una.
+      </p>
+    );
+  }
   if (isLoading) return <div className="space-y-2 p-4">{Array.from({length:3}).map((_,i) => <Skeleton key={i} className="h-10 w-full rounded-md" />)}</div>;
   if (error) return <p className="p-4 text-error text-label-lg">{error}</p>;
 
@@ -220,9 +215,9 @@ export function ProductPricesTab({ productId, canWrite }: ProductPricesTabProps)
           id="price-branch-scope"
           value={selectedBranchId ?? ""}
           onChange={(e) => setSelectedBranchId(e.target.value || null)}
+          disabled={visibleBranches.length === 0}
           className="px-3 py-1.5 rounded-md border border-outline-variant bg-surface-container-lowest text-body-md focus:outline-none focus:ring-2 focus:ring-primary"
         >
-          <option value="">Precio base (todas)</option>
           {visibleBranches.map((b) => (
             <option key={b.id} value={b.id}>{b.name}</option>
           ))}
@@ -249,13 +244,11 @@ export function ProductPricesTab({ productId, canWrite }: ProductPricesTabProps)
                 <th className="px-4 py-2 font-medium text-right">Cant. mín.</th>
                 <th className="px-4 py-2 font-medium text-right">Descuento</th>
                 <th className="px-4 py-2 font-medium">Default</th>
-                <th className="px-4 py-2 font-medium">Origen</th>
                 {canWrite && <th className="px-4 py-2 font-medium">Acciones</th>}
               </tr>
             </thead>
             <tbody>
               {prices.map((p, idx) => {
-                const isInheritedUnderBranch = Boolean(selectedBranchId) && !p.isOverride;
                 return (
                   <tr
                     key={p.id}
@@ -267,27 +260,12 @@ export function ProductPricesTab({ productId, canWrite }: ProductPricesTabProps)
                     <td className="px-4 py-2 text-right">{p.minQuantity}</td>
                     <td className="px-4 py-2 text-right">{p.discountPct != null ? `${p.discountPct}%` : "—"}</td>
                     <td className="px-4 py-2">{p.isDefault && <Badge variant="read">Default</Badge>}</td>
-                    <td className="px-4 py-2">
-                      <Badge variant={p.isOverride ? "write" : "read"}>
-                        {p.isOverride ? `Override ${branchName(p.branchId) ?? ""}` : "Base"}
-                      </Badge>
-                    </td>
                     {canWrite && (
                       <td className="px-4 py-2">
-                        {isInheritedUnderBranch ? (
-                          <button
-                            type="button"
-                            onClick={() => { setNameError(null); setDefaultError(null); setModal({ mode: "create", entity: null, createBranchId: selectedBranchId, prefillName: p.name }); }}
-                            className="inline-flex items-center gap-1 px-2 py-1 rounded text-label-sm text-primary hover:bg-primary-container/40"
-                          >
-                            <Icon name="add" size={14} />Crear override aquí
-                          </button>
-                        ) : (
-                          <div className="flex gap-2">
-                            <button type="button" onClick={() => { setNameError(null); setDefaultError(null); setModal({mode:"edit", entity:p}); }} className="p-1 rounded hover:bg-surface-container text-on-surface-variant" title="Editar"><Icon name="edit" size={14}/></button>
-                            <button type="button" onClick={() => setConfirmDeleteId(p.id)} className="p-1 rounded hover:bg-error/10 text-error" title="Eliminar"><Icon name="delete" size={14}/></button>
-                          </div>
-                        )}
+                        <div className="flex gap-2">
+                          <button type="button" onClick={() => { setNameError(null); setDefaultError(null); setModal({mode:"edit", entity:p}); }} className="p-1 rounded hover:bg-surface-container text-on-surface-variant" title="Editar"><Icon name="edit" size={14}/></button>
+                          <button type="button" onClick={() => setConfirmDeleteId(p.id)} className="p-1 rounded hover:bg-error/10 text-error" title="Eliminar"><Icon name="delete" size={14}/></button>
+                        </div>
                       </td>
                     )}
                   </tr>

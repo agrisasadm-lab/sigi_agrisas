@@ -22,7 +22,7 @@ const BASE_ENTITY: Folio = {
   currentNumber: 100,
   isActive: true,
   createdAt: new Date("2026-05-01"),
-  updatedAt: new Date("2026-05-01"),
+  updatedAt: new Date("2026-05-01"), branchCurrentNumber: null, nextFolioCode: null,
 };
 
 const defaultProps = {

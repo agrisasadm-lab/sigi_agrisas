@@ -23,4 +23,5 @@ export interface CreateCustomerRequest {
   addressState?: string | null;
   addressCountry?: string | null;
   addressZipCode?: string | null;
+  branchIds: string[];
 }

@@ -18,8 +18,8 @@ const mockUseFoliosOptions = useFoliosOptions as jest.MockedFunction<typeof useF
 const mockUsePaymentMethodsOptions = usePaymentMethodsOptions as jest.MockedFunction<typeof usePaymentMethodsOptions>;
 const mockRegisterPayment = registerPayment as jest.MockedFunction<typeof registerPayment>;
 
-const FOLIO_RB = { id: "f-rb", code: "RB", name: "Recibo de Pago - Cobranza", prefix: "RB-", scope: "OPERATIONS" as const, currentNumber: 1, isActive: true };
-const FOLIO_AB = { id: "f-ab", code: "AB", name: "Cobranza/Abono", prefix: "AB-", scope: "OPERATIONS" as const, currentNumber: 1, isActive: true };
+const FOLIO_RB = { id: "f-rb", code: "RB", name: "Recibo de Pago - Cobranza", prefix: "RB-", scope: "OPERATIONS" as const, currentNumber: 1, isActive: true, branchCurrentNumber: null, nextFolioCode: null };
+const FOLIO_AB = { id: "f-ab", code: "AB", name: "Cobranza/Abono", prefix: "AB-", scope: "OPERATIONS" as const, currentNumber: 1, isActive: true, branchCurrentNumber: null, nextFolioCode: null };
 const METHOD = { id: "pm1", code: "EFE", name: "Efectivo", isActive: true, isCredit: false };
 
 function setup() {

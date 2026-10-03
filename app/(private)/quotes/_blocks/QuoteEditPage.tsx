@@ -39,7 +39,7 @@ export function QuoteEditPage({ id }: QuoteEditPageProps) {
 
   const { quote, isLoading, error } = useQuoteDetail(id);
   const { isSaving, update } = useQuoteMutations();
-  const { options: folios, isLoading: foliosLoading } = useFoliosOptions({ scope: "POS" });
+  const { options: folios, isLoading: foliosLoading } = useFoliosOptions({ scope: "POS", branchId: quote?.branchId ?? null });
   const { dosificationSurchargePct } = usePricingSettingsOptions();
   const { lines, totals, addLine, updateQuantity, updateDiscountPct, changeTier, removeLine, clear } = useCart(dosificationSurchargePct);
 
@@ -78,6 +78,7 @@ export function QuoteEditPage({ id }: QuoteEditPageProps) {
           : item.unitPrice;
         const fakePrice: ProductPriceDto = {
           id: item.productPriceId,
+          branchId: quote.branchId,
           name: item.priceNameSnapshot,
           price: basePrice,
           minQuantity: 1,
@@ -256,6 +257,7 @@ export function QuoteEditPage({ id }: QuoteEditPageProps) {
             setModal(null);
           }}
           onClose={() => setModal(null)}
+          branchId={quote?.branchId}
         />
       )}
 
