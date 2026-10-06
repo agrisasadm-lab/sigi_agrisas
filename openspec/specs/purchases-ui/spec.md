@@ -5,9 +5,7 @@
 Define el comportamiento de la interfaz de usuario del módulo de Compras: listado, creación, detalle y las acciones de ciclo de vida (cancelar compra, registrar/cancelar abono a proveedor), consumiendo la API definida en el change `add-purchases-crud`.
 
 ---
-
 ## Requirements
-
 ### Requirement: Listado paginado de compras con filtros
 
 La página `/purchases` SHALL mostrar un listado paginado de compras con filtros por proveedor (búsqueda server-side, mínimo 2 caracteres, debounce 300ms), sucursal (visible solo con el permiso `branches:access_all`), estado y rango de fechas. SHALL estar gateada por el permiso `purchases:read`.
@@ -38,6 +36,8 @@ La página `/purchases` SHALL mostrar un listado paginado de compras con filtros
 ### Requirement: Registro de una compra desde la interfaz
 
 La página `/purchases/new` SHALL permitir capturar una compra completa: selección de proveedor (con búsqueda server-side y creación rápida), líneas de producto (producto, cantidad, costo unitario, descuento % opcional, lote y caducidad opcionales como par completo o ninguno), forma de pago (contado/crédito desde el catálogo de formas de pago activas), sucursal (sólo seleccionable cuando el usuario tiene `branches:access_all`; en cualquier otro caso viene fija de la sesión) y notas opcionales. Los totales SHALL calcularse en el cliente con la misma fórmula de redondeo half-to-even a 4 decimales que usa el backend. SHALL estar gateada por el permiso `purchases:create`.
+
+El buscador de productos usado para agregar líneas SHALL filtrarse por la sucursal activa del formulario: la sucursal propia del usuario cuando no tiene `branches:access_all`, o la sucursal seleccionada en el formulario cuando el usuario sí tiene ese permiso. El buscador SHALL mostrar únicamente productos con una fila de asignación a esa sucursal (mismo criterio de filtrado que ya aplica el catálogo general cuando se consulta con `branchId`). Cuando el usuario tiene `branches:access_all` y aún no ha seleccionado ninguna sucursal, el buscador SHALL permanecer inactivo (sin disparar búsqueda) y mostrar un hint indicando que debe seleccionar sucursal primero.
 
 #### Scenario: Selector de proveedor con búsqueda y creación rápida
 - **WHEN** el usuario escribe en el selector de proveedor
@@ -75,7 +75,29 @@ La página `/purchases/new` SHALL permitir capturar una compra completa: selecci
 - **WHEN** el backend responde 400 al confirmar la compra con un mensaje distinto a los casos ya mapeados de proveedor/producto inactivo o líneas vacías
 - **THEN** el formulario muestra el mensaje de error tal como lo devolvió el servidor, en vez de un mensaje genérico, sin perder los datos capturados
 
----
+#### Scenario: Buscador de productos filtrado por la sucursal propia del operador
+- **WHEN** un usuario sin `branches:access_all` busca un producto en el formulario de alta de compra
+- **THEN** sólo aparecen productos con una fila de asignación (`branch_inventory`) en su propia sucursal
+
+#### Scenario: Producto no asignado a la sucursal no aparece en resultados
+- **WHEN** el usuario busca por código o nombre un producto que existe en el catálogo activo pero no está asignado a la sucursal activa del formulario
+- **THEN** ese producto no aparece en los resultados de búsqueda
+
+#### Scenario: Sin coincidencias asignadas a la sucursal
+- **WHEN** ningún producto asignado a la sucursal activa del formulario coincide con el término buscado
+- **THEN** el buscador muestra el estado de lista vacía existente, sin un estado especial adicional
+
+#### Scenario: Buscador respeta la sucursal seleccionada por un usuario con acceso total
+- **WHEN** un usuario con `branches:access_all` ya seleccionó una sucursal en el formulario y busca un producto
+- **THEN** sólo aparecen productos asignados a esa sucursal seleccionada
+
+#### Scenario: Buscador inactivo sin sucursal seleccionada
+- **WHEN** un usuario con `branches:access_all` aún no ha seleccionado ninguna sucursal en el formulario
+- **THEN** el buscador no dispara ninguna búsqueda y se muestra un hint indicando que debe seleccionar sucursal primero
+
+#### Scenario: Resultados se refrescan al cambiar de sucursal
+- **WHEN** un usuario con `branches:access_all` cambia la sucursal seleccionada mientras hay un término de búsqueda activo
+- **THEN** los resultados se refrescan filtrados por la nueva sucursal, sin dejar resultados obsoletos de la sucursal anterior
 
 ### Requirement: Carga de factura SAT (CFDI) para prellenar la compra
 
@@ -220,3 +242,4 @@ El `NavigationRail` SHALL incluir un item para acceder a `/purchases`, visible �
 #### Scenario: Item visible optimistamente durante carga
 - **WHEN** la verificación de `purchases:read` está en curso (`"loading"`)
 - **THEN** el item "Compras" se muestra optimistamente para evitar layout shift
+

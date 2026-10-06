@@ -87,7 +87,7 @@ app/api/v1/<...>/route.ts                # delegan a <módulo>Controller vía DI
 middleware.ts                            # delega a AuthMiddlewareAdapter
 ```
 
-Módulos hexagonales activos: `auth`, `rbac`, `users`, `payment-methods`, `folios`, `departments`, `branches`, `providers`, `products`, `inventory`, `customers`, `pos`, `quotes`, `returns`, `payments`, `billing`, `reports`, `purchases`, `waybills`, `sat-codes`, `tax-rates`, `settings`.
+Módulos hexagonales activos: `auth`, `rbac`, `users`, `payment-methods`, `folios`, `departments`, `branches`, `providers`, `products`, `inventory`, `customers`, `pos`, `quotes`, `returns`, `payments`, `expenses`, `billing`, `reports`, `purchases`, `waybills`, `sat-codes`, `tax-rates`, `settings`.
 
 **Reglas de capas (backend):**
 - El dominio no importa nada de infraestructura ni de Next.js.
@@ -149,6 +149,22 @@ DIRECT_URL    → conexión directa puerto 5432 (migraciones)
 - **FKs en `TEXT`, no `uuid`**. Los IDs son `String @id @default(uuid())` → columna `TEXT`. Las FKs (`department_id`, `product_id`, `branch_id`, etc.) son `TEXT` para coincidir con la PK; un `@db.Uuid` rompería la FK por mismatch. La validación Zod sí usa `z.string().uuid()` porque los **valores** son UUIDs.
   - **Excepción confirmada en DB**: `users.id` y todas las FK que referencian usuarios (`cashier_id`, `creator_id`, `cancelled_by`, `authorized_by`, `user_id`, `created_by`) SÍ son columna `uuid` real en Supabase (verificado via `information_schema.columns`), y las FKs correspondientes ya llevan `@db.Uuid` en varios modelos (ver `cancelledBy`/`creatorId`/`userId` más abajo). `User.id` en `schema.prisma` no declara `@db.Uuid` explícito pero la columna real ya es `uuid` — desalineación cosmética en el schema fuente, no en la DB. No aplicar la regla general de "TEXT" a FKs de usuario; no "corregir" quitando `@db.Uuid` de esas relaciones.
 - Modelos: `User, Role, Permission, RolePermission, UserRole, PaymentMethod, Folio, Department, Branch, Provider, Product, ProductPrice, ProductDosification, BranchInventory, Customer, Sale, SaleItem, Quote, QuoteItem`.
+
+## Ambientes: PROD vs dev/test
+
+| Variable | dev/test | PROD |
+|---|---|---|
+| Proyecto Supabase | `qzzjpyepggwautckqeex` (`.env.local`) | `cggfhiyxufjdzxzcxugo` (Vercel env) |
+| Migraciones | `prisma migrate dev` | `prisma migrate deploy` (CI/CD) |
+| Seed | `npm run seed` / `npm run seed:folios` | **Prohibido** sin autorización explícita |
+| MCP Supabase | `mcp__supabase-prod__*` apunta a PROD — usar con cuidado | — |
+
+**Reglas:**
+- Todo chequeo contra `.env.local` → declarar explícitamente "test/dev", no reportar como verificación de prod.
+- `mcp__supabase-prod__*` toca prod directo — consultas de lectura OK; mutations (`execute_sql`, `apply_migration`) requieren confirmación explícita del usuario.
+- No correr `prisma migrate dev` contra `DIRECT_URL` de prod — genera migrations shadow y puede marcar migraciones como "drift".
+- Seeds (`npm run seed`, `npm run seed:folios`) solo en dev/test. Prohibido en prod sin instrucción explícita del usuario.
+- `git filter-repo` / force-push sobre historial: requiere autorización explícita, no ejecutar por iniciativa propia.
 
 ## Comandos frecuentes
 
@@ -296,7 +312,7 @@ Cada módulo CRUD admin sigue el mismo patrón hexagonal y la misma forma de end
 
 ### Migraciones relevantes
 
-- `add_rbac_tables`, `20260518000001_add_avatar_url_to_users`, `20260519000001_add_settings_catalog_tables`, `20260525000001_add_providers_table`, `20260528000001_add_products_and_inventory_tables`, `20260530000001_add_pos_tables_and_branch_scoping`, `20260531000001_add_quotes_tables_and_link_to_sale`, `20260611000001_add_folios_scope_column`, `20260806000001_add_pricing_settings`.
+- `add_rbac_tables`, `20260518000001_add_avatar_url_to_users`, `20260519000001_add_settings_catalog_tables`, `20260525000001_add_providers_table`, `20260528000001_add_products_and_inventory_tables`, `20260530000001_add_pos_tables_and_branch_scoping`, `20260531000001_add_quotes_tables_and_link_to_sale`, `20260611000001_add_folios_scope_column`, `20260806000001_add_pricing_settings`, `20260930023601_add_expenses_table`.
 
 ## POS y Cotizaciones (Backend)
 
@@ -441,6 +457,40 @@ Módulo `src/modules/payments/`. Spec: `payments-api`. Migración: `202606080000
 - PDF: `src/modules/payments/infrastructure/pdf/PaymentHistoryPdf.tsx`
 - DI: `src/modules/payments/infrastructure/di/container.ts` → exporta `paymentsController`. Instancia `PrismaSaleRepository` localmente (no desde `pos/di`) para evitar import circular.
 
+## Gastos (Backend)
+
+Módulo `src/modules/expenses/`. Specs: `add-expenses-api` (change activo en `openspec/changes/`). Migración: `20260930023601_add_expenses_table`.
+
+**Entidad `Expense`**: `branchId`, `concept` (max 200), `amount` (Decimal almacenado como string), `notes?` (max 1000), `photoUrl?`, `expenseDate`, `creatorId`, `isActive`. Sin estados complejos — ciclo de vida: activo → soft-deleted (`isActive=false`).
+
+**Endpoints** (`expenses:read` / `expenses:write` / `expenses:report_read`):
+- `GET /api/v1/admin/expenses` — lista paginada, filtros: `branchId`, `concept`, `from`, `to`; branch scoping
+- `POST /api/v1/admin/expenses` — crear; `branchId` en body + branch scoping
+- `GET /api/v1/admin/expenses/:id` — detalle con branch scoping
+- `PATCH /api/v1/admin/expenses/:id` — editar; ≥1 campo (concept/amount/notes/expenseDate)
+- `DELETE /api/v1/admin/expenses/:id` — soft delete; 204
+- `POST /api/v1/admin/expenses/:id/photo` — upload foto multipart (`file` field); 413 si excede tamaño
+- `DELETE /api/v1/admin/expenses/:id/photo` — borrar foto; 204
+- `GET /api/v1/admin/expenses/report` — reporte `?format=json|pdf|xlsx`; filtros: branchId, concept, from/to, includeInactive; límite 10 000 rows → 409 `ReportTooLarge`
+
+**Foto**: port `ExpensePhotoStoragePort`, impl `SupabaseExpensePhotoStorage` (Supabase Storage bucket). `InMemoryExpensePhotoStorage` para tests.
+
+**Permisos RBAC**:
+| Permiso | admin | operator | viewer |
+|---|---|---|---|
+| `expenses:read` | ✅ | ✅ | ✅ |
+| `expenses:write` | ✅ | ✅ | ❌ |
+| `expenses:report_read` | ✅ | ✅ | ✅ |
+
+**Arquitectura**:
+- Puerto: `src/modules/expenses/application/ports/ExpenseRepository.ts`
+- Use cases: `CreateExpenseUseCase`, `UpdateExpenseUseCase`, `SoftDeleteExpenseUseCase`, `GetExpenseUseCase`, `ListExpensesUseCase`, `UploadExpensePhotoUseCase`, `DeleteExpensePhotoUseCase`, `GetExpensesReportUseCase`
+- Repositorio Prisma: `src/modules/expenses/infrastructure/repositories/PrismaExpenseRepository.ts`
+- Repositorio InMemory (tests): `src/modules/expenses/infrastructure/repositories/InMemoryExpenseRepository.ts`
+- Controller: `src/modules/expenses/infrastructure/http/ExpensesController.ts`
+- PDF/XLSX: `src/modules/expenses/infrastructure/pdf/ExpensesReportPdf.tsx`, `src/modules/expenses/infrastructure/xlsx/buildExpensesReportWorkbook.ts`
+- DI: `src/modules/expenses/infrastructure/di/container.ts` → exporta `expensesController`
+
 ## UI por feature
 
 ### Convenciones compartidas
@@ -514,6 +564,16 @@ Optimista durante `hqLoading`. `EditSalePage` repite el guard en `useEffect`.
 **Servicios**: `listReturns`, `getReturn`, `listSaleReturns`, `createReturn`, `cancelReturn`.
 **Sin guard de matriz**: las devoluciones no requieren acceso a HQ.
 
+### Gastos (UI) (`/expenses`)
+
+- `/expenses` (`expenses:read`): listado paginado, filtros sucursal/fechas/concepto con búsqueda server-side (mín 1 char, debounce 300 ms); CTA crear si `expenses:write`.
+- `/expenses/report` (`expenses:report_read`): reporte con filtros + exportar PDF/XLSX.
+
+**Bloques**: `ExpensesPage`, `ExpensesToolbar`, `ExpensesTable`, `ExpenseEditModal`, `ExpensesReportPage`, `ExpensesReportToolbar`.
+**Hooks**: `useExpenses`, `useExpenseMutations`, `useExpensesReport`.
+**Servicios**: `listExpenses`, `getExpense`, `createExpense`, `updateExpense`, `softDeleteExpense`, `uploadExpensePhoto`, `deleteExpensePhoto`, `getExpensesReport`.
+**Sin guard de matriz**: gastos no requieren acceso a HQ.
+
 ### NavigationRail
 
 `RailItem` `{ key, href, icon, label, requires?, children? }`. Items con `children` (sólo un nivel) renderizan botón padre + `RailFlyout` en hover (anchored `left: 80px`). El padre es visible si AL MENOS UN hijo está en `true` o `"loading"`. Click en el padre navega al `href` del padre; click en hijo navega y cierra el flyout.
@@ -527,6 +587,7 @@ Items primarios y su `requires`:
 | sales | `/sales` | `receipt_long` | `sales:read` |
 | quotes | `/quotes` | `request_quote` | `quotes:read` |
 | returns | `/returns` | `assignment_return` | `returns:read` |
+| expenses | `/expenses` | `trending_down` | `expenses:read` |
 | inventory | `/inventory` | `inventory_2` | `inventory:read` |
 | catalogs | `/catalogs` | `category` | (children) |
 | users | `/users` | `group` | `users:read` |

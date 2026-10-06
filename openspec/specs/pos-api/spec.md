@@ -228,13 +228,13 @@ The `quoteId` does NOT constrain whether the sale is cash or credit — the `pay
 2. Load `paymentMethod.isCredit` (via `include` or join) so the downstream branching is consistent within the transaction.
 3. If `quoteId` is non-null: validate per the rules above; failure → HTTP 400.
 4. For each item:
-   - If `productPriceId` is present: load the `Product` and `ProductPrice`; verify `productPrice.productId === item.productId` (else `ProductPriceMismatchError` → HTTP 400), that the price belongs to a product whose `isActive = true` (else HTTP 400), and that `productPrice.branchId === null OR productPrice.branchId === branchId` — the price is either a global base price or an override belonging to the sale's own branch (else `ProductPriceNotAvailableForBranchError` → HTTP 400 `{"error": "Product price does not belong to this branch"}`; the error message SHALL NOT disclose the price or the other branch it belongs to). If `item.quantity` is NOT an integer (`quantity % 1 !== 0`), resolve the currently configured `dosificationSurchargePct` from `settings-api` (default `5.0` when unconfigured) and compute `unitPrice = price.price * (1 + surchargePct / 100)`; if `item.quantity` IS an integer, `unitPrice = price.price` unchanged (no surcharge). This surcharge applies uniformly to every product — there is no per-product or per-department opt-out.
+   - If `productPriceId` is present: load the `Product` and `ProductPrice`; verify `productPrice.productId === item.productId` (else `ProductPriceMismatchError` → HTTP 400), that the price belongs to a product whose `isActive = true` (else HTTP 400), and that `productPrice.branchId === null OR productPrice.branchId === branchId` — the price is either a global base price or an override belonging to the sale's own branch (else `ProductPriceNotAvailableForBranchError` → HTTP 400 `{"error": "Product price does not belong to this branch"}`; the error message SHALL NOT disclose the price or the other branch it belongs to). **Additionally, when `productPrice.branchId === null` (a base price was selected) AND the product has at least one `ProductPrice` override for the sale's `branchId`, the system SHALL reject with the same `ProductPriceNotAvailableForBranchError` → HTTP 400** — once a branch has its own price for a product, the global base price is no longer a valid selection for that branch. If `item.quantity` is NOT an integer (`quantity % 1 !== 0`), resolve the currently configured `dosificationSurchargePct` from `settings-api` (default `5.0` when unconfigured) and compute `unitPrice = price.price * (1 + surchargePct / 100)`; if `item.quantity` IS an integer, `unitPrice = price.price` unchanged (no surcharge). This surcharge applies uniformly to every product — there is no per-product or per-department opt-out.
    - If `dosificationId` is present instead: load the `Product` and `ProductDosification`; verify `dosification.productId === item.productId` (else HTTP 400) and `dosification.isActive = true` (else HTTP 400); load the product's default `ProductPrice` for the sale's `branchId` — the branch's own override marked `isDefault=true` if one exists, otherwise the global default (`branchId: null`, `isDefault=true`) — if neither exists → HTTP 400 `{"error": "Dosification requires a default price"}`; resolve the currently configured `dosificationSurchargePct` from `settings-api` (default `5.0` when unconfigured); compute `unitPrice = DosificationPriceCalculator.computeUnitPrice(defaultPrice.price, dosification.numParts, surchargePct)`. This is the ONLY surcharge applied to dosification lines — the fractional-quantity surcharge above SHALL NOT additionally apply here, regardless of whether `quantity` is itself fractional, to avoid double-charging the configured percentage on the same line.
    - `quantity > 0` (else HTTP 400) for either case. The system MAY skip enforcement of `minQuantity` in v1 (documented, applies only to price-based lines).
 5. Snapshot `productCodeSnapshot = product.code`, `productNameSnapshot = product.name`; for price-based lines: `priceNameSnapshot = price.name`, `unitPrice` per step 4 above (recharged when `quantity` is fractional, else `price.price` unchanged), `discountPct = price.discountPct`; for dosification lines: `priceNameSnapshot = dosification.name`, `unitPrice` per above, `discountPct = null`, `dosificationId = dosification.id`, `numPartsSnapshot = dosification.numParts`. Both kinds set `ivaRate = product.ivaRate`, `iepsRate = product.iepsRate`. This server-computed snapshot is authoritative even for offline-originated sales — a `clientRequestId`-bearing request carries only IDs/quantities, never client-computed snapshot values, so catalog drift between offline creation and sync time is always resolved in favor of the server's live catalog. The snapshot does NOT record which branch's price (base or override) was used — only the resolved `unitPrice` value.
 6. Compute totals using `SaleTotalsCalculator` (domain service) — unchanged by dosification lines or by the fractional-quantity surcharge (operates on `quantity * unitPrice`, agnostic to what `quantity` represents or how `unitPrice` was resolved).
 7. If `paymentMethod.isCredit === true`: compute the informational `creditLimitExceeded` flag per "Credit flow auto-activation" above. This step never aborts the transaction.
-8. Allocate the next folio number atomically: `UPDATE folios SET current_number = current_number + 1 WHERE id = ? AND is_active = true RETURNING current_number, code, prefix`. If `RETURNING` is empty (folio inactive) → HTTP 400. Folio numbers are allocated strictly in the order requests reach this step — for a sale queued offline and synced later, this MAY differ from the chronological order in which the sale was actually created at the register (this is expected and accepted behavior for `offline-sync`, not a bug).
+8. Allocate the next folio number **for the sale's own branch** atomically via `allocateBranchFolio(tx, folioId, branchId)`: `INSERT INTO folio_branch_counters (folio_id, branch_id, current_number) VALUES (?, ?, 1) ON CONFLICT (folio_id, branch_id) DO UPDATE SET current_number = folio_branch_counters.current_number + 1 RETURNING current_number`. The resulting `folioCode` SHALL be `<prefix><BRANCH_CODE>-<currentNumber padded to 6 digits>` (e.g. `TK-ZARIOZ-000001`), where `<BRANCH_CODE>` is the issuing branch's `code`. If the folio is inactive → HTTP 400. Folio numbers are allocated strictly in the order requests reach this step — for a sale queued offline and synced later, this MAY differ from the chronological order in which the sale was actually created at the register (this is expected and accepted behavior for `offline-sync`, not a bug). Legacy `folioCode`s issued before this change (global format, e.g. `TK-000038`) are preserved unchanged — the new format cannot collide with them.
 9. For each item, decrement inventory using the base-unit amount (`quantity / numPartsSnapshot` for dosification lines, `quantity` otherwise — see "Sale aggregate model"): `UPDATE branch_inventory SET quantity = quantity - ${amount}, updated_at = NOW() WHERE branch_id = ? AND product_id = ?`. If the update affects 0 rows (no inventory record exists for this pair), the system SHALL `INSERT INTO branch_inventory (branch_id, product_id, quantity) VALUES (?, ?, -${amount})` (creates the record with negative initial quantity). The result `quantity` MAY be negative — this is the implementation of the rule "selling with stock 0 leaves negative quantity awaiting transfer", and is the same mechanism that allows an offline-queued sale to succeed at sync time even if the branch's real stock dropped below the sale's quantity while it was queued. **After each such decrement**, the system SHALL evaluate the low-stock notification trigger per `admin-notifications-api` "Notify admin on low stock" (best-effort, never blocks or fails this endpoint).
 10. Compute `paidAmount` and `paymentStatus`:
     - If `paymentMethod.isCredit === false`: `paidAmount = total`, `paymentStatus = 'paid'`.
@@ -250,7 +250,7 @@ Returns HTTP 201 with the `SaleDetailDto` (including items, `quoteId`, `paidAmou
 
 #### Scenario: Successful cash sale
 - **WHEN** an `operator` with `x-user-branch-id: B1` and `sales:create` sends a valid body for branch B1 with 2 items, selecting a `paymentMethod` whose `isCredit=false` (no `quoteId`)
-- **THEN** the system returns HTTP 201 with the `SaleDetailDto` (`quoteId: null`, `isCredit: false`, `paidAmount: total`, `paymentStatus: 'paid'`, `creditLimitExceeded: false`), `branch_inventory.quantity` decremented by each item's quantity, and `folios.current_number` incremented by 1
+- **THEN** the system returns HTTP 201 with the `SaleDetailDto` (`quoteId: null`, `isCredit: false`, `paidAmount: total`, `paymentStatus: 'paid'`, `creditLimitExceeded: false`), `branch_inventory.quantity` decremented by each item's quantity, and the `(folioId, B1)` row in `folio_branch_counters` incremented by 1 (not `folios.current_number`)
 - **AND** `customer.currentBalance` is NOT modified
 
 #### Scenario: Successful credit sale via CREDITO payment method
@@ -400,6 +400,18 @@ Returns HTTP 201 with the `SaleDetailDto` (including items, `quoteId`, `paidAmou
 #### Scenario: Dosification default price falls back to the global default
 - **WHEN** the body's `branchId` is HUAJUAPAN, the item has `dosificationId` referencing a dosification whose product has a global default `ProductPrice` and no HUAJUAPAN-scoped override
 - **THEN** the dosification's `basePrice` is resolved from the global default, exactly as before this change
+
+#### Scenario: Sale rejects the global base price when the branch has its own override
+- **WHEN** the body's `branchId` is ZARIOZ, an item's `productPriceId` references a `ProductPrice` whose `branchId = null` (base, still active), and the same product has a separate `ProductPrice` row with `branchId = ZARIOZ`
+- **THEN** the system returns HTTP 400 `{"error": "Product price does not belong to this branch"}` and the transaction does not commit — selecting the base price is no longer valid once ZARIOZ has its own price for that product
+
+#### Scenario: Folio numbering is independent per branch
+- **WHEN** branch ZARIOZ has already issued 5 sales under folio `TK` and branch PRADERA issues its first sale under the same folio
+- **THEN** PRADERA's sale receives `TK-PRADERA-000001`, independent of ZARIOZ's `TK-ZARIOZ-000005`
+
+#### Scenario: Legacy folioCode is preserved, not renumbered
+- **WHEN** a sale exists with the legacy global-format `folioCode = "TK-000038"` (issued before branch-scoped counters were introduced)
+- **THEN** no new sale is ever assigned that same `folioCode`, the legacy sale's `folioCode` is never modified, and branch-scoped counter assignment always produces the new format (`<prefix><BRANCH_CODE>-NNNNNN`) which cannot collide with the legacy format
 
 ### Requirement: Cancel sale
 The system SHALL expose `POST /api/v1/admin/sales/:id/cancel`. Requires `sales:cancel`. Body MAY include `reason: string | null` (max 500 chars). Branch scoping applies (callers without `branches:access_all` can only cancel sales in their assigned branch).
@@ -793,4 +805,34 @@ Cancelling a sale, or restoring stock as part of an edit, is unaffected by this 
 #### Scenario: Direct API call cannot bypass the gate
 - **WHEN** the inventory scope mode is `branch` and a client calls `POST /api/v1/admin/sales` directly (not through the POS UI) with an unassigned product
 - **THEN** the system still returns HTTP 400 `ProductNotAvailableInBranch` — the gate is enforced in the application layer, not only in the client
+
+### Requirement: Customer branch membership gate on sale creation and edit
+
+Creating a sale (`POST /api/v1/admin/sales`) or editing a completed sale (`PATCH /api/v1/admin/sales/:id`, which optionally changes `customerId`) SHALL reject the request when a non-null `customerId` does not have branch membership in the sale's `branchId` (`customers-api` — Customer branch membership), with HTTP 400 and a distinct error `CustomerNotAvailableInBranch`, separate from the existing "customer not found or inactive" check. Unlike the inventory availability gate (`Product availability gate on sale creation and edit`), this check is UNCONDITIONAL — it applies regardless of `INVENTORY_SCOPE_MODE`, since customer branch membership is a business rule independent of inventory scoping (`customers-api` — Customer branch membership). The check runs in the application layer, after the existing active-customer check, so it cannot be bypassed by calling the API directly without going through the UI. The error message SHALL NOT disclose which other branch the customer belongs to.
+
+A `null` `customerId` (cash sale with no customer on file) is unaffected — this gate only applies when a customer is actually referenced.
+
+#### Scenario: Sale rejects a customer not assigned to the sale's branch
+- **WHEN** `POST /api/v1/admin/sales` has `branchId: <PRADERA>` and `customerId` referencing a customer whose `branchIds` is `["<ZARIOZ>"]` only
+- **THEN** the system returns HTTP 400 `CustomerNotAvailableInBranch` and creates no sale
+
+#### Scenario: Sale succeeds for a customer with multi-branch membership
+- **WHEN** `POST /api/v1/admin/sales` has `branchId: <PRADERA>` and `customerId` referencing a customer whose `branchIds` includes both `<ZARIOZ>` and `<PRADERA>`
+- **THEN** the sale is created normally
+
+#### Scenario: Cash sale without a customer is unaffected
+- **WHEN** `POST /api/v1/admin/sales` omits `customerId` (or sends `null`)
+- **THEN** this gate does not apply — the sale proceeds per the existing rules for `customerId`-less sales
+
+#### Scenario: Edit completed sale enforces the same gate when changing the customer
+- **WHEN** `PATCH /api/v1/admin/sales/:id` includes a `customerId` not belonging to the sale's `branchId`
+- **THEN** the system returns HTTP 400 `CustomerNotAvailableInBranch` and does not apply the edit
+
+#### Scenario: Gate is unconditional regardless of inventory scope mode
+- **WHEN** the inventory scope mode is `general` (the default) and a sale references a customer not assigned to the sale's branch
+- **THEN** the system still returns HTTP 400 `CustomerNotAvailableInBranch` — this gate is NOT controlled by `INVENTORY_SCOPE_MODE`
+
+#### Scenario: Direct API call cannot bypass the gate
+- **WHEN** a client calls `POST /api/v1/admin/sales` directly (not through the POS UI) with a `customerId` outside the sale's branch
+- **THEN** the system still returns HTTP 400 `CustomerNotAvailableInBranch` — the gate is enforced in the application layer, not only in the client
 
