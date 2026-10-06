@@ -7,7 +7,7 @@ Pantalla de gestión de clientes bajo `/catalogs/customers` con datos fiscales m
 ---
 ## Requirements
 ### Requirement: Customers list screen with server-side search
-The system SHALL provide a screen at `/catalogs/customers` that lists customers in a paginated table. The screen SHALL require the `customers:read` permission (gated via `useCurrentUser().can("customers:read")`), rendered optimistically while the check is `"loading"`. The toolbar SHALL include: a search input that submits its value to the backend `?search=` query parameter (server-side search, minimum 2 characters) with a 300 ms debounce and a caption "Búsqueda en servidor · 2+ caracteres" below the input; a `Switch` "Mostrar inactivos" that toggles the `?includeInactive=true` query parameter; and a button "Nuevo cliente" that opens the create modal (gated by `customers:write`). The table SHALL show columns: `Código`, `Nombre` (with `legalName` as a smaller subtitle when present), `RFC` (monospace, or `—` when `null`), `Límite de crédito` (formatted currency or `—` when `null`), `Saldo inicial` (`initialBalance`, formatted currency), `Saldo actual` (`currentBalance`, formatted currency), `Plazo (días)` (`creditDays`), `Estado` (badge Activo/Inactivo), `Acciones`. The actions column SHALL only render when the user has `customers:write`. Active rows SHALL show "Editar" and "Eliminar"; inactive rows SHALL show "Reactivar".
+The system SHALL provide a screen at `/catalogs/customers` that lists customers in a paginated table. The screen SHALL require the `customers:read` permission (gated via `useCurrentUser().can("customers:read")`), rendered optimistically while the check is `"loading"`. The toolbar SHALL include: a search input that submits its value to the backend `?search=` query parameter (server-side search, minimum 2 characters) with a 300 ms debounce and a caption "Búsqueda en servidor · 2+ caracteres" below the input; a `Switch` "Mostrar inactivos" that toggles the `?includeInactive=true` query parameter; and a button "Nuevo cliente" that opens the create modal (gated by `customers:write`). When the current user has `branches:access_all`, the toolbar additionally SHALL include a branch `Select` ("Todas las sucursales" default, plus one option per active branch via `useBranchesOptions()`) that adds `?branchId=` to the list request; when the user does NOT have `branches:access_all`, this selector is NOT rendered — the backend already scopes the list to their own branch regardless. The table SHALL show columns: `Código`, `Nombre` (with `legalName` as a smaller subtitle when present), `RFC` (monospace, or `—` when `null`), `Límite de crédito` (formatted currency or `—` when `null`), `Saldo inicial` (`initialBalance`, formatted currency), `Saldo actual` (`currentBalance`, formatted currency), `Plazo (días)` (`creditDays`), `Sucursales` (comma-separated branch names from `branchIds`, resolved via `useBranchesOptions()` which exposes `{id, name}` — no separate `code` field is available for this display; rendered ONLY when the user has `branches:access_all` — hidden for an operator, since it is always their own single branch), `Estado` (badge Activo/Inactivo), `Acciones`. The actions column SHALL only render when the user has `customers:write`. Active rows SHALL show "Editar" and "Eliminar"; inactive rows SHALL show "Reactivar".
 
 #### Scenario: Admin opens the customers screen
 - **WHEN** an authenticated user with `customers:read` navigates to `/catalogs/customers`
@@ -53,14 +53,28 @@ The system SHALL provide a screen at `/catalogs/customers` that lists customers 
 - **WHEN** the table renders a customer with `initialBalance: 1200`
 - **THEN** the `Saldo inicial` column shows the formatted currency value `$1,200.00`
 
+#### Scenario: Bypass sees the branch filter and column
+- **WHEN** a user with `branches:access_all` opens the screen
+- **THEN** the toolbar shows a branch `Select` and the table shows a `Sucursales` column listing each row's branch names
+
+#### Scenario: Operator does not see the branch filter or column
+- **WHEN** an operator without `branches:access_all` opens the screen
+- **THEN** the toolbar shows no branch selector and the table has no `Sucursales` column (every row is implicitly their own branch)
+
+#### Scenario: Selecting a branch filters the list
+- **WHEN** a bypass user selects "ZARIOZ" from the branch filter
+- **THEN** the next request adds `?branchId=<ZARIOZ>` and only customers with membership there are shown
+
 ---
 
 ### Requirement: Customer create/edit modal with grouped sections including credit fields
-The system SHALL provide a single modal component `CustomerEditModal` handling both creation and edition via a `mode` prop (`"create" | "edit"`). Fields SHALL be grouped into three labelled sections: "Datos básicos" (`code`, `name`, `rfc`), "Datos fiscales" (`legalName`, `taxRegime`, `cfdiUse`, `taxZipCode`, collapsible/optional), "Contacto y crédito" (`email`, `phone`, `address`, `contactName`, `notes`, `creditLimit`, `creditDays`, `initialBalance`). The field `rfc` SHALL be optional and SHALL NOT be marked with the required-field indicator (`*`); the fields `code` (uppercase-forced) SHALL keep its own required marker. The field `code` SHALL be disabled in `edit` mode. The `taxRegime` and `cfdiUse` fields SHALL be rendered as comboboxes backed by the SAT reference catalogs (`GET /api/v1/admin/sat-codes/regimen-fiscal` and `GET /api/v1/admin/sat-codes/uso-cfdi`), using the shared molecule `SatCatalogCombobox` (located in `app/_components/molecules/SatCatalogCombobox/`): they SHALL load in BOTH `mode="create"` and `mode="edit"`; the user SHALL be able to filter options by name (description) or code; selecting an option SHALL store the `code` value in the field. Selection SHALL be enforced: a free-typed value that does not match an option of the catalog SHALL be reverted when the field loses focus, so only catalog codes can be saved. Client-side validation SHALL mirror the backend: `code` `^[A-Z0-9_]{1,32}$`, `rfc` `^([A-ZÑ&]{3,4})\d{6}([A-Z\d]{3})$` when non-empty (empty value maps to `null`, no format error shown), `taxRegime` `^\d{3}$`, `cfdiUse` `^[A-Z]{1,2}\d{2}$`, `taxZipCode` `^\d{5}$`, `creditLimit` a non-negative number or empty (maps to `null`), `creditDays` a non-negative integer (left empty on create lets the backend apply its default of 30; left empty on edit is not sent as part of the diff unless explicitly cleared), `initialBalance` a non-negative number or empty (maps to `0` on create, unchanged on edit unless modified). In `create` mode the save button SHALL be enabled once `code` and `name` are filled and valid (`rfc` is no longer required). In `edit` mode the save button SHALL be disabled while the diff against the loaded entity is empty.
+The system SHALL provide a single modal component `CustomerEditModal` handling both creation and edition via a `mode` prop (`"create" | "edit"`). Fields SHALL be grouped into FOUR labelled sections: "Datos básicos" (`code`, `name`, `rfc`), "Datos fiscales" (`legalName`, `taxRegime`, `cfdiUse`, `taxZipCode`, collapsible/optional), "Contacto y crédito" (`email`, `phone`, `address`, `contactName`, `notes`, `creditLimit`, `creditDays`, `initialBalance`), and "Sucursales" (`branchIds`). The field `rfc` SHALL be optional and SHALL NOT be marked with the required-field indicator (`*`); the fields `code` (uppercase-forced) SHALL keep its own required marker. The field `code` SHALL be disabled in `edit` mode. The `taxRegime` and `cfdiUse` fields SHALL be rendered as comboboxes backed by the SAT reference catalogs (`GET /api/v1/admin/sat-codes/regimen-fiscal` and `GET /api/v1/admin/sat-codes/uso-cfdi`), using the shared molecule `SatCatalogCombobox` (located in `app/_components/molecules/SatCatalogCombobox/`): they SHALL load in BOTH `mode="create"` and `mode="edit"`; the user SHALL be able to filter options by name (description) or code; selecting an option SHALL store the `code` value in the field. Selection SHALL be enforced: a free-typed value that does not match an option of the catalog SHALL be reverted when the field loses focus, so only catalog codes can be saved. Client-side validation SHALL mirror the backend: `code` `^[A-Z0-9_]{1,32}$`, `rfc` `^([A-ZÑ&]{3,4})\d{6}([A-Z\d]{3})$` when non-empty (empty value maps to `null`, no format error shown), `taxRegime` `^\d{3}$`, `cfdiUse` `^[A-Z]{1,2}\d{2}$`, `taxZipCode` `^\d{5}$`, `creditLimit` a non-negative number or empty (maps to `null`), `creditDays` a non-negative integer (left empty on create lets the backend apply its default of 30; left empty on edit is not sent as part of the diff unless explicitly cleared), `initialBalance` a non-negative number or empty (maps to `0` on create, unchanged on edit unless modified). In `create` mode the save button SHALL be enabled once `code` and `name` are filled and valid (`rfc` is no longer required). In `edit` mode the save button SHALL be disabled while the diff against the loaded entity is empty.
+
+**"Sucursales" section**: when the current user has `branches:access_all`, this section SHALL render a multi-select checklist of active branches (via `useBranchesOptions()`), pre-checking the headquarters branch (via `useHeadquarters()`) in `create` mode when no other selection has been made, and requiring at least one checked branch before save (client-side mirror of the backend's `branchIds must contain at least one branch`). When the current user does NOT have `branches:access_all`, this section SHALL render read-only — a single chip naming the user's own branch (via `useCurrentUser().branchId`), with no checklist and no way to change it; the section is informational only in this case, since the backend ignores any `branchIds` an operator submits.
 
 #### Scenario: Create mode renders all fields editable
 - **WHEN** the modal opens in `mode="create"`
-- **THEN** all fields across the three sections are editable and `code` is enabled
+- **THEN** all fields across the four sections are editable and `code` is enabled (branch selection editable only for a bypass user, per the "Sucursales" section rule)
 
 #### Scenario: RFC is not marked required
 - **WHEN** the modal opens in `mode="create"` or `mode="edit"`
@@ -133,6 +147,22 @@ The system SHALL provide a single modal component `CustomerEditModal` handling b
 #### Scenario: Negative initial balance rejected client-side
 - **WHEN** the user types `-50` in "Saldo inicial" and tries to submit
 - **THEN** the modal shows an inline error and does not dispatch the request
+
+#### Scenario: Bypass sees an editable branch checklist
+- **WHEN** a user with `branches:access_all` opens the modal in `mode="create"`
+- **THEN** the "Sucursales" section shows a checklist of active branches, with the headquarters branch pre-checked
+
+#### Scenario: Bypass must keep at least one branch checked
+- **WHEN** a bypass user unchecks every branch in the "Sucursales" section and tries to save
+- **THEN** the modal shows an inline error and does not dispatch the request
+
+#### Scenario: Operator sees a read-only branch chip
+- **WHEN** an operator without `branches:access_all`, assigned to ZARIOZ, opens the modal
+- **THEN** the "Sucursales" section shows a single read-only chip "ZARIOZ", with no checklist and no way to edit it
+
+#### Scenario: Bypass edits a customer's branch set
+- **WHEN** a bypass user opens `mode="edit"` for a customer with `branchIds: ["<ZARIOZ>"]`, checks "PRADERA" as well, and saves
+- **THEN** the modal calls `PATCH /api/v1/admin/customers/:id` with `{ "branchIds": ["<ZARIOZ>", "<PRADERA>"] }`
 
 ### Requirement: Soft delete and reactivate customers from row actions
 The system SHALL allow soft-deleting active customers from the row's "Eliminar" action, showing a `ConfirmDialog` before calling `DELETE /api/v1/admin/customers/:id`. The system SHALL allow reactivating inactive customers from the row's "Reactivar" action without confirmation, calling `PATCH /api/v1/admin/customers/:id` with `{ "isActive": true }`. Both actions SHALL require `customers:write`. Deactivating a customer that has historical sales SHALL NOT be blocked by the UI (the backend already preserves FK references on soft delete).
