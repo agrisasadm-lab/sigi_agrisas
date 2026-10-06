@@ -394,25 +394,29 @@ The system SHALL expose `DELETE /api/v1/admin/products/:id/prices/:priceId`. Req
 ---
 
 ### Requirement: List product dosifications with computed unit price
-The system SHALL expose `GET /api/v1/admin/products/:id/dosifications`. Requires `products:read`. Returns `{ items: ProductDosificationDto[] }`. Each `ProductDosificationDto` includes `id`, `productId`, `name`, `numParts`, `isActive`, `computedUnitPrice: number | null`, `requiresDefaultPrice: boolean`, `createdAt`, `updatedAt`.
+The system SHALL expose `GET /api/v1/admin/products/:id/dosifications`. Requires `products:read`. El querystring `branchId` (UUID) es obligatorio, con las mismas reglas de validación y branch scoping que `GET /prices`: ausente → HTTP 400 `{"error":"branchId is required"}`, formato inválido → HTTP 400, sucursal inexistente → HTTP 404 `{"error":"Branch not found"}`. Returns `{ items: ProductDosificationDto[] }`. Each `ProductDosificationDto` includes `id`, `productId`, `name`, `numParts`, `isActive`, `computedUnitPrice: number | null`, `requiresDefaultPrice: boolean`, `createdAt`, `updatedAt`.
 
-The `computedUnitPrice` is computed by the domain service `DosificationPriceCalculator` using the product's default price (`is_default = true`) as `basePrice`, and the surcharge percentage currently configured in `settings-api` (`GET /settings/pricing` → `dosificationSurchargePct`, default `5.0` when unconfigured). Formula: `basePrice / numParts * (1 + dosificationSurchargePct / 100)`. If the product has no default price, `computedUnitPrice` is `null` and `requiresDefaultPrice` is `true`.
+The `computedUnitPrice` is computed by the domain service `DosificationPriceCalculator` using the product's default price **de la sucursal solicitada** (`is_default = true AND branch_id = <branchId>`) as `basePrice`, and the surcharge percentage currently configured in `settings-api` (`GET /settings/pricing` → `dosificationSurchargePct`, default `5.0` when unconfigured). Formula: `basePrice / numParts * (1 + dosificationSurchargePct / 100)`. Si la sucursal no tiene precio default para ese producto, `computedUnitPrice` es `null` y `requiresDefaultPrice` es `true` — no se usa el precio de otra sucursal como sustituto.
 
 #### Scenario: With default price
-- **WHEN** the product has a default price of `100.00`, a dosification with `numParts=10`, and no `pricing_settings` row exists yet
-- **THEN** the response includes that dosification with `computedUnitPrice ≈ 10.50` (100 / 10 * 1.05, using the 5% default) and `requiresDefaultPrice: false`
+- **WHEN** el producto tiene un precio default de `100.00` en la sucursal solicitada, una dosificación con `numParts=10`, y no existe fila de `pricing_settings`
+- **THEN** la respuesta incluye esa dosificación con `computedUnitPrice ≈ 10.50` (100 / 10 * 1.05) y `requiresDefaultPrice: false`
 
 #### Scenario: With a configured surcharge
-- **WHEN** an admin has configured `dosificationSurchargePct = 8` via `PATCH /settings/pricing`, and the product has a default price of `100.00` with a dosification of `numParts=10`
-- **THEN** the response includes `computedUnitPrice ≈ 10.80` (100 / 10 * 1.08)
+- **WHEN** un admin configuró `dosificationSurchargePct = 8` vía `PATCH /settings/pricing`, y el producto tiene precio default `100.00` en la sucursal solicitada con una dosificación de `numParts=10`
+- **THEN** la respuesta incluye `computedUnitPrice ≈ 10.80` (100 / 10 * 1.08)
 
 #### Scenario: Without default price
-- **WHEN** the product has no `is_default = true` price
-- **THEN** the response includes each dosification with `computedUnitPrice: null` and `requiresDefaultPrice: true`
+- **WHEN** el producto no tiene precio `is_default = true` en la sucursal solicitada
+- **THEN** la respuesta incluye cada dosificación con `computedUnitPrice: null` y `requiresDefaultPrice: true`
+
+#### Scenario: El precio default de otra sucursal no se usa
+- **WHEN** el producto tiene default `100.00` en Matriz y ninguno en ZARIOZ, y se pide `?branchId=<ZARIOZ>`
+- **THEN** `computedUnitPrice` es `null` y `requiresDefaultPrice` es `true`
 
 #### Scenario: Inactive dosifications included by default
-- **WHEN** the product has dosifications with `is_active = false`
-- **THEN** the response includes them (no filtering in the list endpoint; UI filters as needed)
+- **WHEN** el producto tiene dosificaciones con `is_active = false`
+- **THEN** la respuesta las incluye (sin filtrado en el endpoint de lista; la UI filtra según necesite)
 
 ---
 

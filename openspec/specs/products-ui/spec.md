@@ -212,15 +212,19 @@ The table columns are: `Nombre`, `Precio` (currency), `Cantidad mín.` (`minQuan
 - **THEN** the error banner shows "No puedes crear precios para otra sucursal." instead of the raw "Forbidden" text from the backend
 
 ### Requirement: Product dosifications management in the Dosificaciones tab
-The "Dosificaciones" tab SHALL list the product's dosifications via `GET /api/v1/admin/products/:id/dosifications` in a table with columns: `Nombre`, `Partes` (`numParts`), `Precio unitario` (`computedUnitPrice` as currency, or the notice "Requiere precio default" when `requiresDefaultPrice === true`), `Estado` (badge), and `Acciones`. A "Nueva dosificación" button (gated by `products:write`) SHALL open a `ProductDosificationModal`; rows SHALL offer "Editar" and "Eliminar" (soft delete with `ConfirmDialog`) plus "Reactivar" for inactive rows. The modal SHALL validate `name` (required) and `numParts >= 2`. When the user lacks `products:write`, the table SHALL render read-only with a caption "Solo lectura — requiere products:write".
+The "Dosificaciones" tab SHALL list the product's dosifications via `GET /api/v1/admin/products/:id/dosifications?branchId=<id>`, using a branch selector with the same authorization rules as the Precios tab branch selector (all active branches for callers with `branches:access_all`, own assigned branch only for callers without; if the user has no assigned branch and no `branches:access_all`, the tab SHALL render an empty state explaining that a branch assignment is required — no dosifications request is dispatched). The selector does NOT include a "Precio base (todas)" option — dosifications always require a specific `branchId`. The table columns are: `Nombre`, `Partes` (`numParts`), `Precio unitario` (`computedUnitPrice` as currency, or the notice "Requiere precio default en esta sucursal" when `requiresDefaultPrice === true`), `Estado` (badge), and `Acciones`. A "Nueva dosificación" button (gated by `products:write`) SHALL open a `ProductDosificationModal`; rows SHALL offer "Editar" and "Eliminar" (soft delete with `ConfirmDialog`) plus "Reactivar" for inactive rows. The modal SHALL validate `name` (required) and `numParts >= 2`. When the user lacks `products:write`, the table SHALL render read-only with a caption "Solo lectura — requiere products:write".
 
-#### Scenario: Dosifications table shows computed unit price
-- **WHEN** the Dosificaciones tab opens for a product that has a default price
-- **THEN** each row shows its `computedUnitPrice` formatted as currency
+#### Scenario: Unit price reflects the selected branch's default price
+- **WHEN** the product has a default price of `100.00` in the selected branch and a dosification with `numParts=10`
+- **THEN** the "Precio unitario" column shows the value computed from that branch's default price
+
+#### Scenario: Branch without default price shows the notice
+- **WHEN** the selected branch has no default price for the product
+- **THEN** the row shows "Requiere precio default en esta sucursal" instead of a currency value, even if another branch does have a default price
 
 #### Scenario: Dosification without default price shows notice
 - **WHEN** a dosification has `requiresDefaultPrice === true` and `computedUnitPrice === null`
-- **THEN** the "Precio unitario" cell renders the notice "Requiere precio default" instead of a number
+- **THEN** the "Precio unitario" cell renders the notice "Requiere precio default en esta sucursal" instead of a number
 
 #### Scenario: Create a dosification
 - **WHEN** a user with `products:write` clicks "Nueva dosificación", enters `name` and `numParts = 4`, and submits

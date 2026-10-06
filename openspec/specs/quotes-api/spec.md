@@ -195,10 +195,10 @@ Optional body: `notes: string | null` (max 1000 chars), `expiresAt: string | nul
 
 0. If `clientRequestId` is non-null, perform the idempotent-replay lookup described above; short-circuit on a match before any of the following steps.
 1. Validate `customer.isActive`, `branch.isActive`, `folio.isActive`. Any inactive → HTTP 400.
-2. For each item: load the `Product` and `ProductPrice`; verify `productPrice.productId === item.productId` (else `ProductPriceMismatchError` → HTTP 400), that `productPrice` belongs to a product whose `isActive = true` (else HTTP 400), and that `productPrice.branchId === null OR productPrice.branchId === branchId` — the price is either a global base price or an override belonging to the quote's own branch (else `ProductPriceNotAvailableForBranchError` → HTTP 400 `{"error": "Product price does not belong to this branch"}`; the error message SHALL NOT disclose the price or the other branch it belongs to). `quantity > 0` (else HTTP 400 via Zod). If `item.quantity` is NOT an integer (`quantity % 1 !== 0`), resolve the currently configured `dosificationSurchargePct` from `settings-api` (default `5.0` when unconfigured) and compute `unitPrice = price.price * (1 + surchargePct / 100)`; if `item.quantity` IS an integer, `unitPrice = price.price` unchanged. This applies uniformly to every product — no per-product or per-department opt-out — and is the same rule `pos-api` applies to normal-price sale lines.
+2. For each item: load the `Product` and `ProductPrice`; verify `productPrice.productId === item.productId` (else `ProductPriceMismatchError` → HTTP 400), that `productPrice` belongs to a product whose `isActive = true` (else HTTP 400), and that `productPrice.branchId === null OR productPrice.branchId === branchId` — the price is either a global base price or an override belonging to the quote's own branch (else `ProductPriceNotAvailableForBranchError` → HTTP 400 `{"error": "Product price does not belong to this branch"}`; the error message SHALL NOT disclose the price or the other branch it belongs to). **Additionally, when `productPrice.branchId === null` (a base price was selected) AND the product has at least one `ProductPrice` override for the quote's `branchId`, the system SHALL reject with the same `ProductPriceNotAvailableForBranchError` → HTTP 400** — same rule `pos-api` applies to sale creation: once a branch has its own price for a product, the global base price is no longer a valid selection for that branch. `quantity > 0` (else HTTP 400 via Zod). If `item.quantity` is NOT an integer (`quantity % 1 !== 0`), resolve the currently configured `dosificationSurchargePct` from `settings-api` (default `5.0` when unconfigured) and compute `unitPrice = price.price * (1 + surchargePct / 100)`; if `item.quantity` IS an integer, `unitPrice = price.price` unchanged. This applies uniformly to every product — no per-product or per-department opt-out — and is the same rule `pos-api` applies to normal-price sale lines.
 3. Snapshot `productCodeSnapshot = product.code`, `productNameSnapshot = product.name`, `priceNameSnapshot = price.name`, `unitPrice` per step 2 above (recharged when `quantity` is fractional, else `price.price` unchanged), `discountPct = price.discountPct`, `ivaRate = product.ivaRate`, `iepsRate = product.iepsRate`. This server-computed snapshot is authoritative even for offline-originated quotes — a `clientRequestId`-bearing request carries only IDs/quantities, never client-computed snapshot values, so catalog drift between offline creation and sync time is always resolved in favor of the server's live catalog. The snapshot does NOT record which branch's price (base or override) was used — only the resolved `unitPrice` value; this snapshot is what `pos-api`'s "Convert quote to sale" carries forward unchanged, so a converted sale is never re-validated against branch price at conversion time.
 4. Compute totals using `QuoteTotalsCalculator` (domain service) — unchanged by the fractional-quantity surcharge (operates on `quantity * unitPrice`, agnostic to how `unitPrice` was resolved).
-5. Allocate the next folio number atomically: `UPDATE folios SET current_number = current_number + 1 WHERE id = ? AND is_active = true RETURNING current_number, code, prefix`. If `RETURNING` is empty (folio inactive) → HTTP 400.
+5. Allocate the next folio number **for the quote's own branch** atomically via `allocateBranchFolio(tx, folioId, branchId)` — same per-branch counter and `folioCode` format (`<prefix><BRANCH_CODE>-<NNNNNN>`, e.g. `COT-ZARIOZ-000001`) described in `pos-api` — "Create sale (atomic emission)". If the folio is inactive → HTTP 400. Legacy `folioCode`s issued before this change are preserved unchanged.
 6. `INSERT` the `quotes` row with `status='draft'`, `creator_id=<userId from x-user-id>`, snapshotted folio info, `expires_at` from the body, and `client_request_id = clientRequestId` (or `null`).
 7. `INSERT` the `quote_items` rows.
 
@@ -206,7 +206,7 @@ The endpoint SHALL NOT touch `branch_inventory` at any point. Returns HTTP 201 w
 
 #### Scenario: Successful quote creation
 - **WHEN** an `operator` with `x-user-branch-id: B1` and `quotes:create` sends a valid body for branch B1 with 2 items
-- **THEN** the system returns HTTP 201 with the `QuoteDetailDto`, `folios.current_number` incremented by 1, and `branch_inventory.quantity` for the involved products UNCHANGED
+- **THEN** the system returns HTTP 201 with the `QuoteDetailDto`, the `(folioId, B1)` row in `folio_branch_counters` incremented by 1 (not `folios.current_number`), and `branch_inventory.quantity` for the involved products UNCHANGED
 
 #### Scenario: Branch scoping violation
 - **WHEN** an `operator` with `x-user-branch-id: B1` posts a body with `branchId: B2`
@@ -271,6 +271,18 @@ The endpoint SHALL NOT touch `branch_inventory` at any point. Returns HTTP 201 w
 #### Scenario: Quote rejects a price override belonging to another branch
 - **WHEN** the body's `branchId` is HUAJUAPAN but an item's `productPriceId` references a `ProductPrice` whose `branchId = ZARIOZ`
 - **THEN** the system returns HTTP 400 `{"error": "Product price does not belong to this branch"}` and the transaction does not commit
+
+#### Scenario: Quote rejects the global base price when the branch has its own override
+- **WHEN** the body's `branchId` is ZARIOZ, an item's `productPriceId` references a `ProductPrice` whose `branchId = null` (base, still active), and the same product has a separate `ProductPrice` row with `branchId = ZARIOZ`
+- **THEN** the system returns HTTP 400 `{"error": "Product price does not belong to this branch"}` and the transaction does not commit — selecting the base price is no longer valid once ZARIOZ has its own price for that product
+
+#### Scenario: Folio numbering is independent per branch
+- **WHEN** branch ZARIOZ has already issued 5 quotes under folio `COT` and branch PRADERA issues its first quote under the same folio
+- **THEN** PRADERA's quote receives `COT-PRADERA-000001`, independent of ZARIOZ's `COT-ZARIOZ-000005`
+
+#### Scenario: Legacy folioCode is preserved, not renumbered
+- **WHEN** a quote exists with the legacy global-format `folioCode = "COT-000012"` (issued before branch-scoped counters were introduced)
+- **THEN** no new quote is ever assigned that same `folioCode`, and the legacy quote's `folioCode` is never modified
 
 ---
 
@@ -658,4 +670,24 @@ When the inventory scope mode is `branch`, converting an authorized quote to a s
 #### Scenario: Gate does not apply in general mode
 - **WHEN** the inventory scope mode is `general`
 - **THEN** conversion behaves exactly as before this capability, with no availability re-check
+
+### Requirement: Customer branch membership gate on quote creation
+
+Creating a quote (`POST /api/v1/admin/quotes`) SHALL reject the request when a non-null `customerId` does not have branch membership in the quote's `branchId` (`customers-api` — Customer branch membership), with the same HTTP 400 `CustomerNotAvailableInBranch` error defined in `pos-api` (Requirement: Customer branch membership gate on sale creation and edit). This check is UNCONDITIONAL (not gated by `INVENTORY_SCOPE_MODE`), consistent with the sale-side gate. `customerId` is immutable after quote creation (`quotes-api` — Update quote (draft only): the body MUST NOT change `customerId`), so no equivalent check is needed on `PATCH /api/v1/admin/quotes/:id` or on conversion — the customer was already validated at creation and cannot change afterward.
+
+#### Scenario: Quote creation rejects a customer not assigned to the quote's branch
+- **WHEN** `POST /api/v1/admin/quotes` has `branchId: <PRADERA>` and `customerId` referencing a customer whose `branchIds` is `["<ZARIOZ>"]` only
+- **THEN** the system returns HTTP 400 `CustomerNotAvailableInBranch` and creates no quote
+
+#### Scenario: Quote creation succeeds for a customer with multi-branch membership
+- **WHEN** `POST /api/v1/admin/quotes` has `branchId: <PRADERA>` and `customerId` referencing a customer whose `branchIds` includes both `<ZARIOZ>` and `<PRADERA>`
+- **THEN** the quote is created normally
+
+#### Scenario: Gate is unconditional regardless of inventory scope mode
+- **WHEN** the inventory scope mode is `general` and a quote references a customer not assigned to the quote's branch
+- **THEN** the system still returns HTTP 400 `CustomerNotAvailableInBranch`
+
+#### Scenario: Update and conversion do not re-check (customerId is immutable)
+- **WHEN** a quote was validly created with a customer belonging to its branch, then `PATCH /api/v1/admin/quotes/:id` or `POST /api/v1/admin/quotes/:id/convert` is called
+- **THEN** neither operation re-validates customer branch membership — `customerId` cannot have changed since creation
 
