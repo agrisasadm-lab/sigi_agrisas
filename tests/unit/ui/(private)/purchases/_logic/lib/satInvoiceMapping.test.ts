@@ -1,6 +1,7 @@
 import {
   buildSatApplyResult,
   extractProductNameFromDescripcion,
+  resolvePaymentMethodFromSat,
 } from "../../../../../../../app/(private)/purchases/_logic/lib/satInvoiceMapping";
 import type { ParsedSatInvoice, SatConcepto } from "../../../../../../../app/(private)/purchases/_logic/lib/satXmlParser";
 import type { ProductDto } from "../../../../../../../app/(private)/purchases/_logic/types/api";
@@ -55,6 +56,17 @@ function makeProduct(overrides: Partial<ProductDto> = {}): ProductDto {
     ivaRate: 0.16,
     iepsRate: null,
     isActive: true,
+    ...overrides,
+  };
+}
+
+function makePaymentMethod(overrides: Partial<PaymentMethodOption> = {}): PaymentMethodOption {
+  return {
+    id: "pm-efectivo",
+    code: "EFE",
+    name: "Efectivo",
+    isActive: true,
+    isCredit: false,
     ...overrides,
   };
 }
@@ -193,5 +205,85 @@ describe("buildSatApplyResult", () => {
     expect(mockedSearch).not.toHaveBeenCalled();
     expect(result.lines).toEqual([]);
     expect(result.unmatched).toEqual([concepto]);
+  });
+});
+
+describe("resolvePaymentMethodFromSat", () => {
+  it("PPD con exactamente 1 forma de pago de crédito activa la preselecciona sin warning", () => {
+    const credito = makePaymentMethod({ id: "pm-credito", code: "CRE30", name: "Crédito 30 días", isCredit: true });
+    const efectivo = makePaymentMethod();
+
+    const result = resolvePaymentMethodFromSat("PPD", "99", [efectivo, credito]);
+
+    expect(result).toEqual({ paymentMethodId: "pm-credito", warning: null });
+  });
+
+  it("PPD sin ninguna forma de pago de crédito en catálogo no preselecciona y avisa", () => {
+    const result = resolvePaymentMethodFromSat("PPD", "99", [makePaymentMethod()]);
+
+    expect(result.paymentMethodId).toBeNull();
+    expect(result.warning).toMatch(/crédito/i);
+  });
+
+  it("PPD con 2+ formas de pago de crédito ambiguas no adivina y avisa", () => {
+    const credito30 = makePaymentMethod({ id: "pm-30", code: "CRE30", name: "Crédito 30 días", isCredit: true });
+    const credito60 = makePaymentMethod({ id: "pm-60", code: "CRE60", name: "Crédito 60 días", isCredit: true });
+
+    const result = resolvePaymentMethodFromSat("PPD", "99", [credito30, credito60]);
+
+    expect(result.paymentMethodId).toBeNull();
+    expect(result.warning).toMatch(/crédito/i);
+  });
+
+  it("PUE con FormaPago matcheable mantiene el comportamiento preexistente (keyword-match)", () => {
+    const transferencia = makePaymentMethod({ id: "pm-transfer", code: "TRANSF", name: "Transferencia" });
+
+    const result = resolvePaymentMethodFromSat("PUE", "03", [makePaymentMethod(), transferencia]);
+
+    expect(result).toEqual({ paymentMethodId: "pm-transfer", warning: null });
+  });
+
+  it("PUE sin match de FormaPago no preselecciona y avisa (antes no avisaba, es el fix)", () => {
+    const result = resolvePaymentMethodFromSat("PUE", "99", [makePaymentMethod()]);
+
+    expect(result.paymentMethodId).toBeNull();
+    expect(result.warning).toMatch(/forma de pago/i);
+  });
+
+  it("MetodoPago null/ausente se trata igual que PUE, sin crash", () => {
+    const transferencia = makePaymentMethod({ id: "pm-transfer", code: "TRANSF", name: "Transferencia" });
+
+    const result = resolvePaymentMethodFromSat(null, "03", [transferencia]);
+
+    expect(result).toEqual({ paymentMethodId: "pm-transfer", warning: null });
+  });
+});
+
+describe("buildSatApplyResult — forma de pago", () => {
+  it("factura PPD con forma de pago de crédito en catálogo prellena paymentMethodId sin warning de forma de pago", async () => {
+    mockedSearch.mockResolvedValue([]);
+    const credito = makePaymentMethod({ id: "pm-credito", code: "CRE30", name: "Crédito 30 días", isCredit: true });
+
+    const result = await buildSatApplyResult(makeInvoice([]), [credito], "factura.xml");
+
+    expect(result.paymentMethodId).toBe("pm-credito");
+    expect(result.warnings.some((w) => /forma de pago|crédito/i.test(w))).toBe(false);
+  });
+
+  it("factura PPD sin forma de pago de crédito en catálogo deja paymentMethodId null y agrega warning (no pierde los warnings de IVA/IEPS existentes)", async () => {
+    const producto = makeProduct();
+    mockedSearch.mockResolvedValue([producto]);
+
+    const result = await buildSatApplyResult(
+      makeInvoice([
+        makeConcepto({ traslados: [{ impuesto: "002", tipoFactor: "Tasa", tasaOCuota: 0.08, importe: 100 }] }),
+      ]),
+      [makePaymentMethod()],
+      "factura.xml"
+    );
+
+    expect(result.paymentMethodId).toBeNull();
+    expect(result.warnings.some((w) => /crédito/i.test(w))).toBe(true);
+    expect(result.warnings.some((w) => /IVA/i.test(w))).toBe(true);
   });
 });
