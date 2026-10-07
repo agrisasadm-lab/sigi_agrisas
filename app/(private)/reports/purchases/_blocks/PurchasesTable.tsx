@@ -4,10 +4,10 @@ import { Table, THead, TBody, Tr, Th, Td } from "../../../../_components/molecul
 import { PurchaseStatusBadge, PurchasePaymentStatusBadge } from "../../../purchases/_blocks/PurchaseStatusBadge";
 import type { PurchaseStatus, PurchasePaymentStatus } from "../../../purchases/_logic/types/api";
 import type { PurchasesReportRowDto } from "../_logic/types/api";
+import { formatMxCurrency } from "../../../../_lib/formatMxCurrency";
 
-const MX = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
 function money(v: string): string {
-  return MX.format(Number(v));
+  return formatMxCurrency(Number(v));
 }
 function dateOnly(iso: string): string {
   return new Date(iso).toLocaleDateString("es-MX", { timeZone: "UTC" });

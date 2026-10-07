@@ -1,12 +1,13 @@
 import type { SaleDetail } from "../_logic/types/domain";
 import type { TicketSettingsDto } from "../../settings/_logic/types/api";
 import { resolveTicketConditionsLine } from "../_logic/lib/resolveTicketConditionsLine";
+import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
+import { fmtDateTimeMedium } from "../../../_lib/formatDate";
 
-const MX = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
-function fmt(n: number) { return MX.format(n); }
+function fmt(n: number) { return formatMxCurrency(n); }
 
 function fmtDate(d: Date) {
-  return new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short" }).format(d);
+  return fmtDateTimeMedium(d);
 }
 
 // Constantes de altura estimada por sección del ticket (mm), a 10px monospace en ancho térmico.

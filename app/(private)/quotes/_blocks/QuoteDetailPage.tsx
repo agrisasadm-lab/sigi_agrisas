@@ -16,16 +16,13 @@ import { EmptyState } from "../../../_components/molecules/EmptyState/EmptyState
 import { TaxBreakdownRows } from "../../../_components/molecules/TaxBreakdownRows/TaxBreakdownRows";
 import { Spinner } from "../../../_components/atoms/Spinner/Spinner";
 import { Icon } from "../../../_components/atoms/Icon/Icon";
+import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
+import { fmtDateTimeLong } from "../../../_lib/formatDate";
 
-const MX = new Intl.NumberFormat("es-MX", {
-  style: "currency",
-  currency: "MXN",
-  minimumFractionDigits: 2,
-});
-function fmt(n: number) { return MX.format(n); }
+function fmt(n: number) { return formatMxCurrency(n); }
 function fmtDate(d: Date | null | undefined) {
   if (!d) return "—";
-  return new Intl.DateTimeFormat("es-MX", { dateStyle: "long", timeStyle: "short" }).format(d);
+  return fmtDateTimeLong(d);
 }
 
 type Modal = "authorize" | "cancel" | "convert" | null;

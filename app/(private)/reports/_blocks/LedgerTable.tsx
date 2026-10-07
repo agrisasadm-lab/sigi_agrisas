@@ -7,18 +7,15 @@ import type {
   AccountMovementType,
 } from "../_logic/types/api";
 import { Icon } from "../../../_components/atoms/Icon/Icon";
+import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
+import { fmtDateShort } from "../../../_lib/formatDate";
 
-const MX = new Intl.NumberFormat("es-MX", {
-  style: "currency",
-  currency: "MXN",
-  minimumFractionDigits: 2,
-});
 function money(v: string): string {
-  return MX.format(Number(v));
+  return formatMxCurrency(Number(v));
 }
 function fmtDate(s: string | null): string {
   if (!s) return "—";
-  return new Intl.DateTimeFormat("es-MX", { dateStyle: "short" }).format(new Date(s));
+  return fmtDateShort(new Date(s));
 }
 
 const TYPE_LABEL: Record<AccountMovementType, string> = {

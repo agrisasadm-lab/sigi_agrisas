@@ -1,7 +1,7 @@
 import type { PurchaseItem } from "../_logic/types/domain";
+import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
 
-const MX = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
-function fmt(n: number) { return MX.format(n); }
+function fmt(n: number) { return formatMxCurrency(n); }
 function fmtPct(n: number | null) { return n === null ? "—" : `${(n * 100).toFixed(0)}%`; }
 
 interface PurchaseItemsTableProps {

@@ -9,12 +9,6 @@ export const entityCodeSchema = z
 const RFC_REGEX = /^([A-ZÑ&]{3,4})\d{6}([A-Z\d]{3})$/;
 const TAX_REGIME_REGEX = /^\d{3}$/;
 
-export const rfcSchema = z
-  .string()
-  .min(1)
-  .transform((v) => v.trim().toUpperCase())
-  .pipe(z.string().regex(RFC_REGEX, "rfc must be a valid Mexican RFC"));
-
 /**
  * RFC opcional. Preserva la distinción `undefined` (campo ausente/no tocado) vs `null`
  * (limpiar explícitamente) — necesaria para que el PATCH detecte "al menos un campo

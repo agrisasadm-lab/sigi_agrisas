@@ -2,10 +2,10 @@
 
 import { Table, THead, TBody, Tr, Th, Td } from "../../../../_components/molecules/DataTable";
 import type { SalesByProductDetailRowDto } from "../_logic/types/api";
+import { formatMxCurrency } from "../../../../_lib/formatMxCurrency";
 
-const MX = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
 function money(v: string): string {
-  return MX.format(Number(v));
+  return formatMxCurrency(Number(v));
 }
 
 export function SalesByProductDetailTable({ rows }: { rows: SalesByProductDetailRowDto[] }) {

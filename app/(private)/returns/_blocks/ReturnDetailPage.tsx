@@ -14,14 +14,15 @@ import { TaxBreakdownRows } from "../../../_components/molecules/TaxBreakdownRow
 import { Spinner } from "../../../_components/atoms/Spinner/Spinner";
 import { Icon } from "../../../_components/atoms/Icon/Icon";
 import { ReturnNotFoundError, ReturnReadForbiddenError, ReturnScopingForbiddenError } from "../_logic/errors";
+import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
+import { fmtDateLong } from "../../../_lib/formatDate";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const MX = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
-function fmt(n: number) { return MX.format(n); }
+function fmt(n: number) { return formatMxCurrency(n); }
 
 function fmtDate(d: Date) {
-  return new Intl.DateTimeFormat("es-MX", { dateStyle: "long" }).format(d);
+  return fmtDateLong(d);
 }
 
 interface ReturnDetailPageProps {

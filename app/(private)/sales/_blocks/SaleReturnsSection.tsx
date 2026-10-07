@@ -7,11 +7,12 @@ import { useSaleReturns } from "../../returns/_logic/hooks/useSaleReturns";
 import { ReturnStatusBadge } from "../../returns/_blocks/ReturnStatusBadge";
 import { Skeleton } from "../../../_components/atoms/Skeleton/Skeleton";
 import type { SaleItem } from "../_logic/types/domain";
+import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
+import { fmtDateShort } from "../../../_lib/formatDate";
 
-const MX = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
-function fmt(n: number) { return MX.format(n); }
+function fmt(n: number) { return formatMxCurrency(n); }
 function fmtDate(d: Date) {
-  return new Intl.DateTimeFormat("es-MX", { dateStyle: "short" }).format(d);
+  return fmtDateShort(d);
 }
 
 interface SaleReturnsSectionProps {

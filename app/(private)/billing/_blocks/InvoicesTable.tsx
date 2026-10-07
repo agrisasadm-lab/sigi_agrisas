@@ -4,10 +4,11 @@ import Link from "next/link";
 import { InvoiceStatusBadge } from "./InvoiceStatusBadge";
 import { Skeleton } from "../../../_components/atoms/Skeleton/Skeleton";
 import type { Invoice } from "../_logic/types/domain";
+import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
+import { fmtDateShort } from "../../../_lib/formatDate";
 
-const MX = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
-function fmt(n: number) { return MX.format(n); }
-function fmtDate(d: Date) { return new Intl.DateTimeFormat("es-MX", { dateStyle: "short" }).format(d); }
+function fmt(n: number) { return formatMxCurrency(n); }
+function fmtDate(d: Date) { return fmtDateShort(d); }
 
 interface InvoicesTableProps {
   items: Invoice[];

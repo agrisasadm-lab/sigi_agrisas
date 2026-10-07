@@ -2,14 +2,10 @@
 
 import { Card as BaseCard } from "../../../../_components/molecules/Card/Card";
 import type { SalesCutReportDto } from "../_logic/types/api";
+import { formatMxCurrency } from "../../../../_lib/formatMxCurrency";
 
-const MX = new Intl.NumberFormat("es-MX", {
-  style: "currency",
-  currency: "MXN",
-  minimumFractionDigits: 2,
-});
 function money(v: string): string {
-  return MX.format(Number(v));
+  return formatMxCurrency(Number(v));
 }
 
 function Card({ label, value, sub }: { label: string; value: string; sub?: string }) {

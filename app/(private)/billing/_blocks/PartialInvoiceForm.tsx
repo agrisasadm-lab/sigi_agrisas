@@ -15,6 +15,7 @@ import { ReceiverFiscalDataIncompleteError, FacturamaStampError } from "../_logi
 import { SAT_PAYMENT_FORMS, SAT_PAYMENT_METHODS } from "@/shared/domain/catalogs/satPaymentCatalogs";
 import type { CustomerDto } from "../../pos/_logic/types/api";
 import type { ProductDto, ProductPriceDto } from "../../pos/_logic/types/api";
+import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
 
 interface PricePickerState {
   product: ProductDto;
@@ -22,8 +23,6 @@ interface PricePickerState {
   isLoading: boolean;
   lineKey: string;
 }
-
-const MX = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
 
 const PAYMENT_FORMS = SAT_PAYMENT_FORMS.map((e) => ({ value: e.code, label: `${e.code} - ${e.description}` }));
 const PAYMENT_METHODS = SAT_PAYMENT_METHODS.map((e) => ({ value: e.code, label: `${e.code} - ${e.description}` }));
@@ -300,15 +299,15 @@ export function PartialInvoiceForm({ branchId }: PartialInvoiceFormProps) {
         <div className="space-y-1 text-body-sm">
           <div className="flex justify-between gap-8">
             <span className="text-on-surface-variant">Subtotal</span>
-            <span className="tabular-nums">{MX.format(totals.subtotal)}</span>
+            <span className="tabular-nums">{formatMxCurrency(totals.subtotal)}</span>
           </div>
           <div className="flex justify-between gap-8">
             <span className="text-on-surface-variant">Impuestos</span>
-            <span className="tabular-nums">{MX.format(totals.taxTotal)}</span>
+            <span className="tabular-nums">{formatMxCurrency(totals.taxTotal)}</span>
           </div>
           <div className="flex justify-between gap-8 font-semibold text-title-sm">
             <span>Total</span>
-            <span className="tabular-nums">{MX.format(totals.total)}</span>
+            <span className="tabular-nums">{formatMxCurrency(totals.total)}</span>
           </div>
         </div>
         <div className="flex gap-3">

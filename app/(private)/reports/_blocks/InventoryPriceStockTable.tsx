@@ -5,14 +5,10 @@ import type {
   DepartmentPriceListDepartmentDto,
   DepartmentProductDto,
 } from "../inventory/_logic/types/api";
+import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
 
-const MX = new Intl.NumberFormat("es-MX", {
-  style: "currency",
-  currency: "MXN",
-  minimumFractionDigits: 2,
-});
 function money(v: string): string {
-  return MX.format(Number(v));
+  return formatMxCurrency(Number(v));
 }
 
 /**

@@ -3,11 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "../../../_components/atoms/Icon/Icon";
 import type { PurchaseFormLine } from "../_logic/hooks/useCreatePurchaseForm";
+import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
 
 const NUMBER_DRAFT_PATTERN = /^\d*\.?\d{0,4}$/;
 
-const MX = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
-function fmt(n: number) { return MX.format(n); }
+function fmt(n: number) { return formatMxCurrency(n); }
 
 interface PurchaseLineRowProps {
   line: PurchaseFormLine;

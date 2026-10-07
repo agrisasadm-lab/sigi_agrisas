@@ -7,13 +7,14 @@ import { Table, THead, TBody, Tr, Th, Td } from "../../../_components/molecules/
 import { CatalogStatusBadge } from "../../catalogs/_blocks/CatalogStatusBadge";
 import { useTableKeyboard } from "../../../_hooks/useTableKeyboard";
 import type { Expense } from "../_logic/types/domain";
+import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
+import { fmtDateShort } from "../../../_lib/formatDate";
 
-const MX = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
 function fmtAmount(n: string): string {
-  return MX.format(Number(n));
+  return formatMxCurrency(Number(n));
 }
 function fmtDate(iso: string): string {
-  return new Intl.DateTimeFormat("es-MX", { dateStyle: "short", timeZone: "UTC" }).format(new Date(iso));
+  return fmtDateShort(new Date(iso));
 }
 
 interface ExpensesTableProps {

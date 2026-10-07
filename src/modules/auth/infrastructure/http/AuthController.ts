@@ -13,12 +13,10 @@ import { InvalidCredentialsError } from "@/modules/auth/domain/errors/InvalidCre
 import { PasswordNotSetError } from "@/modules/auth/domain/errors/PasswordNotSetError";
 import { PasswordSetupTokenInvalidError } from "@/modules/auth/domain/errors/PasswordSetupTokenInvalidError";
 import { PasswordSetupTokenExpiredError } from "@/modules/auth/domain/errors/PasswordSetupTokenExpiredError";
-import { UserNotFoundError as AuthUserNotFoundError } from "@/modules/auth/domain/errors/UserNotFoundError";
+import { UserNotFoundError } from "@/modules/auth/domain/errors/UserNotFoundError";
 import { SetPasswordEmailSendFailedError } from "@/modules/auth/domain/errors/SetPasswordEmailSendFailedError";
 import { GetUserUseCase } from "@/modules/users/application/use-cases/GetUserUseCase";
 import { UpdateOwnProfileUseCase } from "@/modules/users/application/use-cases/UpdateOwnProfileUseCase";
-import { UserNotFoundError } from "@/modules/users/domain/errors/UserNotFoundError";
-import { EmailAlreadyInUseError as UsersEmailAlreadyInUseError } from "@/modules/users/domain/errors/EmailAlreadyInUseError";
 import { checkRateLimit } from "@/shared/infrastructure/http/rateLimit";
 import {
   REFRESH_TOKEN_COOKIE,
@@ -246,7 +244,7 @@ export class AuthController {
         avatarUrl: user.avatarUrl,
       });
     } catch (err) {
-      if (err instanceof UsersEmailAlreadyInUseError) {
+      if (err instanceof EmailAlreadyInUseError) {
         return NextResponse.json({ error: err.message }, { status: 409 });
       }
       if (err instanceof UserNotFoundError) {
@@ -269,7 +267,7 @@ export class AuthController {
       const { sentTo } = await this.sendSetPasswordEmailUseCase.execute(userId);
       return NextResponse.json({ sentTo }, { status: 200 });
     } catch (err) {
-      if (err instanceof AuthUserNotFoundError) {
+      if (err instanceof UserNotFoundError) {
         return NextResponse.json({ error: err.message }, { status: 404 });
       }
       if (err instanceof SetPasswordEmailSendFailedError) {

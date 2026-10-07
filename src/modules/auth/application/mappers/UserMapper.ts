@@ -24,12 +24,5 @@ export class UserMapper {
     });
   }
 
-  static toPersistence(user: User): Omit<UserPrismaModel, "createdAt" | "updatedAt"> {
-    return {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      passwordHash: user.passwordHash,
-    };
-  }
+
 }

@@ -3,9 +3,9 @@
 import { useState, useEffect, useRef } from "react";
 import { usePurchaseMutations } from "../_logic/hooks/usePurchaseMutations";
 import { ProviderPaymentExceedsDueAmountError, PurchasePayForbiddenError } from "../_logic/errors";
+import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
 
-const MX = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
-function fmt(n: number) { return MX.format(n); }
+function fmt(n: number) { return formatMxCurrency(n); }
 
 interface RegisterProviderPaymentModalProps {
   purchaseId: string;
