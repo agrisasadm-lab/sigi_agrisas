@@ -1,6 +1,1 @@
-export class ProviderNotFoundOrInactiveError extends Error {
-  constructor() {
-    super("Provider not found or inactive");
-    this.name = "ProviderNotFoundOrInactiveError";
-  }
-}
+export { ProviderNotFoundOrInactiveError } from "@/shared/domain/errors/ProviderNotFoundOrInactiveError";

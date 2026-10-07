@@ -1,8 +1,9 @@
 import Link from "next/link";
 import type { WaybillDetail, WaybillAddressDto } from "../_logic/types/domain";
+import { fmtDateTimeLong } from "../../../_lib/formatDate";
 
 function fmtDate(d: Date) {
-  return new Intl.DateTimeFormat("es-MX", { dateStyle: "long", timeStyle: "short" }).format(d);
+  return fmtDateTimeLong(d);
 }
 
 function fmtAddress(a: WaybillAddressDto): string {

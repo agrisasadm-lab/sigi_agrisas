@@ -6,9 +6,10 @@ import { WaybillTypeBadge } from "./WaybillTypeBadge";
 import { Skeleton } from "../../../_components/atoms/Skeleton/Skeleton";
 import type { WaybillSummary } from "../_logic/types/domain";
 import { useTableKeyboard } from "../../../_hooks/useTableKeyboard";
+import { fmtDateShort } from "../../../_lib/formatDate";
 
 function fmtDate(d: Date) {
-  return new Intl.DateTimeFormat("es-MX", { dateStyle: "short" }).format(d);
+  return fmtDateShort(d);
 }
 
 interface WaybillsTableProps {

@@ -16,10 +16,11 @@ import { Spinner } from "../../../_components/atoms/Spinner/Spinner";
 import { Icon } from "../../../_components/atoms/Icon/Icon";
 import { InvoiceNotFoundError, BillingForbiddenError } from "../_logic/errors";
 import { formatInvoiceDate } from "../_logic/lib/formatInvoiceDate";
+import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const MX = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
-function fmt(n: number) { return MX.format(n); }
+
+function fmt(n: number) { return formatMxCurrency(n); }
 
 interface InvoiceDetailPageProps { id: string; }
 

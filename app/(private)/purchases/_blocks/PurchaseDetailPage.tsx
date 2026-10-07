@@ -13,12 +13,13 @@ import { CancelPurchaseModal } from "./CancelPurchaseModal";
 import { EmptyState } from "../../../_components/molecules/EmptyState/EmptyState";
 import { Spinner } from "../../../_components/atoms/Spinner/Spinner";
 import { PurchaseNotFoundError, PurchaseReadForbiddenError, PurchaseScopingForbiddenError } from "../_logic/errors";
+import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
+import { fmtDateLong } from "../../../_lib/formatDate";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const MX = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
-function fmt(n: number) { return MX.format(n); }
-function fmtDate(d: Date) { return new Intl.DateTimeFormat("es-MX", { dateStyle: "long" }).format(d); }
+function fmt(n: number) { return formatMxCurrency(n); }
+function fmtDate(d: Date) { return fmtDateLong(d); }
 
 interface PurchaseDetailPageProps {
   id: string;

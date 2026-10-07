@@ -13,6 +13,7 @@ import { Card } from "../../../../../_components/molecules/Card/Card";
 import { Button } from "../../../../../_components/atoms/Button/Button";
 import { ExportPdfButton } from "../../../../../_components/molecules/PdfDownloadButton/PdfDownloadButton";
 import { Spinner } from "../../../../../_components/atoms/Spinner/Spinner";
+import { formatMxCurrency } from "../../../../../_lib/formatMxCurrency";
 
 type View = "customer" | "ticket";
 
@@ -23,8 +24,6 @@ function defaultFrom(): string {
 function defaultTo(): string {
   return new Date().toISOString().slice(0, 10);
 }
-
-const MX = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
 
 export function ByCustomerCollectionsView() {
   const { can } = useCurrentUser();
@@ -80,7 +79,7 @@ export function ByCustomerCollectionsView() {
           <Card className="flex flex-col w-fit">
             <span className="text-label-sm text-on-surface-variant">Total cobrado</span>
             <span className="text-title-md font-semibold text-on-surface tabular-nums">
-              {MX.format(Number(report.totals.totalCollected))}
+              {formatMxCurrency(Number(report.totals.totalCollected))}
             </span>
           </Card>
 

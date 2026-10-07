@@ -17,11 +17,12 @@ import { Spinner } from "../../../_components/atoms/Spinner/Spinner";
 import { SegmentedButton } from "../../../_components/molecules/SegmentedButton/SegmentedButton";
 import { groupPaymentsBySale } from "../_logic/lib/groupPaymentsBySale";
 import type { PaymentStatus, Payment } from "../_logic/types/domain";
+import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
+import { fmtDateShort } from "../../../_lib/formatDate";
 
-const MX = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
-function fmt(n: number) { return MX.format(n); }
+function fmt(n: number) { return formatMxCurrency(n); }
 function fmtDate(d: Date) {
-  return new Intl.DateTimeFormat("es-MX", { dateStyle: "short" }).format(d);
+  return fmtDateShort(d);
 }
 
 export function PaymentsListPage() {

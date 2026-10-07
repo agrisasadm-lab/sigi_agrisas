@@ -2,14 +2,10 @@
 
 import { Table, THead, TBody, Tr, Th, Td } from "../../../../../_components/molecules/DataTable";
 import type { CashCutRowDto } from "../../_logic/global/types/api";
+import { formatMxCurrency } from "../../../../../_lib/formatMxCurrency";
 
-const MX = new Intl.NumberFormat("es-MX", {
-  style: "currency",
-  currency: "MXN",
-  minimumFractionDigits: 2,
-});
 function money(v: string): string {
-  return MX.format(Number(v));
+  return formatMxCurrency(Number(v));
 }
 function pct(v: string): string {
   return `${(Number(v) * 100).toFixed(0)}%`;

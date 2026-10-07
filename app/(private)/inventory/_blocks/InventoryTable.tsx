@@ -5,8 +5,7 @@ import { Icon } from "../../../_components/atoms/Icon/Icon";
 import type { InventoryItem } from "../_logic/types/domain";
 import { useTableKeyboard } from "../../../_hooks/useTableKeyboard";
 import { ExpiryStatusBadge } from "./ExpiryStatusBadge";
-
-const DATE_FMT = new Intl.DateTimeFormat("es-MX", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" });
+import { fmtDateOnly } from "../../../_lib/formatDate";
 
 interface InventoryTableProps {
   items: InventoryItem[];
@@ -65,7 +64,7 @@ export function InventoryTable({ items, canWrite, canViewKardex = false, onAdjus
                       <ExpiryStatusBadge status={item.expiryStatus} />
                       {item.nearestExpirationDate && (
                         <span className="text-label-sm text-on-surface-variant">
-                          {DATE_FMT.format(item.nearestExpirationDate)}
+                          {fmtDateOnly(item.nearestExpirationDate)}
                         </span>
                       )}
                     </div>

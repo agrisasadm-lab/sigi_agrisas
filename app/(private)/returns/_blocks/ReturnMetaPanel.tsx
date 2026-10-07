@@ -1,7 +1,8 @@
 import type { ReturnDetail } from "../_logic/types/domain";
+import { fmtDateTimeLong } from "../../../_lib/formatDate";
 
 function fmtDate(d: Date) {
-  return new Intl.DateTimeFormat("es-MX", { dateStyle: "long", timeStyle: "short" }).format(d);
+  return fmtDateTimeLong(d);
 }
 
 interface ReturnMetaPanelProps {

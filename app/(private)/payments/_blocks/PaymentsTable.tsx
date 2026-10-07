@@ -5,11 +5,12 @@ import { PaymentStatusBadge } from "./PaymentStatusBadge";
 import { Skeleton } from "../../../_components/atoms/Skeleton/Skeleton";
 import type { Payment } from "../_logic/types/domain";
 import { useTableKeyboard } from "../../../_hooks/useTableKeyboard";
+import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
+import { fmtDateTimeShort } from "../../../_lib/formatDate";
 
-const MX = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
-function fmt(n: number) { return MX.format(n); }
+function fmt(n: number) { return formatMxCurrency(n); }
 function fmtDate(d: Date) {
-  return new Intl.DateTimeFormat("es-MX", { dateStyle: "short", timeStyle: "short" }).format(d);
+  return fmtDateTimeShort(d);
 }
 
 interface PaymentsTableProps {

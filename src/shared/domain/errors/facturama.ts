@@ -20,9 +20,4 @@ export class FacturamaCancelError extends Error {
   }
 }
 
-export class BranchScopeViolationError extends Error {
-  constructor() {
-    super("Branch scope violation");
-    this.name = "BranchScopeViolationError";
-  }
-}
+export { BranchScopeViolationError } from "@/shared/domain/errors/BranchScopeViolationError";

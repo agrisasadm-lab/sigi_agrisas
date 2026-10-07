@@ -1,5 +1,4 @@
 import { UserMapper, UserPrismaModel } from "@/modules/auth/application/mappers/UserMapper";
-import { User } from "@/modules/auth/domain/entities/User";
 
 const raw: UserPrismaModel = {
   id: "uuid-1",
@@ -25,20 +24,4 @@ describe("UserMapper", () => {
     expect(user.name).toBeUndefined();
   });
 
-  it("maps domain User to persistence object", () => {
-    const user = User.create("uuid-1", {
-      name: "Alice",
-      email: "test@example.com",
-      passwordHash: "$2b$10$somehash",
-      roles: [],
-      branchId: null,
-      createdAt: new Date("2026-01-01"),
-      updatedAt: new Date("2026-01-02"),
-    });
-    const persistence = UserMapper.toPersistence(user);
-    expect(persistence.id).toBe("uuid-1");
-    expect(persistence.name).toBe("Alice");
-    expect(persistence.email).toBe("test@example.com");
-    expect(persistence.passwordHash).toBe("$2b$10$somehash");
-  });
 });

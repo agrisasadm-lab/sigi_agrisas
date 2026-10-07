@@ -4,9 +4,9 @@ import { useState, Fragment, ReactNode } from "react";
 import { Icon } from "../../../_components/atoms/Icon/Icon";
 import { Skeleton } from "../../../_components/atoms/Skeleton/Skeleton";
 import type { PaymentGroup, GroupablePayment } from "../_logic/lib/groupPaymentsBySale";
+import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
 
-const MX = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
-function fmt(n: number) { return MX.format(n); }
+function fmt(n: number) { return formatMxCurrency(n); }
 
 interface GroupedPaymentsTableProps<T extends GroupablePayment> {
   groups: PaymentGroup<T>[];

@@ -4,6 +4,7 @@ import { useRef, useEffect, useState } from "react";
 import { useFoliosOptions } from "../../../_hooks/useFoliosOptions";
 import { usePaymentMethodsOptions } from "../../../_hooks/usePaymentMethodsOptions";
 import { registerPayment } from "../_logic/services/registerPayment";
+import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
 import {
   PaymentExceedsDueAmountError,
   PaymentExceedsLineDueAmountError,
@@ -15,8 +16,7 @@ import {
 import { Spinner } from "../../../_components/atoms/Spinner/Spinner";
 import type { LineBalance } from "../_logic/types/domain";
 
-const MX = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
-function fmt(n: number) { return MX.format(n); }
+function fmt(n: number) { return formatMxCurrency(n); }
 
 interface RegisterPaymentModalProps {
   saleId: string;

@@ -17,6 +17,7 @@ import { SatInvoiceUploader } from "./SatInvoiceUploader";
 import { Combobox } from "../../../_components/molecules/Combobox/Combobox";
 import { Spinner } from "../../../_components/atoms/Spinner/Spinner";
 import { EmptyState } from "../../../_components/molecules/EmptyState/EmptyState";
+import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
 import {
   ProviderNotFoundOrInactiveError,
   ProductNotFoundOrInactiveError,
@@ -25,8 +26,7 @@ import {
   PurchaseValidationError,
 } from "../_logic/errors";
 
-const MX = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
-function fmt(n: number) { return MX.format(n); }
+function fmt(n: number) { return formatMxCurrency(n); }
 function toDateInput(iso: string): string { return iso.slice(0, 10); }
 
 export function CreatePurchasePage() {

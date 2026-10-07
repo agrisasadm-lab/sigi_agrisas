@@ -5,6 +5,7 @@ import { Skeleton } from "../../../../_components/atoms/Skeleton/Skeleton";
 import { CatalogStatusBadge } from "../../_blocks/CatalogStatusBadge";
 import type { Provider } from "../_logic/types/domain";
 import { useTableKeyboard } from "../../../../_hooks/useTableKeyboard";
+import { formatMxCurrency } from "../../../../_lib/formatMxCurrency";
 
 interface ProvidersTableProps {
   items: Provider[];
@@ -24,14 +25,8 @@ function truncate(value: string, max: number): string {
   return value.length > max ? value.slice(0, max) + "…" : value;
 }
 
-const MX_CURRENCY = new Intl.NumberFormat("es-MX", {
-  style: "currency",
-  currency: "MXN",
-  minimumFractionDigits: 2,
-});
-
 function formatCurrency(value: number): string {
-  return MX_CURRENCY.format(value);
+  return formatMxCurrency(value);
 }
 
 export function ProvidersTable({

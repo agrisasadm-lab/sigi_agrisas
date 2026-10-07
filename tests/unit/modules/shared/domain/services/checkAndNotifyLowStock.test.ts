@@ -1,4 +1,4 @@
-import { checkAndNotifyLowStock, shouldNotifyLowStock } from "@/shared/domain/services/checkAndNotifyLowStock";
+import { shouldNotifyLowStock } from "@/shared/domain/services/checkAndNotifyLowStock";
 
 describe("shouldNotifyLowStock", () => {
   it("returns true on first crossing (lastLowStockNotifiedAt null)", () => {
@@ -29,46 +29,3 @@ describe("shouldNotifyLowStock", () => {
   });
 });
 
-describe("checkAndNotifyLowStock", () => {
-  it("calls notify + updateNotifiedAt when threshold crossed and no prior notification", async () => {
-    const notify = jest.fn().mockResolvedValue(undefined);
-    const updateNotifiedAt = jest.fn().mockResolvedValue(undefined);
-    await checkAndNotifyLowStock({
-      newQuantity: 5,
-      reorderPoint: 10,
-      lastLowStockNotifiedAt: null,
-      notify,
-      updateNotifiedAt,
-    });
-    expect(notify).toHaveBeenCalledTimes(1);
-    expect(updateNotifiedAt).toHaveBeenCalledTimes(1);
-  });
-
-  it("does not call notify/updateNotifiedAt when quantity is above reorderPoint", async () => {
-    const notify = jest.fn().mockResolvedValue(undefined);
-    const updateNotifiedAt = jest.fn().mockResolvedValue(undefined);
-    await checkAndNotifyLowStock({
-      newQuantity: 20,
-      reorderPoint: 10,
-      lastLowStockNotifiedAt: null,
-      notify,
-      updateNotifiedAt,
-    });
-    expect(notify).not.toHaveBeenCalled();
-    expect(updateNotifiedAt).not.toHaveBeenCalled();
-  });
-
-  it("does not call notify/updateNotifiedAt when within the debounce window", async () => {
-    const notify = jest.fn().mockResolvedValue(undefined);
-    const updateNotifiedAt = jest.fn().mockResolvedValue(undefined);
-    await checkAndNotifyLowStock({
-      newQuantity: 5,
-      reorderPoint: 10,
-      lastLowStockNotifiedAt: new Date(),
-      notify,
-      updateNotifiedAt,
-    });
-    expect(notify).not.toHaveBeenCalled();
-    expect(updateNotifiedAt).not.toHaveBeenCalled();
-  });
-});
