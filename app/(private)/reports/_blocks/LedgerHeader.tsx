@@ -2,14 +2,10 @@
 
 import { Card } from "../../../_components/molecules/Card/Card";
 import type { AccountStatementLedgerDto } from "../_logic/types/api";
+import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
 
-const MX = new Intl.NumberFormat("es-MX", {
-  style: "currency",
-  currency: "MXN",
-  minimumFractionDigits: 2,
-});
 function money(v: string | null): string {
-  return v === null ? "—" : MX.format(Number(v));
+  return v === null ? "—" : formatMxCurrency(Number(v));
 }
 
 function Stat({ label, value, strong }: { label: string; value: string; strong?: boolean }) {

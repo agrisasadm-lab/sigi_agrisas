@@ -11,11 +11,12 @@ import { EmptyState } from "../../../../_components/molecules/EmptyState/EmptySt
 import { Spinner } from "../../../../_components/atoms/Spinner/Spinner";
 import { PageShell } from "../../../../_components/organisms/PageShell";
 import { Table, THead, TBody, Tr, Th, Td } from "../../../../_components/molecules/DataTable/DataTable";
+import { formatMxCurrency } from "../../../../_lib/formatMxCurrency";
+import { fmtDateShort } from "../../../../_lib/formatDate";
 
-const MX = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
-function fmt(n: string | number) { return MX.format(Number(n)); }
+function fmt(n: string | number) { return formatMxCurrency(Number(n)); }
 function fmtDate(s: string) {
-  return new Intl.DateTimeFormat("es-MX", { dateStyle: "short", timeZone: "UTC" }).format(new Date(s));
+  return fmtDateShort(new Date(s));
 }
 
 const CONCEPT_MIN_LENGTH = 2;

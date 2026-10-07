@@ -5,15 +5,10 @@ import { Skeleton } from "../../../../_components/atoms/Skeleton/Skeleton";
 import { CatalogStatusBadge } from "../../_blocks/CatalogStatusBadge";
 import type { Customer } from "../_logic/types/domain";
 import { useTableKeyboard } from "../../../../_hooks/useTableKeyboard";
-
-const MX_CURRENCY = new Intl.NumberFormat("es-MX", {
-  style: "currency",
-  currency: "MXN",
-  minimumFractionDigits: 2,
-});
+import { formatMxCurrency } from "../../../../_lib/formatMxCurrency";
 
 function formatCurrency(value: number): string {
-  return MX_CURRENCY.format(value);
+  return formatMxCurrency(value);
 }
 
 interface CustomersTableProps {

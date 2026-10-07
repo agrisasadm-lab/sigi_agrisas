@@ -2,13 +2,13 @@
 
 import { Table, THead, TBody, Tr, Th, Td } from "../../../../_components/molecules/DataTable";
 import type { ProviderPaymentsReportRowDto } from "../_logic/types/api";
+import { formatMxCurrency } from "../../../../_lib/formatMxCurrency";
 
-const MX = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
 function money(v: string): string {
-  return MX.format(Number(v));
+  return formatMxCurrency(Number(v));
 }
 function moneyOrDash(v: string | null): string {
-  return v === null ? "—" : MX.format(Number(v));
+  return v === null ? "—" : formatMxCurrency(Number(v));
 }
 function dateOnly(iso: string): string {
   return new Date(iso).toLocaleDateString("es-MX", { timeZone: "UTC" });

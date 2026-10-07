@@ -1,12 +1,8 @@
 import type { ReactNode } from "react";
 import type { SaleItem } from "../_logic/types/domain";
+import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
 
-const MX = new Intl.NumberFormat("es-MX", {
-  style: "currency",
-  currency: "MXN",
-  minimumFractionDigits: 2,
-});
-function fmt(n: number) { return MX.format(n); }
+function fmt(n: number) { return formatMxCurrency(n); }
 function pct(n: number) { return `${(n * 100).toFixed(0)}%`; }
 
 interface SaleItemsTableProps {

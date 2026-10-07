@@ -18,11 +18,12 @@ import { SegmentedButton } from "../../../_components/molecules/SegmentedButton/
 import { groupPaymentsBySale } from "../_logic/lib/groupPaymentsBySale";
 import type { PaymentStatus } from "../_logic/types/domain";
 import type { PaymentHistoryRowDto } from "../_logic/types/api";
+import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
+import { fmtDateShort } from "../../../_lib/formatDate";
 
-const MX = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
-function fmt(n: number) { return MX.format(n); }
+function fmt(n: number) { return formatMxCurrency(n); }
 function fmtDate(s: string) {
-  return new Intl.DateTimeFormat("es-MX", { dateStyle: "short" }).format(new Date(s));
+  return fmtDateShort(new Date(s));
 }
 
 export function PaymentsHistoryPage() {

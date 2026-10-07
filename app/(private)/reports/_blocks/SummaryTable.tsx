@@ -1,14 +1,10 @@
 "use client";
 
 import type { AccountStatementSummaryRowDto } from "../_logic/types/api";
+import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
 
-const MX = new Intl.NumberFormat("es-MX", {
-  style: "currency",
-  currency: "MXN",
-  minimumFractionDigits: 2,
-});
 function money(v: string | null): string {
-  return v === null ? "—" : MX.format(Number(v));
+  return v === null ? "—" : formatMxCurrency(Number(v));
 }
 
 interface Props {

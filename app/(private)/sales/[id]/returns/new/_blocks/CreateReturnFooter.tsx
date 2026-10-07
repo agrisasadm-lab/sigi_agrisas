@@ -1,4 +1,5 @@
 "use client";
+import { formatMxCurrency } from "../../../../../../_lib/formatMxCurrency";
 
 interface CreateReturnFooterProps {
   reason: string;
@@ -20,12 +21,7 @@ function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-const MX = new Intl.NumberFormat("es-MX", {
-  style: "currency",
-  currency: "MXN",
-  minimumFractionDigits: 2,
-});
-function fmt(n: number) { return MX.format(n); }
+function fmt(n: number) { return formatMxCurrency(n); }
 
 export function CreateReturnFooter({
   reason,

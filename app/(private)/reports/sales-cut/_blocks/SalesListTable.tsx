@@ -1,10 +1,10 @@
 "use client";
 
 import type { SaleListRowDto } from "../_logic/types/api";
+import { formatMxCurrency } from "../../../../_lib/formatMxCurrency";
 
-const MX = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
 function money(v: string): string {
-  return MX.format(Number(v));
+  return formatMxCurrency(Number(v));
 }
 
 export function SalesListTable({ rows }: { rows: SaleListRowDto[] }) {

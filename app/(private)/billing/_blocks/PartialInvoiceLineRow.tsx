@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import type { PartialLine } from "../_logic/types/domain";
+import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
 
-const MX = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
 const NUM_DRAFT_PATTERN = /^\d*\.?\d*$/;
 const SAT_PRODUCT_CODE_PATTERN = /^\d{8}$/;
 
@@ -110,7 +110,7 @@ export function PartialInvoiceLineRow({ line, lineTotal, onUpdate, onRemove, onC
         <NumField value={line.iepsRate * 100} onChange={(v) => onUpdate({ iepsRate: Math.min(1, v / 100) })} min={0} step="1" placeholder="0" />
       </td>
       <td className="px-2 py-2 text-right tabular-nums text-body-sm font-medium">
-        {MX.format(lineTotal)}
+        {formatMxCurrency(lineTotal)}
       </td>
       <td className="px-2 py-2">
         <button

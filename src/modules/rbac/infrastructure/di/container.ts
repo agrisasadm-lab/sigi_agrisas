@@ -5,7 +5,6 @@ import { UserRolePrismaRepository } from "@/modules/rbac/infrastructure/reposito
 import { RolePermissionPrismaRepository } from "@/modules/rbac/infrastructure/repositories/RolePermissionPrismaRepository";
 import { PrismaAuthorizationService } from "@/modules/rbac/infrastructure/services/PrismaAuthorizationService";
 import { PrismaRoleAssigner } from "@/modules/rbac/infrastructure/services/PrismaRoleAssigner";
-import { PrismaUserRoleReader } from "@/modules/rbac/infrastructure/services/PrismaUserRoleReader";
 import { AssignRoleToUserUseCase } from "@/modules/rbac/application/use-cases/AssignRoleToUserUseCase";
 import { RevokeRoleFromUserUseCase } from "@/modules/rbac/application/use-cases/RevokeRoleFromUserUseCase";
 import { GrantPermissionToRoleUseCase } from "@/modules/rbac/application/use-cases/GrantPermissionToRoleUseCase";
@@ -24,7 +23,6 @@ const rolePermissionRepo = new RolePermissionPrismaRepository(prisma);
 
 const authorizationService = new PrismaAuthorizationService(prisma, userRoleRepo);
 const roleAssigner = new PrismaRoleAssigner(prisma);
-const userRoleReader = new PrismaUserRoleReader(prisma);
 
 const assignRoleToUser = new AssignRoleToUserUseCase(roleRepo, userRoleRepo, authorizationService);
 const revokeRoleFromUser = new RevokeRoleFromUserUseCase(roleRepo, userRoleRepo, authorizationService);
@@ -53,5 +51,4 @@ export const rbacContainer = {
   authorizationService,
   roleAssigner,
   userRoleRepo,
-  userRoleReader,
 };

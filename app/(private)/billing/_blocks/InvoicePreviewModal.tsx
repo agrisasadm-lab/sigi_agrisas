@@ -5,6 +5,7 @@ import { Button } from "../../../_components/atoms/Button/Button";
 import { DownloadPdfButton } from "../../../_components/molecules/PdfDownloadButton/PdfDownloadButton";
 import { Spinner } from "../../../_components/atoms/Spinner/Spinner";
 import { downloadInvoicePreviewPdf } from "../_logic/services/downloadInvoicePreviewPdf";
+import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
 import {
   resolveFiscalRegimeDescription,
   resolveCfdiUseDescription,
@@ -13,8 +14,7 @@ import {
 import { describePaymentForm, describePaymentMethod } from "@/shared/domain/catalogs/satPaymentCatalogs";
 import type { InvoicePreviewData } from "../_logic/types/preview";
 
-const MX = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
-function fmt(n: number) { return MX.format(n); }
+function fmt(n: number) { return formatMxCurrency(n); }
 function pct(n: number) { return `${(n * 100).toFixed(0)}%`; }
 
 // Anchos proporcionales al contenido (Concepto lleva nombre+código+"SAT: ..." de hasta

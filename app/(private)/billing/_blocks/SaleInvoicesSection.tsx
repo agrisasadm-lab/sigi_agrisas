@@ -7,8 +7,7 @@ import { InvoiceStatusBadge } from "./InvoiceStatusBadge";
 import { useInvoiceMutations } from "../_logic/hooks/useInvoiceMutations";
 import { Spinner } from "../../../_components/atoms/Spinner/Spinner";
 import { DownloadPdfButton } from "../../../_components/molecules/PdfDownloadButton/PdfDownloadButton";
-
-const MX = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
+import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
 
 interface SaleInvoicesSectionProps {
   saleId: string;
@@ -58,7 +57,7 @@ export function SaleInvoicesSection({ saleId, saleStatus, saleFolioLabel }: Sale
                 >
                   {inv.uuid ? inv.uuid.slice(0, 18) + "…" : inv.id.slice(-8).toUpperCase()}
                 </Link>
-                <span className="text-label-sm text-on-surface-variant tabular-nums">{MX.format(inv.total)}</span>
+                <span className="text-label-sm text-on-surface-variant tabular-nums">{formatMxCurrency(inv.total)}</span>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <DownloadPdfButton onClick={() => download(inv.id, "pdf")} loading={isDownloading} size="sm" />

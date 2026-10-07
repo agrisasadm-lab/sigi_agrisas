@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { useSaleSearch } from "../_logic/hooks/useSaleSearch";
 import type { SaleOption } from "../_logic/services/searchSales";
-
-const MX = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
+import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
 
 interface SalePickerFieldProps {
   value: string;
@@ -17,7 +16,7 @@ export function SalePickerField({ value, label, onSelect }: SalePickerFieldProps
   const { results, open, setOpen, isLoading } = useSaleSearch(query);
 
   function handleSelect(opt: SaleOption) {
-    const lbl = `${opt.folioLabel} · ${opt.customerName ?? "Sin cliente"} · ${MX.format(opt.total)}`;
+    const lbl = `${opt.folioLabel} · ${opt.customerName ?? "Sin cliente"} · ${formatMxCurrency(opt.total)}`;
     setQuery(lbl);
     setOpen(false);
     onSelect(opt.id, lbl, opt.customerId);
@@ -46,7 +45,7 @@ export function SalePickerField({ value, label, onSelect }: SalePickerFieldProps
               className="w-full px-4 py-3 text-left hover:bg-surface-container-low transition-colors border-b border-outline-variant/40 last:border-0"
             >
               <p className="text-body-sm font-medium text-on-surface font-mono">{opt.folioLabel}</p>
-              <p className="text-label-sm text-on-surface-variant">{opt.customerName ?? "Sin cliente"} · {MX.format(opt.total)}</p>
+              <p className="text-label-sm text-on-surface-variant">{opt.customerName ?? "Sin cliente"} · {formatMxCurrency(opt.total)}</p>
             </button>
           ))}
         </div>
