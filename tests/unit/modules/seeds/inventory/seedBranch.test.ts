@@ -14,7 +14,7 @@ interface FakeProduct {
   ivaRate: number;
   iepsRate: number;
 }
-interface FakePrice { id: string; productId: string; branchId: string | null; name: string; price: number; isDefault: boolean }
+interface FakePrice { id: string; productId: string; branchId: string; name: string; price: number; isDefault: boolean }
 interface FakeInventory { id: string; branchId: string; productId: string; quantity: number }
 
 let idSeq = 0;
@@ -82,7 +82,7 @@ function makeFakePrisma(seed?: { products?: FakeProduct[] }) {
       },
     },
     productPrice: {
-      findFirstBase: async ({ where }) => {
+      findFirst: async ({ where }) => {
         const p = prices.find((x) => x.productId === where.productId && x.branchId === where.branchId && x.name === where.name);
         return p ? { id: p.id, price: p.price } : null;
       },
@@ -101,17 +101,6 @@ function makeFakePrisma(seed?: { products?: FakeProduct[] }) {
         let p = prices.find((x) => x.productId === key.productId && x.branchId === key.branchId && x.name === key.name);
         if (!p) {
           p = { id: nextId("price"), productId: key.productId, branchId: key.branchId, name: key.name, price: create.price as number, isDefault: create.isDefault as boolean };
-          prices.push(p);
-        } else {
-          p.price = update.price as number;
-          p.isDefault = update.isDefault as boolean;
-        }
-        return { id: p.id };
-      },
-      upsertBase: async ({ where, create, update }) => {
-        let p = prices.find((x) => x.productId === where.productId && x.branchId === where.branchId && x.name === where.name);
-        if (!p) {
-          p = { id: nextId("price"), productId: where.productId, branchId: where.branchId, name: where.name, price: create.price as number, isDefault: create.isDefault as boolean };
           prices.push(p);
         } else {
           p.price = update.price as number;
@@ -311,14 +300,14 @@ describe("seedBranch", () => {
     const { prisma, prices } = makeFakePrisma({
       products: [{ id: "p1", code: "X1", name: "PRODUCTO X", unit: "H87", satProductCode: null, departmentId: "d1", ivaRate: 0, iepsRate: 0 }],
     });
-    prices.push({ id: "price-base", productId: "p1", branchId: null, name: "Precio Publico", price: 292, isDefault: true });
+    prices.push({ id: "price-base", productId: "p1", branchId: "matriz-id", name: "Precio Publico", price: 292, isDefault: true });
     const ctx = await createSeedContext(prisma);
     await seedBranch(
       prisma,
       plan({ rows: [row({ code: "X1", prices: [{ tierName: "Precio Publico", value: 0, isDefault: true }] })] }),
       ctx
     );
-    expect(prices.filter((p) => p.branchId !== null)).toHaveLength(0);
+    expect(prices.filter((p) => p.branchId !== "matriz-id")).toHaveLength(0);
     expect(ctx.counters.emptyPriceRows).toBe(1);
   });
 

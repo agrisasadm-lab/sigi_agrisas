@@ -13,7 +13,7 @@ interface FakeProduct {
   ivaRate: number;
   iepsRate: number;
 }
-interface FakePrice { id: string; productId: string; branchId: string | null; name: string; price: number; isDefault: boolean }
+interface FakePrice { id: string; productId: string; branchId: string; name: string; price: number; isDefault: boolean }
 interface FakeInventory { id: string; branchId: string; productId: string; quantity: number }
 
 let idSeq = 0;
@@ -83,7 +83,7 @@ function makeFakePrisma(seed?: { branches?: FakeBranch[]; products?: FakeProduct
       },
     },
     productPrice: {
-      findFirstBase: async ({ where }) => {
+      findFirst: async ({ where }) => {
         const p = prices.find((x) => x.productId === where.productId && x.branchId === where.branchId && x.name === where.name);
         return p ? { id: p.id, price: p.price } : null;
       },
@@ -106,24 +106,6 @@ function makeFakePrisma(seed?: { branches?: FakeBranch[]; products?: FakeProduct
             productId: key.productId,
             branchId: key.branchId,
             name: key.name,
-            price: create.price as number,
-            isDefault: create.isDefault as boolean,
-          };
-          prices.push(p);
-        } else {
-          p.price = update.price as number;
-          p.isDefault = update.isDefault as boolean;
-        }
-        return { id: p.id };
-      },
-      upsertBase: async ({ where, create, update }) => {
-        let p = prices.find((x) => x.productId === where.productId && x.branchId === where.branchId && x.name === where.name);
-        if (!p) {
-          p = {
-            id: nextId("price"),
-            productId: where.productId,
-            branchId: where.branchId,
-            name: where.name,
             price: create.price as number,
             isDefault: create.isDefault as boolean,
           };
@@ -228,7 +210,7 @@ describe("seedInventoryTiendas", () => {
       tiendas: [],
       tlaxiaco: [],
     });
-    const basePrices = prices.filter((p) => p.branchId === null);
+    const basePrices = prices.filter((p) => p.branchId === "matriz-id");
     expect(basePrices).toHaveLength(2);
     expect(basePrices.find((p) => p.name === "Precio Publico")?.isDefault).toBe(true);
   });
@@ -286,7 +268,7 @@ describe("seedInventoryTiendas", () => {
       tiendas: [tiendaRow({ price: 376 })],
       tlaxiaco: [],
     });
-    const overrides = prices.filter((p) => p.branchId !== null);
+    const overrides = prices.filter((p) => p.branchId !== "matriz-id");
     expect(overrides).toHaveLength(0);
   });
 
@@ -297,21 +279,21 @@ describe("seedInventoryTiendas", () => {
       tiendas: [tiendaRow({ code: "KAB1", name: "KER KAB 1L", price: 699.35, branchCode: "CHICHICAPAM" })],
       tlaxiaco: [],
     });
-    const overrides = prices.filter((p) => p.branchId !== null);
+    const overrides = prices.filter((p) => p.branchId !== "matriz-id");
     expect(overrides).toHaveLength(1);
     expect(overrides[0].price).toBe(699.35);
     expect(counters.priceOverridesByBranch.CHICHICAPAM).toBe(1);
   });
 
-  it("producto sin precio base crea overrides directos sin crear branchId: null", async () => {
+  it("producto sin precio en Matriz crea su precio directo en la tienda, no en el branchId de Matriz", async () => {
     const { prisma, prices } = makeFakePrisma();
     await seedInventoryTiendas(prisma, {
       agrisas: [],
       tiendas: [tiendaRow({ code: "XYZ", name: "PRODUCTO SOLO TIENDA", price: 100, branchCode: "ZARIOZ" })],
       tlaxiaco: [],
     });
-    expect(prices.filter((p) => p.branchId === null)).toHaveLength(0);
-    expect(prices.filter((p) => p.branchId !== null)).toHaveLength(1);
+    expect(prices.filter((p) => p.branchId === "matriz-id")).toHaveLength(0);
+    expect(prices.filter((p) => p.branchId !== "matriz-id")).toHaveLength(1);
   });
 
   it("Tlaxiaco con nombre normalizado matchea producto existente y usa su code", async () => {

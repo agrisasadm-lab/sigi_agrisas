@@ -12,6 +12,7 @@ export async function seedBranch(prisma: PrismaLike, plan: BranchSeedPlan, ctx: 
   if (plan.rows.length === 0) return;
 
   const branchId = await ctx.resolveBranchId(plan.branchCode);
+  const matrizBranchId = await ctx.resolveBranchId("MATRIZ");
 
   const nameMatchState =
     plan.productMatch === "name"
@@ -32,13 +33,13 @@ export async function seedBranch(prisma: PrismaLike, plan: BranchSeedPlan, ctx: 
       await upsertInventory(prisma, ctx.counters, branchId, resolved.id, quantity);
 
       if (plan.priceMode === "base-tiers") {
-        await writeBasePriceTiers(prisma, resolved.id, row.prices);
+        await writeBasePriceTiers(prisma, resolved.id, matrizBranchId, row.prices);
       } else {
         const price = row.prices[0]?.value;
         if (!price || price <= 0) {
           ctx.counters.emptyPriceRows++;
         } else {
-          await writeBranchPriceIfDivergent(prisma, ctx.counters, resolved.id, branchId, plan.branchCode, price);
+          await writeBranchPriceIfDivergent(prisma, ctx.counters, resolved.id, branchId, plan.branchCode, matrizBranchId, price);
         }
       }
     } catch (err) {
