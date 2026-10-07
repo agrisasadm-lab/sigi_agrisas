@@ -41,12 +41,9 @@ function makeFakePrisma() {
       },
     },
     productPrice: {
-      findFirstBase: async () => null,
+      findFirst: async () => null,
       updateMany: async () => ({ count: 0 }),
       upsert: async () => {
-        throw new Error("not used in this test");
-      },
-      upsertBase: async () => {
         throw new Error("not used in this test");
       },
     },

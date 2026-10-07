@@ -45,25 +45,15 @@ const prismaLike: PrismaLike = {
     findMany: (args) => prisma.branchInventory.findMany(args as never) as never,
   },
   productPrice: {
-    // NO usar `findUnique`/`upsert` con `productId_branchId_name` cuando `branchId`
-    // es `null` — esta versión de Prisma (5.22) rechaza en runtime cualquier `null`
-    // dentro de esa clave compuesta ("Argument branchId must not be null"), aunque
-    // compile sin error y aunque `upsert` con branchId NO-null funcione perfecto.
-    // Verificado con reproducción directa contra la DB real antes de este fix.
-    findFirstBase: async (args) => {
+    // Adapter sobre PrismaClient real: sólo convierte `price` (Decimal en DB) a `number`
+    // en la lectura — `branchId` siempre es real (ninguna sucursal usa `null`).
+    findFirst: async (args) => {
       const row = await prisma.productPrice.findFirst({ where: args.where as never, select: args.select as never });
       if (!row) return null;
       return { id: (row as { id: string }).id, price: Number((row as { price: unknown }).price) };
     },
     updateMany: (args) => prisma.productPrice.updateMany(args as never) as never,
     upsert: (args) => prisma.productPrice.upsert(args as never) as never,
-    upsertBase: async (args) => {
-      const existing = await prisma.productPrice.findFirst({ where: args.where as never, select: { id: true } });
-      if (existing) {
-        return prisma.productPrice.update({ where: { id: existing.id }, data: args.update as never }) as never;
-      }
-      return prisma.productPrice.create({ data: args.create as never }) as never;
-    },
   },
 };
 
