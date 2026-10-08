@@ -54,6 +54,7 @@ function makeSaleItem(overrides: Partial<{ id: string; quantity: number }> = {})
     quantity: overrides.quantity ?? 10,
     unitPrice: 100,
     discountPct: null,
+    discountAmount: 0,
     ivaRate: 0.16,
     iepsRate: null,
     lineSubtotal: 1000,

@@ -37,7 +37,7 @@ export function QuoteCreatePage() {
   const { isOnline, offlineEnabled, ownerBranchId } = useOfflineSync();
 
   const { dosificationSurchargePct } = usePricingSettingsOptions();
-  const { lines, totals, addLine, updateQuantity, updateDiscountPct, changeTier, removeLine, clear } = useCart(dosificationSurchargePct);
+  const { lines, totals, addLine, updateQuantity, updateDiscountPct, updateDiscountAmount, changeTier, removeLine, clear } = useCart(dosificationSurchargePct);
   const { status, quote, queuedQuote, error: submitError, submit, reset: resetSubmit } = useQuoteSubmission();
 
   const { branches, selectedBranchId, setSelectedBranchId } = useBypassBranchOptions(isBypass, userBranchId ?? null);
@@ -184,6 +184,7 @@ export function QuoteCreatePage() {
             onOpenQuickAdd={() => setModal("quickAdd")}
             onUpdateQuantity={updateQuantity}
             onUpdateDiscount={updateDiscountPct}
+            onUpdateDiscountAmount={updateDiscountAmount}
             onChangeTier={handleChangeTier}
             onRemoveLine={removeLine}
             onSubmit={handleSubmit}

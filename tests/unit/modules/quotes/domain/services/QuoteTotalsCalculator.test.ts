@@ -91,6 +91,21 @@ describe("QuoteTotalsCalculator", () => {
     ).toThrow();
   });
 
+  it("aplica descuento por monto fijo antes de impuestos", () => {
+    const r = QuoteTotalsCalculator.computeTotals([
+      { quantity: 1, unitPrice: 500, discountAmount: 100 },
+    ]);
+    expect(r.lines[0].lineTotal).toBe(400);
+  });
+
+  it("rechaza discountPct y discountAmount ambos > 0 en la misma línea", () => {
+    expect(() =>
+      QuoteTotalsCalculator.computeTotals([
+        { quantity: 1, unitPrice: 100, discountPct: 10, discountAmount: 10 },
+      ])
+    ).toThrow();
+  });
+
   it("isTaxable=false produce lineIva=0 e lineIeps=0 aunque las tasas sean > 0", () => {
     const r = QuoteTotalsCalculator.computeTotals([
       { quantity: 1, unitPrice: 100, ivaRate: 0.16, iepsRate: 0.08, isTaxable: false },

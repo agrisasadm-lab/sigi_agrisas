@@ -57,6 +57,7 @@ const baseProps = {
   onOpenQuickAdd: jest.fn(),
   onUpdateQuantity: jest.fn(),
   onUpdateDiscount: jest.fn(),
+  onUpdateDiscountAmount: jest.fn(),
   onChangeTier: jest.fn(),
   onRemoveLine: jest.fn(),
   onSubmit: jest.fn(),

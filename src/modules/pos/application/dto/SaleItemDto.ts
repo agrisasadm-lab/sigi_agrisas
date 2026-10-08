@@ -9,6 +9,7 @@ export interface SaleItemDto {
   quantity: number;
   unitPrice: number;
   discountPct: number | null;
+  discountAmount: number;
   ivaRate: number | null;
   iepsRate: number | null;
   lineSubtotal: number;

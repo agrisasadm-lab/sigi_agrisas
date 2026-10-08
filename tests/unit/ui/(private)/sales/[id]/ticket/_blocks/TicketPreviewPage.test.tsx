@@ -63,6 +63,7 @@ function makeSale(overrides: Partial<SaleDetail> = {}): SaleDetail {
         quantity: 1,
         unitPrice: 100,
         discountPct: 0,
+        discountAmount: 0,
         ivaRate: 0.16,
         iepsRate: 0,
         lineSubtotal: 86.2069,

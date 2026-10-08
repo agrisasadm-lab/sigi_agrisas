@@ -72,6 +72,7 @@ export interface SaleItemInputBody {
   dosificationId?: string;
   quantity: number;
   discountPctOverride?: number;
+  discountAmount?: number;
 }
 
 export interface DosificationOptionDto {
@@ -105,6 +106,7 @@ export interface SaleItemDto {
   quantity: number;
   unitPrice: number;
   discountPct: number;
+  discountAmount: number;
   ivaRate: number;
   iepsRate: number;
   lineSubtotal: number;

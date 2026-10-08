@@ -56,6 +56,7 @@ export function PosPage() {
     addLineFromDosification,
     updateQuantity,
     updateDiscountPct,
+    updateDiscountAmount,
     changeTier,
     removeLine,
     clear,
@@ -363,6 +364,7 @@ export function PosPage() {
             onOpenQuickAdd={() => { lastFocusedRef.current = document.activeElement as HTMLElement; setModal("quickAdd"); }}
             onUpdateQuantity={updateQuantity}
             onUpdateDiscount={updateDiscountPct}
+            onUpdateDiscountAmount={updateDiscountAmount}
             onChangeTier={handleChangeTier}
             onRemoveLine={removeLine}
             onSubmit={handleSubmit}

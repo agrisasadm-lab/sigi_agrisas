@@ -2,6 +2,7 @@ export interface TotalsVectorLine {
   quantity: number;
   unitPrice: number;
   discountPct?: number | null;
+  discountAmount?: number | null;
   ivaRate?: number | null;
   iepsRate?: number | null;
   isTaxable?: boolean;
@@ -34,4 +35,21 @@ export const totalsVectors: ReadonlyArray<ReadonlyArray<TotalsVectorLine>> = [
   // (100 * 1.05) represents that already-resolved value, confirming the three calculators stay
   // equivalent regardless of how `unitPrice` was derived.
   [{ quantity: 0.5, unitPrice: 105, ivaRate: 0.16 }],
+];
+
+/**
+ * Vectores con `discountAmount` — NO forman parte de `totalsVectors` porque
+ * `PurchaseTotalsCalculator` (consumidor de `totalsVectors` en las pruebas de
+ * equivalencia de 4 vías) nunca pasa ese campo al núcleo compartido (fuera de
+ * alcance de `add-line-discount-amount`, ver design.md Decisión 5) — mezclarlos
+ * rompería esa equivalencia legítimamente. Sólo Sale/Quote/Return lo soportan.
+ */
+export const discountAmountVectors: ReadonlyArray<ReadonlyArray<TotalsVectorLine>> = [
+  [{ quantity: 1, unitPrice: 500, discountAmount: 100 }],
+  [{ quantity: 1, unitPrice: 116, discountAmount: 16, ivaRate: 0.16 }],
+  [{ quantity: 1, unitPrice: 80, discountAmount: 100 }], // clamps to 0, never negative
+  [
+    { quantity: 2, unitPrice: 100, discountAmount: 50, ivaRate: 0.16, iepsRate: 0.08 },
+    { quantity: 1, unitPrice: 200, discountPct: 10 },
+  ],
 ];

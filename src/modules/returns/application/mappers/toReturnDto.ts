@@ -17,6 +17,7 @@ export function toReturnItemDto(item: ReturnItem): ReturnItemDto {
     quantity: item.quantity,
     unitPrice: item.unitPrice,
     discountPct: item.discountPct,
+    discountAmount: item.discountAmount,
     ivaRate: item.ivaRate,
     iepsRate: item.iepsRate,
     lineSubtotal: item.lineSubtotal,

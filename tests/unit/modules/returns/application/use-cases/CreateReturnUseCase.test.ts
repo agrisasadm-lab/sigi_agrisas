@@ -13,7 +13,7 @@ import { ReturnInvalidQuantityError } from "@/modules/returns/domain/errors/Retu
 
 const NOW = new Date("2026-06-01T10:00:00Z");
 
-type SaleItemOverrides = { id: string; saleId: string; productId?: string; productPriceId?: string | null; dosificationId?: string | null; numPartsSnapshot?: number | null; quantity?: number; unitPrice?: number; discountPct?: number | null; ivaRate?: number | null; iepsRate?: number | null; lineSubtotal?: number; lineTax?: number; lineTotal?: number };
+type SaleItemOverrides = { id: string; saleId: string; productId?: string; productPriceId?: string | null; dosificationId?: string | null; numPartsSnapshot?: number | null; quantity?: number; unitPrice?: number; discountPct?: number | null; discountAmount?: number; ivaRate?: number | null; iepsRate?: number | null; lineSubtotal?: number; lineTax?: number; lineTotal?: number };
 
 function makeSaleItem(overrides: SaleItemOverrides): SaleItem {
   return SaleItem.create({
@@ -29,6 +29,7 @@ function makeSaleItem(overrides: SaleItemOverrides): SaleItem {
     quantity: overrides.quantity ?? 10,
     unitPrice: overrides.unitPrice ?? 100,
     discountPct: overrides.discountPct ?? null,
+    discountAmount: overrides.discountAmount ?? 0,
     ivaRate: overrides.ivaRate ?? 0.16,
     iepsRate: overrides.iepsRate ?? null,
     lineSubtotal: overrides.lineSubtotal ?? 1000,
@@ -102,6 +103,26 @@ describe("CreateReturnUseCase", () => {
       expect(dto.refundSubtotal).toBe(258.6207);
       expect(dto.refundTax).toBe(41.3793);
       expect(dto.refundTotal).toBe(300);
+    });
+
+    it("refund of a flat-amount-discounted line deducts the discount (never refunds more than was paid)", async () => {
+      const item = makeSaleItem({
+        id: "si-1", saleId: "sale-1", quantity: 1, unitPrice: 500, discountAmount: 100, ivaRate: null,
+      });
+      const sale = makeCompletedSale([item]);
+      seedSale(saleRepo, sale);
+
+      const dto = await useCase.execute({
+        saleId: "sale-1",
+        creatorId: "00000000-0000-0000-0000-000000000001",
+        reason: "Producto dañado",
+        returnedAt: NOW,
+        notes: null,
+        items: [{ saleItemId: "si-1", quantity: 1 }],
+      });
+
+      expect(dto.refundTotal).toBe(400); // 500 - 100 discount, not 500
+      expect(dto.items[0].discountAmount).toBe(100);
     });
 
     it("increments inventory for the returned items", async () => {
@@ -322,6 +343,7 @@ describe("CreateReturnUseCase", () => {
         quantity: 3,
         unitPrice: 100,
         discountPct: null,
+        discountAmount: 0,
         ivaRate: null,
         iepsRate: null,
         lineSubtotal: 300,
@@ -379,6 +401,7 @@ describe("CreateReturnUseCase", () => {
         quantity: 3,
         unitPrice: 100,
         discountPct: null,
+        discountAmount: 0,
         ivaRate: null,
         iepsRate: null,
         lineSubtotal: 300,

@@ -17,6 +17,7 @@ function makeItem(overrides: Partial<SaleItem> = {}): SaleItem {
     unitPrice: 50,
     quantity: 5,
     discountPct: 0,
+    discountAmount: 0,
     ivaRate: 0.16,
     iepsRate: 0,
     lineSubtotal: 250,

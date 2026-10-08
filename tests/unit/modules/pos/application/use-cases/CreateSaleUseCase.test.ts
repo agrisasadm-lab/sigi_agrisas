@@ -26,6 +26,7 @@ function makeSummary(data: CreateSaleData): SaleSummary {
       quantity: it.quantity,
       unitPrice: it.unitPrice,
       discountPct: it.discountPct,
+      discountAmount: it.discountAmount,
       ivaRate: it.ivaRate,
       iepsRate: it.iepsRate,
       lineSubtotal: it.lineSubtotal,
@@ -215,6 +216,48 @@ describe("CreateSaleUseCase", () => {
     expect(err.actual).toBe("INVENTORY");
   });
 
+  describe("descuento por línea (% override y monto fijo)", () => {
+    it("discountPctOverride ahora persiste en lugar del price.discountPct del catálogo (bug fix)", async () => {
+      const repo = makeRepo();
+      const lookups = makeLookups({
+        getProductPrice: jest.fn().mockResolvedValue({
+          id: "pp1", productId: "p1", branchId: "b1", name: "Menudeo", price: 100, discountPct: 5,
+        }),
+      });
+      const req = { ...baseReq, items: [{ productId: "p1", productPriceId: "pp1", quantity: 1, discountPctOverride: 15 }] };
+      await new CreateSaleUseCase(repo, lookups).execute(req, "user-1");
+      const call = (repo.createCompleted as jest.Mock).mock.calls[0][0] as CreateSaleData;
+      expect(call.items[0].discountPct).toBe(15);
+    });
+
+    it("sin override usa el discountPct del catálogo, como siempre", async () => {
+      const repo = makeRepo();
+      const lookups = makeLookups({
+        getProductPrice: jest.fn().mockResolvedValue({
+          id: "pp1", productId: "p1", branchId: "b1", name: "Menudeo", price: 100, discountPct: 5,
+        }),
+      });
+      await new CreateSaleUseCase(repo, lookups).execute(baseReq, "user-1");
+      const call = (repo.createCompleted as jest.Mock).mock.calls[0][0] as CreateSaleData;
+      expect(call.items[0].discountPct).toBe(5);
+    });
+
+    it("discountAmount persiste y discountPct queda en el valor del catálogo (0 en este fixture)", async () => {
+      const repo = makeRepo();
+      const req = { ...baseReq, items: [{ productId: "p1", productPriceId: "pp1", quantity: 1, discountAmount: 20 }] };
+      await new CreateSaleUseCase(repo, makeLookups()).execute(req, "user-1");
+      const call = (repo.createCompleted as jest.Mock).mock.calls[0][0] as CreateSaleData;
+      expect(call.items[0].discountAmount).toBe(20);
+    });
+
+    it("sin discountAmount en el body, persiste 0", async () => {
+      const repo = makeRepo();
+      await new CreateSaleUseCase(repo, makeLookups()).execute(baseReq, "user-1");
+      const call = (repo.createCompleted as jest.Mock).mock.calls[0][0] as CreateSaleData;
+      expect(call.items[0].discountAmount).toBe(0);
+    });
+  });
+
   describe("ventas por dosificación", () => {
     const dosReq = {
       ...baseReq,
@@ -232,6 +275,18 @@ describe("CreateSaleUseCase", () => {
       expect(call.items[0].numPartsSnapshot).toBe(4);
       expect(call.items[0].priceNameSnapshot).toBe("1/4");
       expect(call.items[0].discountPct).toBeNull();
+    });
+
+    it("ignora discountAmount/discountPctOverride aunque se envíen (línea de dosificación nunca lleva descuento)", async () => {
+      const repo = makeRepo();
+      const req = {
+        ...dosReq,
+        items: [{ productId: "p1", dosificationId: "d1", quantity: 3, discountAmount: 50, discountPctOverride: 10 }],
+      };
+      await new CreateSaleUseCase(repo, makeLookups()).execute(req, "user-1");
+      const call = (repo.createCompleted as jest.Mock).mock.calls[0][0] as CreateSaleData;
+      expect(call.items[0].discountPct).toBeNull();
+      expect(call.items[0].discountAmount).toBe(0);
     });
 
     it("permite vender más partes que numParts (sin tope)", async () => {

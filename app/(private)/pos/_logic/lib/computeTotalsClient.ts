@@ -2,6 +2,7 @@ export interface TotalsLine {
   quantity: number;
   unitPrice: number;
   discountPct: number;
+  discountAmount?: number;
   ivaRate: number;
   iepsRate: number;
   isTaxable?: boolean;
@@ -69,9 +70,10 @@ export function computeTotalsClient(lines: TotalsLine[], surchargePct = 0): Tota
 
     // unitPrice is the final tax-inclusive price the customer pays; tax is
     // extracted from it (not added on top): lineSubtotal = lineGross / (1 + rates).
-    const lineGross = bankersRound(
-      line.quantity * effectiveUnitPrice * (1 - line.discountPct / 100),
-      4
+    const lineGross = Math.max(
+      0,
+      bankersRound(line.quantity * effectiveUnitPrice * (1 - line.discountPct / 100), 4) -
+        (line.discountAmount ?? 0)
     );
     const divisor = 1 + effectiveIvaRate + effectiveIepsRate;
     const lineSubtotal = bankersRound(lineGross / divisor, 4);

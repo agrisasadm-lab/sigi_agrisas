@@ -34,7 +34,9 @@ export function QuoteItemsTable({ items }: QuoteItemsTableProps) {
               <td className="px-4 py-3 text-on-surface-variant text-label-sm">{item.priceNameSnapshot}</td>
               <td className="px-4 py-3 text-right tabular-nums">{item.quantity}</td>
               <td className="px-4 py-3 text-right tabular-nums">{fmt(item.unitPrice)}</td>
-              <td className="px-4 py-3 text-right tabular-nums">{item.discountPct > 0 ? `${item.discountPct}%` : "—"}</td>
+              <td className="px-4 py-3 text-right tabular-nums">
+                {item.discountAmount > 0 ? fmt(item.discountAmount) : item.discountPct > 0 ? `${item.discountPct}%` : "—"}
+              </td>
               <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">{pct(item.ivaRate)}</td>
               <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">{pct(item.iepsRate)}</td>
               <td className="px-4 py-3 text-right tabular-nums">{fmt(item.lineSubtotal)}</td>

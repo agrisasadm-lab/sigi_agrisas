@@ -48,6 +48,7 @@ interface CartPanelProps {
   onOpenQuickAdd: () => void;
   onUpdateQuantity: (id: string, qty: number) => void;
   onUpdateDiscount: (id: string, pct: number) => void;
+  onUpdateDiscountAmount: (id: string, amount: number) => void;
   onChangeTier: (id: string) => void;
   onRemoveLine: (id: string) => void;
   onSubmit: () => void;
@@ -80,6 +81,7 @@ export function CartPanel({
   onOpenQuickAdd,
   onUpdateQuantity,
   onUpdateDiscount,
+  onUpdateDiscountAmount,
   onChangeTier,
   onRemoveLine,
   onSubmit,
@@ -186,6 +188,7 @@ export function CartPanel({
             lines={lines}
             onUpdateQuantity={onUpdateQuantity}
             onUpdateDiscount={onUpdateDiscount}
+            onUpdateDiscountAmount={onUpdateDiscountAmount}
             onChangeTier={onChangeTier}
             onRemove={onRemoveLine}
           />

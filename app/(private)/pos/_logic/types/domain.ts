@@ -10,7 +10,9 @@ export interface CartLine {
   ivaRate: number;
   iepsRate: number;
   quantity: number;
+  discountType: "pct" | "amount";
   discountPct: number;
+  discountAmount: number;
   lineSubtotal: number;
   lineIva: number;
   lineIeps: number;

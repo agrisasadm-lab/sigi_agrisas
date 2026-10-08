@@ -93,6 +93,50 @@ describe("useCart", () => {
     expect(result.current.lines[0].lineSubtotal).toBe(77.5862);
   });
 
+  it("updateDiscountAmount aplica descuento por monto y recalcula", () => {
+    const { result } = renderHook(() => useCart());
+    act(() => result.current.addLine(product, price, 1, 0));
+    const lineId = result.current.lines[0].id;
+    act(() => result.current.updateDiscountAmount(lineId, 20));
+    expect(result.current.lines[0].discountAmount).toBe(20);
+    expect(result.current.lines[0].discountType).toBe("amount");
+    expect(result.current.lines[0].lineTotal).toBe(80);
+  });
+
+  it("activar descuento por monto resetea el % de la misma línea a 0 (mutuamente excluyentes)", () => {
+    const { result } = renderHook(() => useCart());
+    act(() => result.current.addLine(product, price, 1, 0));
+    const lineId = result.current.lines[0].id;
+    act(() => result.current.updateDiscountPct(lineId, 10));
+    expect(result.current.lines[0].discountPct).toBe(10);
+    act(() => result.current.updateDiscountAmount(lineId, 20));
+    expect(result.current.lines[0].discountAmount).toBe(20);
+    expect(result.current.lines[0].discountPct).toBe(0);
+    expect(result.current.lines[0].discountType).toBe("amount");
+  });
+
+  it("activar descuento por % resetea el monto de la misma línea a 0 (mutuamente excluyentes)", () => {
+    const { result } = renderHook(() => useCart());
+    act(() => result.current.addLine(product, price, 1, 0));
+    const lineId = result.current.lines[0].id;
+    act(() => result.current.updateDiscountAmount(lineId, 20));
+    expect(result.current.lines[0].discountAmount).toBe(20);
+    act(() => result.current.updateDiscountPct(lineId, 10));
+    expect(result.current.lines[0].discountPct).toBe(10);
+    expect(result.current.lines[0].discountAmount).toBe(0);
+    expect(result.current.lines[0].discountType).toBe("pct");
+  });
+
+  it("updateDiscountAmount clampa a [0, 100]", () => {
+    const { result } = renderHook(() => useCart());
+    act(() => result.current.addLine(product, price, 1, 0));
+    const lineId = result.current.lines[0].id;
+    act(() => result.current.updateDiscountAmount(lineId, 150));
+    expect(result.current.lines[0].discountAmount).toBe(100);
+    act(() => result.current.updateDiscountAmount(lineId, -10));
+    expect(result.current.lines[0].discountAmount).toBe(0);
+  });
+
   it("removeLine elimina la línea del carrito", () => {
     const { result } = renderHook(() => useCart());
     act(() => result.current.addLine(product, price, 1, 0));

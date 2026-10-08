@@ -19,8 +19,8 @@ The system SHALL persist a product return as the aggregate `Return` (header) + `
 - `Return.cancelledAt` and `Return.cancellationReason` are populated only when the cancellation occurs.
 - `Return.refundSubtotal`, `Return.refundTax`, `Return.refundTotal` are persisted as `DECIMAL(14, 4)` and computed at creation from the snapshotted line totals.
 - Each `ReturnItem` references `returnId` (FK `ON DELETE CASCADE`), `saleItemId` (FK `ON DELETE RESTRICT`; the link is required so the system can validate "this line belongs to the linked sale"), `productId` (FK `ON DELETE RESTRICT`), `productPriceId` (nullable; FK `ON DELETE SET NULL`).
-- Each `ReturnItem` snapshots `productCodeSnapshot`, `productNameSnapshot`, `priceNameSnapshot`, `unitPrice`, `discountPct`, `ivaRate`, `iepsRate` so the return is intact even if the sale, product, or price are later edited or deleted.
-- Each `ReturnItem` persists `quantity` (`DECIMAL(14, 4)`, the quantity returned for that sale line — strictly `> 0`), `lineSubtotal`, `lineTax`, `lineTotal` (refund amounts; same formula as the sale's `SaleTotalsCalculator`).
+- Each `ReturnItem` snapshots `productCodeSnapshot`, `productNameSnapshot`, `priceNameSnapshot`, `unitPrice`, `discountPct`, `discountAmount`, `ivaRate`, `iepsRate` so the return is intact even if the sale, product, or price are later edited or deleted. `discountAmount` is copied from the originating `sale_item` unchanged — it is never an input of `POST /returns` (the body carries no discount fields; see "Create return (atomic registration)").
+- Each `ReturnItem` persists `quantity` (`DECIMAL(14, 4)`, the quantity returned for that sale line — strictly `> 0`), `lineSubtotal`, `lineTax`, `lineTotal` (refund amounts; same formula as the sale's `SaleTotalsCalculator`, including the `discountAmount` deduction when the originating line had one).
 - The combination `(saleItemId)` MAY appear multiple times across different `Return` rows for the same `saleId` (partial returns done in multiple visits are allowed). The system enforces "sum of `quantity` across active (`status='completed'`) returns ≤ `sale_item.quantity`" via the `ReturnableQuantityCalculator` at write time.
 - **Dosification lines**: when the originating `SaleItem` has a non-null `dosificationId`/`numPartsSnapshot` (see `pos-api` "Sale aggregate model"), the corresponding `ReturnItem` SHALL copy both `dosificationId` (nullable FK to `product_dosifications`, `ON DELETE SET NULL`) and `numPartsSnapshot` (nullable `INT`) from the sale item at return-creation time — same snapshot pattern already used for `priceNameSnapshot`/`productCodeSnapshot`. `ReturnItem.quantity` for such a line represents parts returned, consistent with the sale line's unit (parts, not base units). `ReturnableQuantityCalculator` compares `quantity` (parts) against `sale_item.quantity` (parts) unchanged — no conversion needed there, since both sides are already expressed in the same unit (parts).
 - **Inventory quantity for dosification lines**: any operation that moves `branch_inventory.quantity` from a `ReturnItem` (creation, cancellation) SHALL use `quantity / numPartsSnapshot` as the base-unit amount when `numPartsSnapshot` is non-null, instead of `quantity` directly — mirrors the same rule on the sale side.
@@ -36,6 +36,10 @@ The system SHALL persist a product return as the aggregate `Return` (header) + `
 #### Scenario: Dosification return copies numPartsSnapshot
 - **WHEN** a return is registered for a sale line whose `numPartsSnapshot=4`
 - **THEN** the resulting `return_items` row has `numPartsSnapshot=4` and the same `dosificationId` as the sale line
+
+#### Scenario: Return of a flat-amount-discounted line snapshots the discount
+- **WHEN** a return is registered for a sale line whose `sale_item.discountAmount = 80` (and `discountPct = 0`)
+- **THEN** the resulting `return_items` row has `discountAmount = 80`, `discountPct = 0`
 
 ---
 
@@ -77,15 +81,19 @@ The service SHALL throw if `soldQuantity <= 0` or if any item's `quantity <= 0`.
 ---
 
 ### Requirement: ReturnTotalsCalculator (domain service)
-The system SHALL provide a pure domain service `ReturnTotalsCalculator` in `src/modules/returns/domain/services/ReturnTotalsCalculator.ts` with the same signature, formula, and rounding as `SaleTotalsCalculator` (half-to-even at 4 decimals) — including the tax-extraction formula (`lineSubtotal = round(lineGross / (1 + ivaRate + iepsRate), 4)`, `lineIva`/`lineIeps` computed from that extracted base, `lineTotal = lineGross`). The returned values represent refund amounts. A test of equivalence with `SaleTotalsCalculator` over a shared fixture (`tests/fixtures/totals-vectors.ts`) is required.
+The system SHALL provide a pure domain service `ReturnTotalsCalculator` in `src/modules/returns/domain/services/ReturnTotalsCalculator.ts` with the same signature, formula, and rounding as `SaleTotalsCalculator` (half-to-even at 4 decimals) — including the tax-extraction formula (`lineGross = max(0, round(quantity * unitPrice * (1 - discountPct/100), 4) - discountAmount)`, `lineSubtotal = round(lineGross / (1 + ivaRate + iepsRate), 4)`, `lineIva`/`lineIeps` computed from that extracted base, `lineTotal = lineGross`) and the same `discountPct`/`discountAmount` mutual-exclusion and range validation. The returned values represent refund amounts. A test of equivalence with `SaleTotalsCalculator` over a shared fixture (`tests/fixtures/totals-vectors.ts`), including vectors exercising `discountAmount`, is required.
 
 #### Scenario: Equivalence with SaleTotalsCalculator
 - **WHEN** the same input is passed to both calculators
-- **THEN** they return identical results for every line and the aggregated totals, including the extracted subtotal/IVA/IEPS breakdown
+- **THEN** they return identical results for every line and the aggregated totals, including the extracted subtotal/IVA/IEPS breakdown and any `discountAmount` deduction
 
 #### Scenario: Pure domain
 - **WHEN** unit tests run against the calculator
 - **THEN** no Prisma, no fetch, no environment access is required
+
+#### Scenario: Refund of a flat-amount-discounted line deducts the discount
+- **WHEN** `computeTotals([{ quantity: 1, unitPrice: 500, discountAmount: 100 }])` is invoked (mirroring a return of a sale line that had a $100 flat discount)
+- **THEN** `lineGross = 400`, `lineTotal = 400` — the refund reflects what the customer actually paid, not the undiscounted price
 
 ### Requirement: List returns
 The system SHALL expose `GET /api/v1/admin/returns` that returns a paginated list of returns. Requires the `returns:read` permission. Query parameters: `page` (default 1), `pageSize` (default 20, max 100), `branchId` (optional UUID), `customerId` (optional UUID), `saleId` (optional UUID), `status` (optional, comma-separated; one or more of `completed`,`cancelled`), `from` (optional ISO date — inclusive lower bound on `returned_at`), `to` (optional ISO date — inclusive upper bound on `returned_at`), `search` (optional, min 2 chars; matches joined `sale.folio_code`, `sale.folio_number::text`, joined `customer.name`/`customer.rfc`).
@@ -199,6 +207,8 @@ Each `ReturnItemInput`:
 - `saleItemId: string` (UUID; SHALL belong to the linked `saleId`)
 - `quantity: number` (decimal `> 0`; max 14 integer + 4 decimal digits). For a sale line originating from a dosification, this is parts returned (same unit as the sale line's `quantity`), not base units.
 
+The body does NOT accept any discount field — `discountPct`/`discountAmount` are never inputs of this endpoint; they are always derived from the originating `sale_item` (see "Return aggregate model").
+
 Optional body:
 
 - `notes: string | null` (max 1000 chars)
@@ -222,8 +232,8 @@ if (!bypass && sale.branchId !== x-user-branch-id) return 403;
    b. Load all prior return_items for this `saleItemId` (any status) via the repo.
    c. `remaining = ReturnableQuantityCalculator.computeRemaining(saleItem.quantity, priorReturnItems)` — both `saleItem.quantity` and prior `return_items.quantity` are already in the same unit (parts for dosification lines, base units otherwise); no conversion needed at this step.
    d. If `item.quantity > remaining` → HTTP 409 `ReturnQuantityExceedsRemainingError(saleItemId, requested, remaining)` with body `{"error": "Return quantity exceeds remaining", "saleItemId": "<id>", "requested": <n>, "remaining": <n>}`.
-6. Snapshot per line from the corresponding `sale_item`: `productCodeSnapshot`, `productNameSnapshot`, `priceNameSnapshot`, `unitPrice`, `discountPct`, `ivaRate`, `iepsRate`, and — when the sale item has them — `dosificationId`, `numPartsSnapshot`.
-7. Compute totals using `ReturnTotalsCalculator` — unchanged by dosification lines.
+6. Snapshot per line from the corresponding `sale_item`: `productCodeSnapshot`, `productNameSnapshot`, `priceNameSnapshot`, `unitPrice`, `discountPct`, `discountAmount`, `ivaRate`, `iepsRate`, and — when the sale item has them — `dosificationId`, `numPartsSnapshot`.
+7. Compute totals using `ReturnTotalsCalculator` — unchanged by dosification lines; deducts `discountAmount` exactly as the originating sale line did.
 8. For each item, INCREMENT inventory atomically using the base-unit amount (`quantity / numPartsSnapshot` when the sale item has a dosification, `quantity` otherwise):
    ```
    UPDATE branch_inventory
@@ -307,6 +317,10 @@ Returns HTTP 201 with the `ReturnDetailDto` (including items).
 #### Scenario: Return of a dosification line increments a fraction of base stock
 - **WHEN** a return is registered for `quantity=2` parts of a sale line whose `numPartsSnapshot=4`
 - **THEN** `branch_inventory.quantity` is incremented by `2/4 = 0.5` (not by `2`)
+
+#### Scenario: Refund of a flat-amount-discounted line deducts the discount
+- **WHEN** a return is registered for a sale line whose `sale_item` had `unitPrice=500`, `quantity=1`, `discountAmount=100` (so the customer paid `400` for it)
+- **THEN** the system returns HTTP 201 with `refundTotal = 400` on that line, not `500` — the refund never exceeds what was actually paid
 
 ---
 

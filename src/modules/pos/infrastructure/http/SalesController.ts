@@ -58,10 +58,16 @@ const saleItemSchema = z
     productPriceId: z.string().uuid().optional(),
     dosificationId: z.string().uuid().optional(),
     quantity: z.number().positive("quantity must be > 0"),
+    discountPctOverride: z.number().min(0).max(100).nullable().optional(),
+    discountAmount: z.number().min(0).max(100).nullable().optional(),
   })
   .refine((item) => Boolean(item.productPriceId) !== Boolean(item.dosificationId), {
     message: "Exactly one of productPriceId or dosificationId is required",
-  });
+  })
+  .refine(
+    (item) => !((item.discountPctOverride ?? 0) > 0 && (item.discountAmount ?? 0) > 0),
+    { message: "discountPctOverride and discountAmount are mutually exclusive" }
+  );
 
 const createSaleSchema = z.object({
   branchId: z.string().uuid(),

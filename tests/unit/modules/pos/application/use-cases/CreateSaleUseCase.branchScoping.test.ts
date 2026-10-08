@@ -21,6 +21,7 @@ function makeSummary(data: CreateSaleData): SaleSummary {
       quantity: it.quantity,
       unitPrice: it.unitPrice,
       discountPct: it.discountPct,
+      discountAmount: it.discountAmount,
       ivaRate: it.ivaRate,
       iepsRate: it.iepsRate,
       lineSubtotal: it.lineSubtotal,

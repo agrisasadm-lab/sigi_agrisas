@@ -10,6 +10,7 @@ export interface QuoteItemDto {
   quantity: number;
   unitPrice: number;
   discountPct: number;
+  discountAmount: number;
   ivaRate: number;
   iepsRate: number;
   lineSubtotal: number;
@@ -64,6 +65,7 @@ export interface QuoteItemInputBody {
   productPriceId: string;
   quantity: number;
   discountPctOverride?: number;
+  discountAmount?: number;
 }
 
 export interface CreateQuoteBody {

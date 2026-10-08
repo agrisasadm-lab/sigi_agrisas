@@ -2,6 +2,7 @@ export interface ReturnLineInput {
   quantity: number;
   unitPrice: number;
   discountPct?: number | null;
+  discountAmount?: number | null;
   ivaRate?: number | null;
   iepsRate?: number | null;
 }
@@ -39,14 +40,16 @@ export function computeReturnTotalsClient(lines: ReturnLineInput[]): ReturnTotal
   for (const line of lines) {
     if (line.quantity <= 0) continue;
     const discountPct = line.discountPct ?? 0;
+    const discountAmount = line.discountAmount ?? 0;
     const ivaRate = line.ivaRate ?? 0;
     const iepsRate = line.iepsRate ?? 0;
 
     // unitPrice is the final tax-inclusive price the customer pays; tax is
     // extracted from it (not added on top): lineSubtotal = lineGross / (1 + rates).
-    const lineGross = roundHalfToEven(
-      line.quantity * line.unitPrice * (1 - discountPct / 100),
-      SCALE
+    const lineGross = Math.max(
+      0,
+      roundHalfToEven(line.quantity * line.unitPrice * (1 - discountPct / 100), SCALE) -
+        discountAmount
     );
     const divisor = 1 + ivaRate + iepsRate;
     const lineSubtotal = roundHalfToEven(lineGross / divisor, SCALE);

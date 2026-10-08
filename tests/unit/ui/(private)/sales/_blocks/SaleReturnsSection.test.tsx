@@ -69,6 +69,7 @@ function makeSaleItem(id = "si1", quantity = 5): SaleItem {
     unitPrice: 10,
     quantity,
     discountPct: 0,
+    discountAmount: 0,
     ivaRate: 0.16,
     iepsRate: 0,
     lineSubtotal: 50,

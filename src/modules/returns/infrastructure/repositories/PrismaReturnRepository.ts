@@ -52,6 +52,7 @@ type PrismaReturnWithJoins = {
     quantity: Prisma.Decimal;
     unitPrice: Prisma.Decimal;
     discountPct: Prisma.Decimal | null;
+    discountAmount: Prisma.Decimal;
     ivaRate: Prisma.Decimal | null;
     iepsRate: Prisma.Decimal | null;
     lineSubtotal: Prisma.Decimal;
@@ -112,6 +113,7 @@ function toReturnItem(item: PrismaReturnWithJoins["items"][0]): ReturnItem {
     quantity: Number(item.quantity),
     unitPrice: Number(item.unitPrice),
     discountPct: item.discountPct ? Number(item.discountPct) : null,
+    discountAmount: Number(item.discountAmount),
     ivaRate: item.ivaRate ? Number(item.ivaRate) : null,
     iepsRate: item.iepsRate ? Number(item.iepsRate) : null,
     lineSubtotal: Number(item.lineSubtotal),
@@ -350,6 +352,7 @@ export class PrismaReturnRepository implements ReturnRepository {
               quantity: new Prisma.Decimal(item.quantity),
               unitPrice: new Prisma.Decimal(item.unitPrice),
               discountPct: item.discountPct === null ? null : new Prisma.Decimal(item.discountPct),
+              discountAmount: new Prisma.Decimal(item.discountAmount),
               ivaRate: item.ivaRate === null ? null : new Prisma.Decimal(item.ivaRate),
               iepsRate: item.iepsRate === null ? null : new Prisma.Decimal(item.iepsRate),
               lineSubtotal: new Prisma.Decimal(item.lineSubtotal),

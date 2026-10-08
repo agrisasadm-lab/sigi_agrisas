@@ -48,7 +48,9 @@ export function ReturnItemsTable({ items, isLoading }: ReturnItemsTableProps) {
               <td className="px-4 py-3 text-on-surface-variant text-label-sm">{item.priceNameSnapshot}</td>
               <td className="px-4 py-3 text-right tabular-nums">{item.quantity}</td>
               <td className="px-4 py-3 text-right tabular-nums">{fmt(item.unitPrice)}</td>
-              <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">{fmtPct(item.discountPct)}</td>
+              <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">
+                {item.discountAmount > 0 ? fmt(item.discountAmount) : item.discountPct > 0 ? `${item.discountPct}%` : "—"}
+              </td>
               <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">{fmtPct(item.ivaRate)}</td>
               <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">{fmtPct(item.iepsRate)}</td>
               <td className="px-4 py-3 text-right tabular-nums">{fmt(item.lineSubtotal)}</td>

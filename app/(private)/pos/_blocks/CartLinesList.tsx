@@ -9,6 +9,7 @@ interface CartLinesListProps {
   lines: CartLineType[];
   onUpdateQuantity: (id: string, qty: number) => void;
   onUpdateDiscount: (id: string, pct: number) => void;
+  onUpdateDiscountAmount: (id: string, amount: number) => void;
   onChangeTier: (id: string) => void;
   onRemove: (id: string) => void;
 }
@@ -17,6 +18,7 @@ export function CartLinesList({
   lines,
   onUpdateQuantity,
   onUpdateDiscount,
+  onUpdateDiscountAmount,
   onChangeTier,
   onRemove,
 }: CartLinesListProps) {
@@ -58,6 +60,7 @@ export function CartLinesList({
           itemProps={getItemProps(idx)}
           onUpdateQuantity={onUpdateQuantity}
           onUpdateDiscount={onUpdateDiscount}
+          onUpdateDiscountAmount={onUpdateDiscountAmount}
           onChangeTier={onChangeTier}
           onRemove={onRemove}
         />

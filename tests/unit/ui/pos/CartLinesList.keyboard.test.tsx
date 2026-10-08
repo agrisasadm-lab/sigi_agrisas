@@ -16,7 +16,9 @@ const makeLine = (n: number): CartLine => ({
   priceName: "Normal",
   unitPrice: 100,
   quantity: 2,
+  discountType: "pct",
   discountPct: 0,
+  discountAmount: 0,
   ivaRate: 0.16,
   iepsRate: 0,
   lineSubtotal: 200,
@@ -32,7 +34,7 @@ describe("CartLinesList keyboard navigation", () => {
     render(
       <CartLinesList
         lines={lines}
-        onUpdateQuantity={jest.fn()} onUpdateDiscount={jest.fn()}
+        onUpdateQuantity={jest.fn()} onUpdateDiscount={jest.fn()} onUpdateDiscountAmount={jest.fn()}
         onChangeTier={jest.fn()} onRemove={jest.fn()}
       />
     );
@@ -44,7 +46,7 @@ describe("CartLinesList keyboard navigation", () => {
     render(
       <CartLinesList
         lines={[]}
-        onUpdateQuantity={jest.fn()} onUpdateDiscount={jest.fn()}
+        onUpdateQuantity={jest.fn()} onUpdateDiscount={jest.fn()} onUpdateDiscountAmount={jest.fn()}
         onChangeTier={jest.fn()} onRemove={jest.fn()}
       />
     );
@@ -57,7 +59,7 @@ describe("CartLinesList keyboard navigation", () => {
     render(
       <CartLinesList
         lines={lines}
-        onUpdateQuantity={jest.fn()} onUpdateDiscount={jest.fn()}
+        onUpdateQuantity={jest.fn()} onUpdateDiscount={jest.fn()} onUpdateDiscountAmount={jest.fn()}
         onChangeTier={jest.fn()} onRemove={onRemove}
       />
     );
@@ -71,7 +73,7 @@ describe("CartLinesList keyboard navigation", () => {
     const { container } = render(
       <CartLinesList
         lines={lines}
-        onUpdateQuantity={jest.fn()} onUpdateDiscount={jest.fn()}
+        onUpdateQuantity={jest.fn()} onUpdateDiscount={jest.fn()} onUpdateDiscountAmount={jest.fn()}
         onChangeTier={jest.fn()} onRemove={onRemove}
       />
     );
@@ -86,7 +88,7 @@ describe("CartLinesList keyboard navigation", () => {
     const { container } = render(
       <CartLinesList
         lines={lines}
-        onUpdateQuantity={onUpdateQuantity} onUpdateDiscount={jest.fn()}
+        onUpdateQuantity={onUpdateQuantity} onUpdateDiscount={jest.fn()} onUpdateDiscountAmount={jest.fn()}
         onChangeTier={jest.fn()} onRemove={jest.fn()}
       />
     );

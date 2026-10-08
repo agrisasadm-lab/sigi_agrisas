@@ -271,6 +271,42 @@ describe("QuotesController.create", () => {
     const res = await controller.create(req("POST", "/quotes", baseCreateBody));
     expect(res.status).toBe(400);
   });
+
+  it("400 con discountPctOverride y discountAmount ambos > 0 en el mismo item", async () => {
+    const { controller } = buildController();
+    const res = await controller.create(
+      req("POST", "/quotes", {
+        ...baseCreateBody,
+        items: [{ ...baseCreateBody.items[0], discountPctOverride: 10, discountAmount: 50 }],
+      })
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("400 con discountAmount > 100", async () => {
+    const { controller } = buildController();
+    const res = await controller.create(
+      req("POST", "/quotes", {
+        ...baseCreateBody,
+        items: [{ ...baseCreateBody.items[0], discountAmount: 150 }],
+      })
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("201 con discountAmount válido solo", async () => {
+    const { controller, quoteRepo } = buildController();
+    quoteRepo.reset();
+    const res = await controller.create(
+      req("POST", "/quotes", {
+        ...baseCreateBody,
+        items: [{ ...baseCreateBody.items[0], discountAmount: 30 }],
+      })
+    );
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.items[0].discountAmount).toBe(30);
+  });
 });
 
 describe("QuotesController.update", () => {

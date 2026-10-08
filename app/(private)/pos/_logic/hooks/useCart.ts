@@ -10,6 +10,7 @@ type CartAction =
   | { type: "ADD_DOSIFICATION_LINE"; product: ProductDto; dosification: DosificationOptionDto; quantity: number }
   | { type: "UPDATE_QUANTITY"; lineId: string; quantity: number; surchargePct: number }
   | { type: "UPDATE_DISCOUNT"; lineId: string; discountPct: number; surchargePct: number }
+  | { type: "UPDATE_DISCOUNT_AMOUNT"; lineId: string; discountAmount: number; surchargePct: number }
   | { type: "CHANGE_TIER"; lineId: string; price: ProductPriceDto; surchargePct: number }
   | { type: "REMOVE_LINE"; lineId: string; surchargePct: number }
   | { type: "CLEAR" };
@@ -23,6 +24,7 @@ function recompute(
       quantity: l.quantity,
       unitPrice: l.unitPrice,
       discountPct: l.discountPct,
+      discountAmount: l.discountAmount,
       ivaRate: l.ivaRate,
       iepsRate: l.iepsRate,
       isDosificationLine: !!l.dosificationId,
@@ -48,6 +50,7 @@ function buildState(
       quantity: l.quantity,
       unitPrice: l.unitPrice,
       discountPct: l.discountPct,
+      discountAmount: l.discountAmount,
       ivaRate: l.ivaRate,
       iepsRate: l.iepsRate,
       isDosificationLine: !!l.dosificationId,
@@ -80,7 +83,9 @@ function cartReducer(state: CartState, action: CartAction): CartState {
         ivaRate: action.product.ivaRate ?? 0,
         iepsRate: action.product.iepsRate ?? 0,
         quantity: action.quantity,
+        discountType: "pct" as const,
         discountPct: action.discountPct,
+        discountAmount: 0,
       };
       return buildState([...state.lines, newLine], action.surchargePct);
     }
@@ -105,7 +110,9 @@ function cartReducer(state: CartState, action: CartAction): CartState {
         ivaRate: action.product.ivaRate ?? 0,
         iepsRate: action.product.iepsRate ?? 0,
         quantity: action.quantity,
+        discountType: "pct" as const,
         discountPct: 0,
+        discountAmount: 0,
       };
       return buildState([...state.lines, newLine], 0);
     }
@@ -119,7 +126,18 @@ function cartReducer(state: CartState, action: CartAction): CartState {
     case "UPDATE_DISCOUNT": {
       const discount = Math.max(0, Math.min(100, action.discountPct));
       const updated = state.lines.map((l) =>
-        l.id === action.lineId ? { ...l, discountPct: discount } : l
+        l.id === action.lineId
+          ? { ...l, discountType: "pct" as const, discountPct: discount, discountAmount: 0 }
+          : l
+      );
+      return buildState(updated, action.surchargePct);
+    }
+    case "UPDATE_DISCOUNT_AMOUNT": {
+      const amount = Math.max(0, Math.min(100, action.discountAmount));
+      const updated = state.lines.map((l) =>
+        l.id === action.lineId
+          ? { ...l, discountType: "amount" as const, discountAmount: amount, discountPct: 0 }
+          : l
       );
       return buildState(updated, action.surchargePct);
     }
@@ -176,6 +194,10 @@ export function useCart(surchargePct = 0) {
     dispatch({ type: "UPDATE_DISCOUNT", lineId, discountPct, surchargePct: surchargePctRef.current });
   }, []);
 
+  const updateDiscountAmount = useCallback((lineId: string, discountAmount: number) => {
+    dispatch({ type: "UPDATE_DISCOUNT_AMOUNT", lineId, discountAmount, surchargePct: surchargePctRef.current });
+  }, []);
+
   const changeTier = useCallback((lineId: string, price: ProductPriceDto) => {
     dispatch({ type: "CHANGE_TIER", lineId, price, surchargePct: surchargePctRef.current });
   }, []);
@@ -195,6 +217,7 @@ export function useCart(surchargePct = 0) {
     addLineFromDosification,
     updateQuantity,
     updateDiscountPct,
+    updateDiscountAmount,
     changeTier,
     removeLine,
     clear,
