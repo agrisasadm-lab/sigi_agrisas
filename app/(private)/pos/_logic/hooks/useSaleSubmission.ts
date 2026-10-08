@@ -57,6 +57,7 @@ export function useSaleSubmission(): UseSaleSubmissionResult {
         ...(l.dosificationId ? { dosificationId: l.dosificationId } : { productPriceId: l.productPriceId }),
         quantity: l.quantity,
         discountPctOverride: l.discountPct > 0 ? l.discountPct : undefined,
+        discountAmount: l.discountAmount > 0 ? l.discountAmount : undefined,
       })),
     };
 

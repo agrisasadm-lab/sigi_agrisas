@@ -14,10 +14,12 @@ const FORMA_PAGO_KEYWORDS: Record<string, string[]> = {
   "99": [],
 };
 
-export function mapFormaPagoToPaymentMethod(
-  formaPago: string | null,
-  paymentMethods: PaymentMethodOption[]
-): string | null {
+export interface PaymentMethodResolution {
+  paymentMethodId: string | null;
+  warning: string | null;
+}
+
+function matchByFormaPago(formaPago: string | null, paymentMethods: PaymentMethodOption[]): string | null {
   if (!formaPago) return null;
   const keywords = FORMA_PAGO_KEYWORDS[formaPago];
   if (!keywords || keywords.length === 0) return null;
@@ -26,6 +28,28 @@ export function mapFormaPagoToPaymentMethod(
     (pm) => keywords.some((k) => lower(pm.name).includes(k) || lower(pm.code).includes(k))
   );
   return found?.id ?? null;
+}
+
+export function resolvePaymentMethodFromSat(
+  metodoPago: string | null,
+  formaPago: string | null,
+  paymentMethods: PaymentMethodOption[]
+): PaymentMethodResolution {
+  if (metodoPago === "PPD") {
+    const creditMethods = paymentMethods.filter((pm) => pm.isCredit);
+    if (creditMethods.length === 1) return { paymentMethodId: creditMethods[0].id, warning: null };
+    return {
+      paymentMethodId: null,
+      warning: "Factura a crédito (PPD) sin una única forma de pago de crédito activa en catálogo, selecciona manualmente.",
+    };
+  }
+
+  const paymentMethodId = matchByFormaPago(formaPago, paymentMethods);
+  if (paymentMethodId) return { paymentMethodId, warning: null };
+  return {
+    paymentMethodId: null,
+    warning: "No se pudo determinar la forma de pago desde la factura, selecciona manualmente.",
+  };
 }
 
 export interface SatMatchLine {
@@ -147,6 +171,13 @@ export async function buildSatApplyResult(
   const serieFolio = [parsed.serie, parsed.folio].filter(Boolean).join("-");
   const emisorNombre = parsed.emisor.nombre ?? parsed.emisor.rfc;
 
+  const { paymentMethodId, warning: paymentMethodWarning } = resolvePaymentMethodFromSat(
+    parsed.metodoPago,
+    parsed.formaPago,
+    paymentMethods
+  );
+  if (paymentMethodWarning) warnings.push(paymentMethodWarning);
+
   return {
     newProvider: parsed.emisor.rfc
       ? {
@@ -156,7 +187,7 @@ export async function buildSatApplyResult(
           taxRegime: parsed.emisor.regimenFiscal ?? null,
         }
       : null,
-    paymentMethodId: mapFormaPagoToPaymentMethod(parsed.formaPago, paymentMethods),
+    paymentMethodId,
     lines: Array.from(grouped.values()).map(({ product, quantity, unitCost }) => ({
       product,
       quantity,

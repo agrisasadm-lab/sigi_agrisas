@@ -51,11 +51,18 @@ const listQueryFiltersSchema = z.object({
     .pipe(z.string().min(2, "search must be at least 2 characters").optional()),
 });
 
-const quoteItemSchema = z.object({
-  productId: z.string().uuid(),
-  productPriceId: z.string().uuid(),
-  quantity: z.number().positive("quantity must be > 0"),
-});
+const quoteItemSchema = z
+  .object({
+    productId: z.string().uuid(),
+    productPriceId: z.string().uuid(),
+    quantity: z.number().positive("quantity must be > 0"),
+    discountPctOverride: z.number().min(0).max(100).nullable().optional(),
+    discountAmount: z.number().min(0).max(100).nullable().optional(),
+  })
+  .refine(
+    (item) => !((item.discountPctOverride ?? 0) > 0 && (item.discountAmount ?? 0) > 0),
+    { message: "discountPctOverride and discountAmount are mutually exclusive" }
+  );
 
 const futureIsoDate = z
   .string()

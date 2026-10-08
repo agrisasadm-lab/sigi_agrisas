@@ -4,6 +4,7 @@ export interface QuoteLineInput {
   quantity: number;
   unitPrice: number;
   discountPct?: number | null;
+  discountAmount?: number | null;
   ivaRate?: number | null;
   iepsRate?: number | null;
   isTaxable?: boolean;
@@ -31,6 +32,7 @@ export class QuoteTotalsCalculator {
         quantity: line.quantity,
         price: line.unitPrice,
         discountPct: line.discountPct,
+        discountAmount: line.discountAmount,
         ivaRate: line.ivaRate,
         iepsRate: line.iepsRate,
         isTaxable: line.isTaxable,

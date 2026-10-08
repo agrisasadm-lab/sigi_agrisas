@@ -58,6 +58,7 @@ export function EditSalePage({ id }: EditSalePageProps) {
     addLine,
     updateQuantity,
     updateDiscountPct,
+    updateDiscountAmount,
     changeTier,
     removeLine,
     clear,
@@ -150,6 +151,7 @@ export function EditSalePage({ id }: EditSalePageProps) {
         ...(l.dosificationId ? { dosificationId: l.dosificationId } : { productPriceId: l.productPriceId }),
         quantity: l.quantity,
         discountPctOverride: l.discountPct > 0 ? l.discountPct : undefined,
+        discountAmount: l.discountAmount > 0 ? l.discountAmount : undefined,
       })) : undefined,
     };
     const result = await edit(sale.id, body);
@@ -245,6 +247,7 @@ export function EditSalePage({ id }: EditSalePageProps) {
             onOpenQuickAdd={() => {}}
             onUpdateQuantity={updateQuantity}
             onUpdateDiscount={updateDiscountPct}
+            onUpdateDiscountAmount={updateDiscountAmount}
             onChangeTier={handleChangeTier}
             onRemoveLine={removeLine}
             onSubmit={handleSubmit}

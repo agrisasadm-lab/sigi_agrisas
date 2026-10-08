@@ -104,10 +104,14 @@ export class CreateQuoteUseCase {
         unitPrice = price.price * (1 + surchargePct / 100);
       }
 
+      const discountPct = item.discountPctOverride ?? price.discountPct;
+      const discountAmount = item.discountAmount ?? 0;
+
       calcLines.push({
         quantity: item.quantity,
         unitPrice,
-        discountPct: price.discountPct,
+        discountPct,
+        discountAmount,
         ivaRate: product.ivaRate,
         iepsRate: product.iepsRate,
         isTaxable: product.isTaxable,
@@ -121,7 +125,8 @@ export class CreateQuoteUseCase {
         priceNameSnapshot: price.name,
         quantity: item.quantity,
         unitPrice,
-        discountPct: price.discountPct,
+        discountPct,
+        discountAmount,
         ivaRate: product.isTaxable ? product.ivaRate : 0,
         iepsRate: product.isTaxable ? product.iepsRate : 0,
       });

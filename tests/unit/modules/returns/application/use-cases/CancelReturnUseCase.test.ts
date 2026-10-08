@@ -42,6 +42,7 @@ function makeReturnItem(returnId = "return-1", overrides: Partial<Parameters<typ
     quantity: 3,
     unitPrice: 100,
     discountPct: null,
+    discountAmount: 0,
     ivaRate: 0.16,
     iepsRate: null,
     lineSubtotal: 300,

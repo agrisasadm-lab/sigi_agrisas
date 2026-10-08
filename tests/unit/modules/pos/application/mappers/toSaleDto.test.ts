@@ -16,6 +16,7 @@ function buildItem(overrides: Partial<Parameters<typeof SaleItem.create>[0]> = {
     quantity: 2,
     unitPrice: 100,
     discountPct: 0,
+    discountAmount: 0,
     ivaRate: 0.16,
     iepsRate: 0.08,
     lineSubtotal: 200,

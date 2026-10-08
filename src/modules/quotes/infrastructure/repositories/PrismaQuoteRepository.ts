@@ -52,6 +52,7 @@ type PrismaQuoteWithJoins = {
     quantity: Prisma.Decimal;
     unitPrice: Prisma.Decimal;
     discountPct: Prisma.Decimal | null;
+    discountAmount: Prisma.Decimal;
     ivaRate: Prisma.Decimal | null;
     iepsRate: Prisma.Decimal | null;
     lineSubtotal: Prisma.Decimal;
@@ -80,6 +81,7 @@ function toSummary(row: PrismaQuoteWithJoins): QuoteSummary {
       quantity: Number(it.quantity),
       unitPrice: Number(it.unitPrice),
       discountPct: it.discountPct ? Number(it.discountPct) : null,
+      discountAmount: Number(it.discountAmount),
       ivaRate: it.ivaRate ? Number(it.ivaRate) : null,
       iepsRate: it.iepsRate ? Number(it.iepsRate) : null,
       lineSubtotal: Number(it.lineSubtotal),
@@ -249,6 +251,7 @@ export class PrismaQuoteRepository implements QuoteRepository {
             quantity: new Prisma.Decimal(it.quantity),
             unitPrice: new Prisma.Decimal(it.unitPrice),
             discountPct: it.discountPct === null ? null : new Prisma.Decimal(it.discountPct),
+            discountAmount: new Prisma.Decimal(it.discountAmount),
             ivaRate: it.ivaRate === null ? null : new Prisma.Decimal(it.ivaRate),
             iepsRate: it.iepsRate === null ? null : new Prisma.Decimal(it.iepsRate),
             lineSubtotal: new Prisma.Decimal(it.lineSubtotal),
@@ -284,6 +287,7 @@ export class PrismaQuoteRepository implements QuoteRepository {
             quantity: new Prisma.Decimal(it.quantity),
             unitPrice: new Prisma.Decimal(it.unitPrice),
             discountPct: it.discountPct === null ? null : new Prisma.Decimal(it.discountPct),
+            discountAmount: new Prisma.Decimal(it.discountAmount),
             ivaRate: it.ivaRate === null ? null : new Prisma.Decimal(it.ivaRate),
             iepsRate: it.iepsRate === null ? null : new Prisma.Decimal(it.iepsRate),
             lineSubtotal: new Prisma.Decimal(it.lineSubtotal),

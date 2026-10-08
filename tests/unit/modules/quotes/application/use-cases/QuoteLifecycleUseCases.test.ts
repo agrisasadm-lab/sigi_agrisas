@@ -108,6 +108,31 @@ describe("CreateQuoteUseCase", () => {
     expect(dto.convertedSaleId).toBeNull();
   });
 
+  it("discountPctOverride ahora persiste en lugar del price.discountPct del catálogo (bug fix)", async () => {
+    const uc = new CreateQuoteUseCase(
+      repo,
+      makeLookups({
+        async getProductPrice(id) {
+          return { id, productId: PRODUCT_ID, branchId: BRANCH_ID, name: "Menudeo", price: 100, discountPct: 5 };
+        },
+      })
+    );
+    const { dto } = await uc.execute(
+      { ...baseCreateReq, items: [{ ...baseCreateReq.items[0], discountPctOverride: 20 }] },
+      USER_ID
+    );
+    expect(dto.items[0].discountPct).toBe(20);
+  });
+
+  it("discountAmount persiste por línea", async () => {
+    const uc = new CreateQuoteUseCase(repo, makeLookups());
+    const { dto } = await uc.execute(
+      { ...baseCreateReq, items: [{ ...baseCreateReq.items[0], discountAmount: 30 }] },
+      USER_ID
+    );
+    expect(dto.items[0].discountAmount).toBe(30);
+  });
+
   it("lanza EmptyQuoteError con items vacíos", async () => {
     const uc = new CreateQuoteUseCase(repo, makeLookups());
     await expect(uc.execute({ ...baseCreateReq, items: [] }, USER_ID)).rejects.toThrow(
@@ -319,6 +344,14 @@ describe("UpdateQuoteUseCase", () => {
       items: [{ productId: PRODUCT_ID, productPriceId: PRICE_ID, quantity: 2.5 }],
     });
     expect(dto.items[0].unitPrice).toBeCloseTo(108, 10); // 100 * 1.08 (mock surcharge)
+  });
+
+  it("discountAmount persiste en la edición", async () => {
+    const uc = new UpdateQuoteUseCase(repo, makeLookups());
+    const { dto } = await uc.execute(id, {
+      items: [{ productId: PRODUCT_ID, productPriceId: PRICE_ID, quantity: 1, discountAmount: 25 }],
+    });
+    expect(dto.items[0].discountAmount).toBe(25);
   });
 
   describe("gate de disponibilidad por sucursal (branchScopedInventory)", () => {

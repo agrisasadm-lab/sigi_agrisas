@@ -2,7 +2,7 @@ import { ReturnTotalsCalculator } from "@/modules/returns/domain/services/Return
 import { SaleTotalsCalculator } from "@/modules/pos/domain/services/SaleTotalsCalculator";
 import { QuoteTotalsCalculator } from "@/modules/quotes/domain/services/QuoteTotalsCalculator";
 import { PurchaseTotalsCalculator } from "@/modules/purchases/domain/services/PurchaseTotalsCalculator";
-import { totalsVectors } from "../../../../../fixtures/totals-vectors";
+import { totalsVectors, discountAmountVectors } from "../../../../../fixtures/totals-vectors";
 
 describe("ReturnTotalsCalculator", () => {
   it("computes a single line with no taxes", () => {
@@ -85,6 +85,24 @@ describe("ReturnTotalsCalculator", () => {
     expect(() =>
       ReturnTotalsCalculator.computeTotals([{ quantity: 1, unitPrice: 10, discountPct: 101 }])
     ).toThrow("discountPct must be between 0 and 100");
+  });
+
+  it("applies flat-amount discount before extracting tax (refund of a discounted line)", () => {
+    const r = ReturnTotalsCalculator.computeTotals([{ quantity: 1, unitPrice: 500, discountAmount: 100 }]);
+    expect(r.lines[0].lineTotal).toBe(400);
+  });
+
+  describe("equivalence with Sale/QuoteTotalsCalculator on discountAmount vectors (excluded from Purchase comparison — see fixtures)", () => {
+    discountAmountVectors.forEach((vector, i) => {
+      it(`discountAmount vector ${i + 1}`, () => {
+        const returnResult = ReturnTotalsCalculator.computeTotals(vector as Parameters<typeof ReturnTotalsCalculator.computeTotals>[0]);
+        const saleResult = SaleTotalsCalculator.computeTotals(vector as Parameters<typeof SaleTotalsCalculator.computeTotals>[0]);
+        const quoteResult = QuoteTotalsCalculator.computeTotals(vector as Parameters<typeof QuoteTotalsCalculator.computeTotals>[0]);
+
+        expect(returnResult).toEqual(saleResult);
+        expect(returnResult).toEqual(quoteResult);
+      });
+    });
   });
 
   describe("equivalence with SaleTotalsCalculator, QuoteTotalsCalculator and PurchaseTotalsCalculator", () => {

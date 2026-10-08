@@ -73,6 +73,7 @@ export class EditCompletedSaleUseCase {
 
       let unitPrice: number;
       let discountPct: number | null;
+      let discountAmount: number;
       let priceNameSnapshot: string;
       let productPriceId: string | null;
       let dosificationId: string | null;
@@ -87,7 +88,9 @@ export class EditCompletedSaleUseCase {
 
         const surchargePct = await this.lookups.getDosificationSurchargePct();
         unitPrice = DosificationPriceCalculator.computeUnitPrice(dosification.basePrice, dosification.numParts, surchargePct);
+        // Dosification lines never carry a discount, regardless of what the body sends.
         discountPct = null;
+        discountAmount = 0;
         priceNameSnapshot = dosification.name;
         productPriceId = null;
         dosificationId = dosification.id;
@@ -106,7 +109,8 @@ export class EditCompletedSaleUseCase {
         } else {
           unitPrice = price.price;
         }
-        discountPct = price.discountPct;
+        discountPct = item.discountPctOverride ?? price.discountPct;
+        discountAmount = item.discountAmount ?? 0;
         priceNameSnapshot = price.name;
         productPriceId = price.id;
         dosificationId = null;
@@ -117,6 +121,7 @@ export class EditCompletedSaleUseCase {
         quantity: item.quantity,
         unitPrice,
         discountPct,
+        discountAmount,
         ivaRate: product.ivaRate,
         iepsRate: product.iepsRate,
         isTaxable: product.isTaxable,
@@ -133,6 +138,7 @@ export class EditCompletedSaleUseCase {
         quantity: item.quantity,
         unitPrice,
         discountPct,
+        discountAmount,
         ivaRate: product.ivaRate,
         iepsRate: product.iepsRate,
       });

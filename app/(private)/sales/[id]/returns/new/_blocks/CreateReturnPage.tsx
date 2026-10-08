@@ -51,6 +51,7 @@ export function CreateReturnPage({ saleId }: CreateReturnPageProps) {
                       quantity: l.quantity,
                       unitPrice: item.unitPrice,
                       discountPct: item.discountPct ?? null,
+                      discountAmount: item.discountAmount ?? null,
                       ivaRate: item.ivaRate ?? null,
                       iepsRate: item.iepsRate ?? null,
                     }

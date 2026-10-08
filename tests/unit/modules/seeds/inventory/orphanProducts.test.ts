@@ -31,12 +31,9 @@ function makeFakePrisma(products: FakeProduct[], inventoryProductIds: string[]):
       },
     },
     productPrice: {
-      findFirstBase: async () => null,
+      findFirst: async () => null,
       updateMany: async () => ({ count: 0 }),
       upsert: async () => {
-        throw new Error("not used in detectOrphanProducts");
-      },
-      upsertBase: async () => {
         throw new Error("not used in detectOrphanProducts");
       },
     },

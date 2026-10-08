@@ -11,6 +11,7 @@ export interface SaleItemProps {
   quantity: number;
   unitPrice: number;
   discountPct: number | null;
+  discountAmount: number;
   ivaRate: number | null;
   iepsRate: number | null;
   lineSubtotal: number;
@@ -31,6 +32,7 @@ export class SaleItem {
   readonly quantity: number;
   readonly unitPrice: number;
   readonly discountPct: number | null;
+  readonly discountAmount: number;
   readonly ivaRate: number | null;
   readonly iepsRate: number | null;
   readonly lineSubtotal: number;
@@ -51,6 +53,7 @@ export class SaleItem {
     this.quantity = props.quantity;
     this.unitPrice = props.unitPrice;
     this.discountPct = props.discountPct;
+    this.discountAmount = props.discountAmount;
     this.ivaRate = props.ivaRate;
     this.iepsRate = props.iepsRate;
     this.lineSubtotal = props.lineSubtotal;

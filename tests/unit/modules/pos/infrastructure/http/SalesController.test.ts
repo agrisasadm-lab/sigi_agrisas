@@ -290,6 +290,45 @@ describe("SalesController — Zod validation", () => {
     );
     expect(res.status).toBe(400);
   });
+
+  it("rejects discountPctOverride y discountAmount ambos > 0 en el mismo item (mutuamente excluyentes)", async () => {
+    const res = await buildController({}).create(
+      postReq({
+        branchId: VALID_UUID,
+        customerId: VALID_UUID,
+        paymentMethodId: VALID_UUID,
+        folioId: VALID_UUID,
+        items: [{ productId: VALID_UUID, productPriceId: VALID_UUID, quantity: 1, discountPctOverride: 10, discountAmount: 50 }],
+      })
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects discountAmount > 100", async () => {
+    const res = await buildController({}).create(
+      postReq({
+        branchId: VALID_UUID,
+        customerId: VALID_UUID,
+        paymentMethodId: VALID_UUID,
+        folioId: VALID_UUID,
+        items: [{ productId: VALID_UUID, productPriceId: VALID_UUID, quantity: 1, discountAmount: 150 }],
+      })
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("accepts discountAmount solo (sin discountPctOverride)", async () => {
+    const res = await buildController({}).create(
+      postReq({
+        branchId: VALID_UUID,
+        customerId: VALID_UUID,
+        paymentMethodId: VALID_UUID,
+        folioId: VALID_UUID,
+        items: [{ productId: VALID_UUID, productPriceId: VALID_UUID, quantity: 1, discountAmount: 50 }],
+      })
+    );
+    expect(res.status).not.toBe(400);
+  });
 });
 
 describe("SalesController — Branch scoping", () => {

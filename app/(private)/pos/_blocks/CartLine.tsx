@@ -20,6 +20,7 @@ interface CartLineProps {
   itemProps?: ListItemProps;
   onUpdateQuantity: (id: string, qty: number) => void;
   onUpdateDiscount: (id: string, pct: number) => void;
+  onUpdateDiscountAmount: (id: string, amount: number) => void;
   onChangeTier: (id: string) => void;
   onRemove: (id: string) => void;
 }
@@ -35,6 +36,7 @@ export function CartLine({
   itemProps,
   onUpdateQuantity,
   onUpdateDiscount,
+  onUpdateDiscountAmount,
   onChangeTier,
   onRemove,
 }: CartLineProps) {
@@ -109,22 +111,70 @@ export function CartLine({
             className="w-20 rounded-sm border border-outline px-2 py-1 text-body-sm tabular-nums focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
-        <div className="flex items-center gap-1">
-          <label className="text-label-sm text-on-surface-variant">Desc. %</label>
-          <input
-            type="number"
-            min="0"
-            max="100"
-            step="0.01"
-            value={line.discountPct}
-            onKeyDown={stopShortcutKeys}
-            onChange={(e) => {
-              const v = parseFloat(e.target.value);
-              if (!isNaN(v)) onUpdateDiscount(line.id, v);
-            }}
-            className="w-16 rounded-sm border border-outline px-2 py-1 text-body-sm tabular-nums focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-        </div>
+        {line.dosificationId ? (
+          <div className="flex items-center gap-1">
+            <label className="text-label-sm text-on-surface-variant">Desc. %</label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step="0.01"
+              value={line.discountPct}
+              onKeyDown={stopShortcutKeys}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                if (!isNaN(v)) onUpdateDiscount(line.id, v);
+              }}
+              className="w-16 rounded-sm border border-outline px-2 py-1 text-body-sm tabular-nums focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+        ) : (
+          <div className="flex items-center gap-1">
+            <div className="flex rounded-sm border border-outline overflow-hidden" role="group" aria-label="Tipo de descuento">
+              <button
+                type="button"
+                onClick={() => onUpdateDiscount(line.id, line.discountPct)}
+                aria-pressed={line.discountType === "pct"}
+                className={[
+                  "px-2 py-1 text-label-sm font-medium",
+                  line.discountType === "pct"
+                    ? "bg-primary text-on-primary"
+                    : "bg-surface text-on-surface-variant hover:bg-surface-variant",
+                ].join(" ")}
+              >
+                %
+              </button>
+              <button
+                type="button"
+                onClick={() => onUpdateDiscountAmount(line.id, line.discountAmount)}
+                aria-pressed={line.discountType === "amount"}
+                className={[
+                  "px-2 py-1 text-label-sm font-medium border-l border-outline",
+                  line.discountType === "amount"
+                    ? "bg-primary text-on-primary"
+                    : "bg-surface text-on-surface-variant hover:bg-surface-variant",
+                ].join(" ")}
+              >
+                $
+              </button>
+            </div>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step={line.discountType === "pct" ? "0.01" : "0.01"}
+              value={line.discountType === "pct" ? line.discountPct : line.discountAmount}
+              onKeyDown={stopShortcutKeys}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                if (isNaN(v)) return;
+                if (line.discountType === "pct") onUpdateDiscount(line.id, v);
+                else onUpdateDiscountAmount(line.id, v);
+              }}
+              className="w-16 rounded-sm border border-outline px-2 py-1 text-body-sm tabular-nums focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+        )}
         <span className="ml-auto text-body-sm font-medium tabular-nums text-on-surface">
           {formatMxCurrency(line.lineTotal)}
         </span>

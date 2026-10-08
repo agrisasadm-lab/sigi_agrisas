@@ -64,6 +64,7 @@ type PrismaSaleWithJoins = {
     quantity: Prisma.Decimal;
     unitPrice: Prisma.Decimal;
     discountPct: Prisma.Decimal | null;
+    discountAmount: Prisma.Decimal;
     ivaRate: Prisma.Decimal | null;
     iepsRate: Prisma.Decimal | null;
     lineSubtotal: Prisma.Decimal;
@@ -93,6 +94,7 @@ interface SnapshotLike {
   quantity: number;
   unitPrice: number;
   discountPct: number | null;
+  discountAmount: number;
   ivaRate: number | null;
   iepsRate: number | null;
   lineSubtotal: number;
@@ -112,6 +114,7 @@ function toSaleItemCreate(it: SnapshotLike) {
     quantity: new Prisma.Decimal(it.quantity),
     unitPrice: new Prisma.Decimal(it.unitPrice),
     discountPct: it.discountPct === null ? null : new Prisma.Decimal(it.discountPct),
+    discountAmount: new Prisma.Decimal(it.discountAmount),
     ivaRate: it.ivaRate === null ? null : new Prisma.Decimal(it.ivaRate),
     iepsRate: it.iepsRate === null ? null : new Prisma.Decimal(it.iepsRate),
     lineSubtotal: new Prisma.Decimal(it.lineSubtotal),
@@ -135,6 +138,7 @@ function toSummary(row: PrismaSaleWithJoins): SaleSummary {
       quantity: Number(it.quantity),
       unitPrice: Number(it.unitPrice),
       discountPct: it.discountPct ? Number(it.discountPct) : null,
+      discountAmount: Number(it.discountAmount),
       ivaRate: it.ivaRate ? Number(it.ivaRate) : null,
       iepsRate: it.iepsRate ? Number(it.iepsRate) : null,
       lineSubtotal: Number(it.lineSubtotal),
@@ -608,6 +612,7 @@ export class PrismaSaleRepository implements SaleRepository {
             quantity: new Prisma.Decimal(item.quantity),
             unitPrice: new Prisma.Decimal(item.unitPrice),
             discountPct: item.discountPct === null ? null : new Prisma.Decimal(item.discountPct),
+            discountAmount: new Prisma.Decimal(item.discountAmount),
             ivaRate: item.ivaRate === null ? null : new Prisma.Decimal(item.ivaRate),
             iepsRate: item.iepsRate === null ? null : new Prisma.Decimal(item.iepsRate),
             lineSubtotal: new Prisma.Decimal(item.lineSubtotal),

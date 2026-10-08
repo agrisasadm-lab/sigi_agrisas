@@ -26,6 +26,7 @@ function makeSummary(overrides: { customerId?: string | null } = {}): SaleSummar
     quantity: 1,
     unitPrice: 100,
     discountPct: null,
+    discountAmount: 0,
     ivaRate: 0.16,
     iepsRate: null,
     lineSubtotal: 86.2069,

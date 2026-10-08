@@ -4,6 +4,7 @@ export interface LineTotalsInput {
   quantity: number;
   price: number;
   discountPct?: number | null;
+  discountAmount?: number | null;
   ivaRate?: number | null;
   iepsRate?: number | null;
   isTaxable?: boolean;
@@ -52,6 +53,13 @@ export function computeLineTotals(
     if (!Number.isFinite(discountPct) || discountPct < 0 || discountPct > 100) {
       throw new Error("discountPct must be between 0 and 100");
     }
+    const discountAmount = line.discountAmount ?? 0;
+    if (!Number.isFinite(discountAmount) || discountAmount < 0 || discountAmount > 100) {
+      throw new Error("discountAmount must be between 0 and 100");
+    }
+    if (discountPct > 0 && discountAmount > 0) {
+      throw new Error("discountPct and discountAmount are mutually exclusive");
+    }
     const rawIvaRate = line.ivaRate ?? 0;
     if (!Number.isFinite(rawIvaRate) || rawIvaRate < 0 || rawIvaRate > 1) {
       throw new Error("ivaRate must be between 0 and 1");
@@ -67,7 +75,10 @@ export function computeLineTotals(
 
     // price is the final tax-inclusive amount paid; tax is extracted from it
     // (not added on top): lineSubtotal = lineGross / (1 + rates).
-    const lineGross = roundHalfToEven(line.quantity * line.price * (1 - discountPct / 100), SCALE);
+    const lineGross = Math.max(
+      0,
+      roundHalfToEven(line.quantity * line.price * (1 - discountPct / 100), SCALE) - discountAmount
+    );
     const divisor = 1 + ivaRate + iepsRate;
     const lineSubtotal = roundHalfToEven(lineGross / divisor, SCALE);
     const lineIva = roundHalfToEven(lineSubtotal * ivaRate, SCALE);

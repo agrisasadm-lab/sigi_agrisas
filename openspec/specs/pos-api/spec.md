@@ -192,6 +192,8 @@ Each `SaleItemInput`:
 - `productId: string` (UUID of an active product)
 - `productPriceId: string` (UUID of a price belonging to `productId`) **OR** `dosificationId: string` (UUID of a dosification belonging to `productId`) — exactly one of the two SHALL be present; both present or both absent → HTTP 400.
 - `quantity: number` (decimal `> 0`; max 14 integer + 4 decimal digits). For a dosification line, `quantity` is the number of parts sold (MAY exceed the dosification's `numParts`).
+- `discountPctOverride: number | null` (optional; decimal `0–100`). When present on a `productPriceId`-based item, overrides the catalog's `price.discountPct` for this line. Ignored (never applied) on a `dosificationId`-based item.
+- `discountAmount: number | null` (optional; decimal `0–100`, MXN). A flat-amount discount for this line, mutually exclusive with `discountPctOverride`/the catalog `discountPct` on the same line — both `> 0` on the same item → HTTP 400. Ignored (forced to `0`) on a `dosificationId`-based item regardless of what the body sends.
 
 Optional body:
 
@@ -228,11 +230,11 @@ The `quoteId` does NOT constrain whether the sale is cash or credit — the `pay
 2. Load `paymentMethod.isCredit` (via `include` or join) so the downstream branching is consistent within the transaction.
 3. If `quoteId` is non-null: validate per the rules above; failure → HTTP 400.
 4. For each item:
-   - If `productPriceId` is present: load the `Product` and `ProductPrice`; verify `productPrice.productId === item.productId` (else `ProductPriceMismatchError` → HTTP 400), that the price belongs to a product whose `isActive = true` (else HTTP 400), and that `productPrice.branchId === null OR productPrice.branchId === branchId` — the price is either a global base price or an override belonging to the sale's own branch (else `ProductPriceNotAvailableForBranchError` → HTTP 400 `{"error": "Product price does not belong to this branch"}`; the error message SHALL NOT disclose the price or the other branch it belongs to). **Additionally, when `productPrice.branchId === null` (a base price was selected) AND the product has at least one `ProductPrice` override for the sale's `branchId`, the system SHALL reject with the same `ProductPriceNotAvailableForBranchError` → HTTP 400** — once a branch has its own price for a product, the global base price is no longer a valid selection for that branch. If `item.quantity` is NOT an integer (`quantity % 1 !== 0`), resolve the currently configured `dosificationSurchargePct` from `settings-api` (default `5.0` when unconfigured) and compute `unitPrice = price.price * (1 + surchargePct / 100)`; if `item.quantity` IS an integer, `unitPrice = price.price` unchanged (no surcharge). This surcharge applies uniformly to every product — there is no per-product or per-department opt-out.
-   - If `dosificationId` is present instead: load the `Product` and `ProductDosification`; verify `dosification.productId === item.productId` (else HTTP 400) and `dosification.isActive = true` (else HTTP 400); load the product's default `ProductPrice` for the sale's `branchId` — the branch's own override marked `isDefault=true` if one exists, otherwise the global default (`branchId: null`, `isDefault=true`) — if neither exists → HTTP 400 `{"error": "Dosification requires a default price"}`; resolve the currently configured `dosificationSurchargePct` from `settings-api` (default `5.0` when unconfigured); compute `unitPrice = DosificationPriceCalculator.computeUnitPrice(defaultPrice.price, dosification.numParts, surchargePct)`. This is the ONLY surcharge applied to dosification lines — the fractional-quantity surcharge above SHALL NOT additionally apply here, regardless of whether `quantity` is itself fractional, to avoid double-charging the configured percentage on the same line.
+   - If `productPriceId` is present: load the `Product` and `ProductPrice`; verify `productPrice.productId === item.productId` (else `ProductPriceMismatchError` → HTTP 400), that the price belongs to a product whose `isActive = true` (else HTTP 400), and that `productPrice.branchId === branchId` — **every `ProductPrice` row belongs to exactly one branch; there is no global/base price and no fallback to another branch's price** (mismatch → `ProductPriceNotAvailableForBranchError` → HTTP 400 `{"error": "Product price does not belong to this branch"}`; the error message SHALL NOT disclose the price or the other branch it belongs to). If `item.quantity` is NOT an integer (`quantity % 1 !== 0`), resolve the currently configured `dosificationSurchargePct` from `settings-api` (default `5.0` when unconfigured) and compute `unitPrice = price.price * (1 + surchargePct / 100)`; if `item.quantity` IS an integer, `unitPrice = price.price` unchanged (no surcharge). This surcharge applies uniformly to every product — there is no per-product or per-department opt-out.
+   - If `dosificationId` is present instead: load the `Product` and `ProductDosification`; verify `dosification.productId === item.productId` (else HTTP 400) and `dosification.isActive = true` (else HTTP 400); load the product's default `ProductPrice` for the sale's own `branchId` (`branchId = <sale's branchId> AND isDefault=true`) — if none exists for that exact branch → HTTP 400 `{"error": "Dosification requires a default price"}` (there is no fallback to any other branch's default); resolve the currently configured `dosificationSurchargePct` from `settings-api` (default `5.0` when unconfigured); compute `unitPrice = DosificationPriceCalculator.computeUnitPrice(defaultPrice.price, dosification.numParts, surchargePct)`. This is the ONLY surcharge applied to dosification lines — the fractional-quantity surcharge above SHALL NOT additionally apply here, regardless of whether `quantity` is itself fractional, to avoid double-charging the configured percentage on the same line.
    - `quantity > 0` (else HTTP 400) for either case. The system MAY skip enforcement of `minQuantity` in v1 (documented, applies only to price-based lines).
-5. Snapshot `productCodeSnapshot = product.code`, `productNameSnapshot = product.name`; for price-based lines: `priceNameSnapshot = price.name`, `unitPrice` per step 4 above (recharged when `quantity` is fractional, else `price.price` unchanged), `discountPct = price.discountPct`; for dosification lines: `priceNameSnapshot = dosification.name`, `unitPrice` per above, `discountPct = null`, `dosificationId = dosification.id`, `numPartsSnapshot = dosification.numParts`. Both kinds set `ivaRate = product.ivaRate`, `iepsRate = product.iepsRate`. This server-computed snapshot is authoritative even for offline-originated sales — a `clientRequestId`-bearing request carries only IDs/quantities, never client-computed snapshot values, so catalog drift between offline creation and sync time is always resolved in favor of the server's live catalog. The snapshot does NOT record which branch's price (base or override) was used — only the resolved `unitPrice` value.
-6. Compute totals using `SaleTotalsCalculator` (domain service) — unchanged by dosification lines or by the fractional-quantity surcharge (operates on `quantity * unitPrice`, agnostic to what `quantity` represents or how `unitPrice` was resolved).
+5. Snapshot `productCodeSnapshot = product.code`, `productNameSnapshot = product.name`; for price-based lines: `priceNameSnapshot = price.name`, `unitPrice` per step 4 above (recharged when `quantity` is fractional, else `price.price` unchanged), `discountPct = item.discountPctOverride ?? price.discountPct`, `discountAmount = item.discountAmount ?? 0`; for dosification lines: `priceNameSnapshot = dosification.name`, `unitPrice` per above, `discountPct = null`, `discountAmount = 0` (both forced regardless of body — a dosification line never carries either kind of discount), `dosificationId = dosification.id`, `numPartsSnapshot = dosification.numParts`. Both kinds set `ivaRate = product.ivaRate`, `iepsRate = product.iepsRate`. This server-computed snapshot is authoritative even for offline-originated sales — a `clientRequestId`-bearing request carries only IDs/quantities/discount selections, never client-computed line totals, so catalog drift between offline creation and sync time is always resolved in favor of the server's live catalog.
+6. Compute totals using `SaleTotalsCalculator` (domain service) — unchanged by dosification lines or by the fractional-quantity surcharge (operates on `quantity * unitPrice`, agnostic to what `quantity` represents or how `unitPrice` was resolved); now also receives `discountAmount` per line (see "SaleTotalsCalculator (domain service)").
 7. If `paymentMethod.isCredit === true`: compute the informational `creditLimitExceeded` flag per "Credit flow auto-activation" above. This step never aborts the transaction.
 8. Allocate the next folio number **for the sale's own branch** atomically via `allocateBranchFolio(tx, folioId, branchId)`: `INSERT INTO folio_branch_counters (folio_id, branch_id, current_number) VALUES (?, ?, 1) ON CONFLICT (folio_id, branch_id) DO UPDATE SET current_number = folio_branch_counters.current_number + 1 RETURNING current_number`. The resulting `folioCode` SHALL be `<prefix><BRANCH_CODE>-<currentNumber padded to 6 digits>` (e.g. `TK-ZARIOZ-000001`), where `<BRANCH_CODE>` is the issuing branch's `code`. If the folio is inactive → HTTP 400. Folio numbers are allocated strictly in the order requests reach this step — for a sale queued offline and synced later, this MAY differ from the chronological order in which the sale was actually created at the register (this is expected and accepted behavior for `offline-sync`, not a bug). Legacy `folioCode`s issued before this change (global format, e.g. `TK-000038`) are preserved unchanged — the new format cannot collide with them.
 9. For each item, decrement inventory using the base-unit amount (`quantity / numPartsSnapshot` for dosification lines, `quantity` otherwise — see "Sale aggregate model"): `UPDATE branch_inventory SET quantity = quantity - ${amount}, updated_at = NOW() WHERE branch_id = ? AND product_id = ?`. If the update affects 0 rows (no inventory record exists for this pair), the system SHALL `INSERT INTO branch_inventory (branch_id, product_id, quantity) VALUES (?, ?, -${amount})` (creates the record with negative initial quantity). The result `quantity` MAY be negative — this is the implementation of the rule "selling with stock 0 leaves negative quantity awaiting transfer", and is the same mechanism that allows an offline-queued sale to succeed at sync time even if the branch's real stock dropped below the sale's quantity while it was queued. **After each such decrement**, the system SHALL evaluate the low-stock notification trigger per `admin-notifications-api` "Notify admin on low stock" (best-effort, never blocks or fails this endpoint).
@@ -334,12 +336,12 @@ Returns HTTP 201 with the `SaleDetailDto` (including items, `quoteId`, `paidAmou
 - **THEN** the system still returns HTTP 201 as normal, AND — per `admin-notifications-api` — an email is sent to the configured admin address and `lastLowStockNotifiedAt` is updated; a failure to send this email does NOT affect the HTTP 201 response
 
 #### Scenario: Dosification sale decrements a fraction of base stock
-- **WHEN** the body has one item with `dosificationId` referencing a dosification with `numParts=4` and `quantity=3`, for a product whose default price is `100` and whose `branch_inventory.quantity = 10`, and no `pricing_settings` row exists yet (default 5% surcharge applies)
+- **WHEN** the body has one item with `dosificationId` referencing a dosification with `numParts=4` and `quantity=3`, for a product whose default price (for the sale's own branch) is `100` and whose `branch_inventory.quantity = 10`, and no `pricing_settings` row exists yet (default 5% surcharge applies)
 - **THEN** the system returns HTTP 201 with `unitPrice = (100/4)*1.05 = 26.25` on that line; `branch_inventory.quantity` becomes `10 - (3/4) = 9.25`
 
 #### Scenario: Dosification without default price rejected
-- **WHEN** the body has an item with `dosificationId` referencing a dosification whose product has no default `ProductPrice`
-- **THEN** the system returns HTTP 400 `{"error": "Dosification requires a default price"}` and the transaction does not commit
+- **WHEN** the body has an item with `dosificationId` referencing a dosification whose product has no default `ProductPrice` for the sale's own branch
+- **THEN** the system returns HTTP 400 `{"error": "Dosification requires a default price"}` and the transaction does not commit — there is no fallback to another branch's default
 
 #### Scenario: Dosification/productPrice mutual exclusivity
 - **WHEN** an item includes both `productPriceId` and `dosificationId`, or neither
@@ -381,25 +383,49 @@ Returns HTTP 201 with the `SaleDetailDto` (including items, `quoteId`, `paidAmou
 - **WHEN** an offline-queued sale (via `clientRequestId`) is synced and, by the time it reaches step 9, `branch_inventory.quantity` for an item is now lower than the sale's quantity because other sales (online or from other offline queues) consumed stock while this one was queued
 - **THEN** the system still returns HTTP 201 and updates `branch_inventory.quantity` to a negative value, exactly as it already does for any sale (online or offline) selling more than available (see "Selling more than available (still allowed)")
 
-#### Scenario: Sale uses the branch's own override price
-- **WHEN** the body's `branchId` is ZARIOZ and an item's `productPriceId` references a `ProductPrice` whose `branchId = ZARIOZ`
-- **THEN** the system returns HTTP 201 and `unitPrice` on that line is resolved from the ZARIOZ override, not from the product's global base price
+#### Scenario: Sale uses the branch's own price
+- **WHEN** the body's `branchId` is B1 and an item's `productPriceId` references a `ProductPrice` whose `branchId = B1`
+- **THEN** the system returns HTTP 201 and `unitPrice` on that line is resolved from that price
 
-#### Scenario: Sale uses the global base price when the branch has no override
-- **WHEN** the body's `branchId` is HUAJUAPAN and an item's `productPriceId` references a `ProductPrice` whose `branchId = null` (base)
-- **THEN** the system returns HTTP 201 and `unitPrice` on that line is resolved from the base price, exactly as before this change
+#### Scenario: Sale rejects a price belonging to another branch
+- **WHEN** the body's `branchId` is B1 but an item's `productPriceId` references a `ProductPrice` whose `branchId = B2`
+- **THEN** the system returns HTTP 400 `{"error": "Product price does not belong to this branch"}` and the transaction does not commit; the response body does not include the B2 price value — this is the ONLY branch-price resolution rule; there is no global/base price and no fallback between branches
 
-#### Scenario: Sale rejects a price override belonging to another branch
-- **WHEN** the body's `branchId` is HUAJUAPAN but an item's `productPriceId` references a `ProductPrice` whose `branchId = ZARIOZ`
-- **THEN** the system returns HTTP 400 `{"error": "Product price does not belong to this branch"}` and the transaction does not commit; the response body does not include the ZARIOZ price value
+#### Scenario: Dosification default price is resolved strictly from the sale's own branch
+- **WHEN** the body's `branchId` is B1, the item has `dosificationId` referencing a dosification whose product has a default `ProductPrice` for branch B2 but none for B1
+- **THEN** the system returns HTTP 400 `{"error": "Dosification requires a default price"}` — a default price belonging to a different branch is never used as a substitute
 
-#### Scenario: Dosification default price resolves the branch's own override first
-- **WHEN** the body's `branchId` is ZARIOZ, the item has `dosificationId` referencing a dosification whose product has BOTH a global default `ProductPrice` (base, `price=100`) AND a ZARIOZ-scoped override marked `isDefault=true` (`price=80`)
-- **THEN** the dosification's `basePrice` used for `computeUnitPrice` is `80` (the ZARIOZ default), not the global `100`
+#### Scenario: Folio numbering is independent per branch
+- **WHEN** branch B1 has already issued 5 sales under folio `TK` and branch B2 issues its first sale under the same folio
+- **THEN** B2's sale receives `TK-<B2_CODE>-000001`, independent of B1's `TK-<B1_CODE>-000005`
 
-#### Scenario: Dosification default price falls back to the global default
-- **WHEN** the body's `branchId` is HUAJUAPAN, the item has `dosificationId` referencing a dosification whose product has a global default `ProductPrice` and no HUAJUAPAN-scoped override
-- **THEN** the dosification's `basePrice` is resolved from the global default, exactly as before this change
+#### Scenario: Legacy folioCode is preserved, not renumbered
+- **WHEN** a sale exists with the legacy global-format `folioCode = "TK-000038"` (issued before branch-scoped counters were introduced)
+- **THEN** no new sale is ever assigned that same `folioCode`, the legacy sale's `folioCode` is never modified, and branch-scoped counter assignment always produces the new format (`<prefix><BRANCH_CODE>-NNNNNN`) which cannot collide with the legacy format
+
+#### Scenario: Flat-amount discount applied to a line
+- **WHEN** the body has an item with `productPriceId`, `quantity=1`, `price.price=500`, and `discountAmount=100` (no `discountPctOverride`)
+- **THEN** the system returns HTTP 201 with that line's `lineGross = 500 - 100 = 400` before tax extraction, and `discountPct=0` (no catalog override applied) persisted on the `sale_item`
+
+#### Scenario: discountPctOverride now actually persists (bug fix)
+- **WHEN** the body has an item whose catalog `price.discountPct = 5` but the body sends `discountPctOverride: 15`
+- **THEN** the system returns HTTP 201 with `discountPct=15` persisted on the `sale_item` (the override wins) — previously this field was silently discarded and the catalog value was always used instead
+
+#### Scenario: discountAmount and discountPctOverride mutually exclusive on the same line
+- **WHEN** an item's body includes both `discountPctOverride: 10` and `discountAmount: 50`, both `> 0`
+- **THEN** the system returns HTTP 400 and the transaction does not commit
+
+#### Scenario: discountAmount out of range rejected
+- **WHEN** an item's `discountAmount` is `150` (exceeds the 100 MXN cap) or negative
+- **THEN** the system returns HTTP 400 and the transaction does not commit
+
+#### Scenario: discountAmount exceeding the line's gross clamps to zero, never negative
+- **WHEN** an item has `quantity=1`, `price.price=80`, `discountAmount=100`
+- **THEN** the system returns HTTP 201 with that line's `lineGross = 0` (not `-20`)
+
+#### Scenario: Dosification line ignores discountAmount and discountPctOverride even if sent
+- **WHEN** the body has an item with `dosificationId` that also includes `discountAmount: 50` (or `discountPctOverride: 10`)
+- **THEN** the system returns HTTP 201 with `discountPct=null` and `discountAmount=0` persisted on that line, identical to a dosification line that sent neither field — the body's discount fields are ignored for dosification lines, not rejected
 
 #### Scenario: Sale rejects the global base price when the branch has its own override
 - **WHEN** the body's `branchId` is ZARIOZ, an item's `productPriceId` references a `ProductPrice` whose `branchId = null` (base, still active), and the same product has a separate `ProductPrice` row with `branchId = ZARIOZ`
@@ -580,14 +606,14 @@ The system SHALL provide a pure domain service `SaleTotalsCalculator` in `src/mo
 computeTotals(lines: SaleLineInput[]): SaleTotalsResult
 ```
 
-`SaleLineInput`: `{ quantity, unitPrice, discountPct?, ivaRate?, iepsRate? }` — all decimals; `discountPct` defaults to `0` when absent; `ivaRate`/`iepsRate` default to `0` when `null`/absent.
+`SaleLineInput`: `{ quantity, unitPrice, discountPct?, discountAmount?, ivaRate?, iepsRate? }` — all decimals; `discountPct` defaults to `0` when absent; `discountAmount` defaults to `0` when absent; `ivaRate`/`iepsRate` default to `0` when `null`/absent.
 
 `SaleTotalsResult`: `{ lines: SaleLineTotals[], subtotal, taxTotal, total }`. Each `SaleLineTotals`: `{ lineSubtotal, lineIva, lineIeps, lineTax, lineTotal }`.
 
 `unitPrice` represents the FINAL price the customer pays for that unit — taxes are already included in it. The system SHALL extract (not add) the tax from that price using the standard tax-inclusive-price formula:
 
 ```
-lineGross    = round(quantity * unitPrice * (1 - discountPct / 100), 4)
+lineGross    = max(0, round(quantity * unitPrice * (1 - discountPct / 100), 4) - discountAmount)
 divisor      = 1 + ivaRate + iepsRate
 lineSubtotal = round(lineGross / divisor, 4)
 lineIva      = round(lineSubtotal * ivaRate, 4)
@@ -596,9 +622,9 @@ lineTax      = lineIva + lineIeps
 lineTotal    = lineGross
 ```
 
-`lineTotal` (what the customer pays) is unaffected by this change — only the internal subtotal/IVA/IEPS breakdown changes. When `ivaRate = iepsRate = 0`, `divisor = 1` and the formula degenerates to the previous behavior (`lineSubtotal = lineGross = lineTotal`).
+`lineTotal` (what the customer pays) is unaffected by this change in the absence of `discountAmount` — only the internal subtotal/IVA/IEPS breakdown changes with discounts. When `ivaRate = iepsRate = 0`, `divisor = 1` and the formula degenerates to the previous behavior (`lineSubtotal = lineGross = lineTotal`). When `discountAmount = 0`, `lineGross` degenerates to the pre-existing percentage-only formula.
 
-Header totals are the sum across lines for `lineSubtotal`, `lineTax`, `lineTotal` respectively (mapped to `subtotal`, `taxTotal`, `total`). Rounding uses banker's rounding (half-to-even) at 4 decimal places. The service SHALL throw if `quantity <= 0`, `unitPrice < 0`, `discountPct < 0 || discountPct > 100`, `ivaRate < 0 || ivaRate > 1`, or `iepsRate < 0 || iepsRate > 1`. No I/O dependencies (no Prisma, no fetch).
+Header totals are the sum across lines for `lineSubtotal`, `lineTax`, `lineTotal` respectively (mapped to `subtotal`, `taxTotal`, `total`). Rounding uses banker's rounding (half-to-even) at 4 decimal places. The service SHALL throw if `quantity <= 0`, `unitPrice < 0`, `discountPct < 0 || discountPct > 100`, `discountAmount < 0 || discountAmount > 100`, `(discountPct > 0 && discountAmount > 0)` (mutually exclusive), `ivaRate < 0 || ivaRate > 1`, or `iepsRate < 0 || iepsRate > 1`. No I/O dependencies (no Prisma, no fetch).
 
 #### Scenario: Simple line
 - **WHEN** `computeTotals([{ quantity: 2, unitPrice: 100, ivaRate: 0.16 }])` is invoked
@@ -626,6 +652,26 @@ Header totals are the sum across lines for `lineSubtotal`, `lineTax`, `lineTotal
 
 #### Scenario: Invalid input rejected
 - **WHEN** `computeTotals([{ quantity: 0, unitPrice: 100 }])` is invoked
+- **THEN** the method throws a validation error
+
+#### Scenario: With flat-amount discount
+- **WHEN** `computeTotals([{ quantity: 1, unitPrice: 500, discountAmount: 100 }])` is invoked
+- **THEN** `lineGross = 400`, `lineSubtotal = 400`, `lineTotal = 400` (no tax rates)
+
+#### Scenario: Flat-amount discount combined with tax extraction
+- **WHEN** `computeTotals([{ quantity: 1, unitPrice: 116, discountAmount: 16, ivaRate: 0.16 }])` is invoked
+- **THEN** `lineGross = 100`, `lineSubtotal = round(100/1.16, 4) = 86.2069`, `lineIva = 13.7931`, `lineTotal = 100`
+
+#### Scenario: Flat-amount discount exceeding the line clamps to zero
+- **WHEN** `computeTotals([{ quantity: 1, unitPrice: 80, discountAmount: 100 }])` is invoked
+- **THEN** `lineGross = 0`, `lineTotal = 0` (never negative)
+
+#### Scenario: discountPct and discountAmount both present is rejected
+- **WHEN** `computeTotals([{ quantity: 1, unitPrice: 100, discountPct: 10, discountAmount: 10 }])` is invoked
+- **THEN** the method throws a validation error — the two discount kinds are mutually exclusive per line
+
+#### Scenario: discountAmount out of range is rejected
+- **WHEN** `computeTotals([{ quantity: 1, unitPrice: 100, discountAmount: 150 }])` is invoked
 - **THEN** the method throws a validation error
 
 ### Requirement: Branch scoping pattern for sale endpoints

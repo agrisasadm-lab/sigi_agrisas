@@ -84,6 +84,37 @@ describe("computeTotalsClient", () => {
     expect(result.lines).toHaveLength(0);
   });
 
+  describe("descuento por monto fijo (discountAmount)", () => {
+    it("resta el monto fijo antes de impuestos", () => {
+      const result = computeTotalsClient([
+        { quantity: 1, unitPrice: 500, discountPct: 0, discountAmount: 100, ivaRate: 0, iepsRate: 0 },
+      ]);
+      expect(result.lines[0].lineTotal).toBe(400);
+    });
+
+    it("combinado con IVA: resta antes de extraer el impuesto", () => {
+      const result = computeTotalsClient([
+        { quantity: 1, unitPrice: 116, discountPct: 0, discountAmount: 16, ivaRate: 0.16, iepsRate: 0 },
+      ]);
+      expect(result.lines[0].lineTotal).toBe(100);
+      expect(result.lines[0].lineSubtotal).toBe(86.2069);
+    });
+
+    it("se clampa a 0 cuando el monto excede el bruto de la línea, nunca negativo", () => {
+      const result = computeTotalsClient([
+        { quantity: 1, unitPrice: 80, discountPct: 0, discountAmount: 100, ivaRate: 0, iepsRate: 0 },
+      ]);
+      expect(result.lines[0].lineTotal).toBe(0);
+    });
+
+    it("ausente (undefined) se trata como 0 — no cambia el comportamiento del % existente", () => {
+      const result = computeTotalsClient([
+        { quantity: 1, unitPrice: 100, discountPct: 10, ivaRate: 0, iepsRate: 0 },
+      ]);
+      expect(result.lines[0].lineTotal).toBe(90);
+    });
+  });
+
   describe("recargo por cantidad fraccionaria (surchargePct)", () => {
     it("aplica el recargo a una línea normal con quantity fraccionaria", () => {
       const result = computeTotalsClient(

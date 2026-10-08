@@ -61,6 +61,7 @@ export class CreateReturnUseCase {
       quantity: number;
       unitPrice: number;
       discountPct: number | null;
+      discountAmount: number;
       ivaRate: number | null;
       iepsRate: number | null;
     }> = [];
@@ -99,6 +100,7 @@ export class CreateReturnUseCase {
         quantity: reqItem.quantity,
         unitPrice: saleItem.unitPrice,
         discountPct: saleItem.discountPct,
+        discountAmount: saleItem.discountAmount,
         ivaRate: saleItem.ivaRate,
         iepsRate: saleItem.iepsRate,
         lineSubtotal: 0, // filled below
@@ -110,6 +112,7 @@ export class CreateReturnUseCase {
         quantity: reqItem.quantity,
         unitPrice: saleItem.unitPrice,
         discountPct: saleItem.discountPct,
+        discountAmount: saleItem.discountAmount,
         ivaRate: saleItem.ivaRate,
         iepsRate: saleItem.iepsRate,
       });

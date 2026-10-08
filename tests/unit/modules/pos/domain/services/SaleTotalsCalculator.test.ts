@@ -86,6 +86,35 @@ describe("SaleTotalsCalculator", () => {
     ).toThrow(/ivaRate must be between 0 and 1/);
   });
 
+  it("aplica descuento por monto fijo antes de impuestos", () => {
+    const r = SaleTotalsCalculator.computeTotals([
+      { quantity: 1, unitPrice: 116, discountAmount: 16, ivaRate: 0.16 },
+    ]);
+    expect(r.lines[0].lineTotal).toBe(100);
+    expect(r.lines[0].lineSubtotal).toBeCloseTo(86.2069, 4);
+  });
+
+  it("descuento por monto que excede el bruto de la línea se clampa a 0", () => {
+    const r = SaleTotalsCalculator.computeTotals([
+      { quantity: 1, unitPrice: 80, discountAmount: 100 },
+    ]);
+    expect(r.lines[0].lineTotal).toBe(0);
+  });
+
+  it("rechaza discountPct y discountAmount ambos > 0 en la misma línea", () => {
+    expect(() =>
+      SaleTotalsCalculator.computeTotals([
+        { quantity: 1, unitPrice: 100, discountPct: 10, discountAmount: 10 },
+      ])
+    ).toThrow(/mutually exclusive/);
+  });
+
+  it("rechaza discountAmount fuera de [0, 100]", () => {
+    expect(() =>
+      SaleTotalsCalculator.computeTotals([{ quantity: 1, unitPrice: 100, discountAmount: 150 }])
+    ).toThrow(/discountAmount must be between 0 and 100/);
+  });
+
   it("isTaxable=false produce lineIva=0 e lineIeps=0 aunque las tasas sean > 0", () => {
     const r = SaleTotalsCalculator.computeTotals([
       { quantity: 1, unitPrice: 100, ivaRate: 0.16, iepsRate: 0.08, isTaxable: false },

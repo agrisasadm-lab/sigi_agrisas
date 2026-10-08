@@ -41,7 +41,7 @@ export function QuoteEditPage({ id }: QuoteEditPageProps) {
   const { isSaving, update } = useQuoteMutations();
   const { options: folios, isLoading: foliosLoading } = useFoliosOptions({ scope: "POS", branchId: quote?.branchId ?? null });
   const { dosificationSurchargePct } = usePricingSettingsOptions();
-  const { lines, totals, addLine, updateQuantity, updateDiscountPct, changeTier, removeLine, clear } = useCart(dosificationSurchargePct);
+  const { lines, totals, addLine, updateQuantity, updateDiscountPct, updateDiscountAmount, changeTier, removeLine, clear } = useCart(dosificationSurchargePct);
 
   const [initialized, setInitialized] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
@@ -152,6 +152,7 @@ export function QuoteEditPage({ id }: QuoteEditPageProps) {
         productPriceId: l.productPriceId!,
         quantity: l.quantity,
         discountPctOverride: l.discountPct > 0 ? l.discountPct : undefined,
+        discountAmount: l.discountAmount > 0 ? l.discountAmount : undefined,
       })),
     };
     try {
@@ -233,6 +234,7 @@ export function QuoteEditPage({ id }: QuoteEditPageProps) {
             onOpenQuickAdd={() => setModal("quickAdd")}
             onUpdateQuantity={updateQuantity}
             onUpdateDiscount={updateDiscountPct}
+            onUpdateDiscountAmount={updateDiscountAmount}
             onChangeTier={handleChangeTier}
             onRemoveLine={removeLine}
             onSubmit={handleSubmit}

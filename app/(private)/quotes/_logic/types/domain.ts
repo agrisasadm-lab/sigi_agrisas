@@ -12,6 +12,7 @@ export interface QuoteItem {
   quantity: number;
   unitPrice: number;
   discountPct: number;
+  discountAmount: number;
   ivaRate: number;
   iepsRate: number;
   lineSubtotal: number;

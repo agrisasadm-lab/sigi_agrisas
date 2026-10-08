@@ -34,28 +34,17 @@ export interface PrismaLike {
     }) => Promise<{ id: string }>;
   };
   productPrice: {
-    // Nota: NO usa `findUnique` por la clave compuesta `productId_branchId_name`
-    // — en esta versión de Prisma, esa forma rechaza `branchId: null` en runtime
-    // ("Argument branchId must not be null") aunque compile sin error. Mismo
-    // motivo por el que `PrismaProductPriceRepository` (src/modules/products/)
-    // usa `findFirst` para lookups con `branchId` nullable en vez de `findUnique`.
-    findFirstBase: (args: {
-      where: { productId: string; branchId: null; name: string };
+    findFirst: (args: {
+      where: { productId: string; branchId: string; name: string };
       select: { id: true; price: true };
     }) => Promise<{ id: string; price: number } | null>;
     updateMany: (args: {
-      where: { productId: string; branchId: string | null; isDefault: boolean };
+      where: { productId: string; branchId: string; isDefault: boolean };
       data: { isDefault: boolean };
     }) => Promise<{ count: number }>;
-    /** Override branch-scoped (branchId real, no null) — la clave compuesta funciona sin problema aquí. */
+    /** `branchId` siempre real — cada precio pertenece a exactamente una sucursal, Matriz incluida. */
     upsert: (args: {
       where: { productId_branchId_name: { productId: string; branchId: string; name: string } };
-      create: Record<string, unknown>;
-      update: Record<string, unknown>;
-    }) => Promise<{ id: string }>;
-    /** Precio base (branchId: null) — usa findFirst+create/update internamente, nunca la clave compuesta con null. */
-    upsertBase: (args: {
-      where: { productId: string; branchId: null; name: string };
       create: Record<string, unknown>;
       update: Record<string, unknown>;
     }) => Promise<{ id: string }>;
@@ -147,7 +136,7 @@ export interface BranchSeedPlan {
   productMatch: "code" | "name";
   /** "refresh": el `update` de producto pisa todos los campos (Matriz). "preserve": no sobrescribe `name` de un producto ya existente. */
   productSync: "refresh" | "preserve";
-  /** "base-tiers": escribe múltiples tiers con `branchId: null` (Matriz). "branch-override": un solo precio condicional a divergencia contra el base. */
+  /** "base-tiers": escribe múltiples tiers con `branchId` real de Matriz. "branch-override": un solo precio condicional a divergencia contra el de Matriz. */
   priceMode: "base-tiers" | "branch-override";
   /** "row": usa `row.quantity`. "zero": siempre `0` (hojas sin columna de existencia). */
   quantitySource: "row" | "zero";

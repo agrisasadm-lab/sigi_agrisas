@@ -40,6 +40,7 @@ describe("GetReturnUseCase", () => {
       quantity: 2,
       unitPrice: 50,
       discountPct: null,
+      discountAmount: 0,
       ivaRate: null,
       iepsRate: null,
       lineSubtotal: 100,

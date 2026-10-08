@@ -184,6 +184,8 @@ Each `QuoteItemInput`:
 - `productId: string` (UUID of an active product)
 - `productPriceId: string` (UUID of a price belonging to `productId`)
 - `quantity: number` (decimal `> 0`; max 14 integer + 4 decimal digits)
+- `discountPctOverride: number | null` (optional; decimal `0–100`). When present, overrides the catalog's `price.discountPct` for this line.
+- `discountAmount: number | null` (optional; decimal `0–100`, MXN). A flat-amount discount for this line, mutually exclusive with `discountPctOverride`/the catalog `discountPct` on the same line — both `> 0` on the same item → HTTP 400.
 
 Optional body: `notes: string | null` (max 1000 chars), `expiresAt: string | null` (ISO 8601; if non-null SHALL be in the future), `clientRequestId: string | null` (UUID; idempotency key used by offline-created quotes queued via `offline-sync` — see "Idempotent replay via clientRequestId" below; defaults to `null` for online-created quotes).
 
@@ -196,8 +198,8 @@ Optional body: `notes: string | null` (max 1000 chars), `expiresAt: string | nul
 0. If `clientRequestId` is non-null, perform the idempotent-replay lookup described above; short-circuit on a match before any of the following steps.
 1. Validate `customer.isActive`, `branch.isActive`, `folio.isActive`. Any inactive → HTTP 400.
 2. For each item: load the `Product` and `ProductPrice`; verify `productPrice.productId === item.productId` (else `ProductPriceMismatchError` → HTTP 400), that `productPrice` belongs to a product whose `isActive = true` (else HTTP 400), and that `productPrice.branchId === null OR productPrice.branchId === branchId` — the price is either a global base price or an override belonging to the quote's own branch (else `ProductPriceNotAvailableForBranchError` → HTTP 400 `{"error": "Product price does not belong to this branch"}`; the error message SHALL NOT disclose the price or the other branch it belongs to). **Additionally, when `productPrice.branchId === null` (a base price was selected) AND the product has at least one `ProductPrice` override for the quote's `branchId`, the system SHALL reject with the same `ProductPriceNotAvailableForBranchError` → HTTP 400** — same rule `pos-api` applies to sale creation: once a branch has its own price for a product, the global base price is no longer a valid selection for that branch. `quantity > 0` (else HTTP 400 via Zod). If `item.quantity` is NOT an integer (`quantity % 1 !== 0`), resolve the currently configured `dosificationSurchargePct` from `settings-api` (default `5.0` when unconfigured) and compute `unitPrice = price.price * (1 + surchargePct / 100)`; if `item.quantity` IS an integer, `unitPrice = price.price` unchanged. This applies uniformly to every product — no per-product or per-department opt-out — and is the same rule `pos-api` applies to normal-price sale lines.
-3. Snapshot `productCodeSnapshot = product.code`, `productNameSnapshot = product.name`, `priceNameSnapshot = price.name`, `unitPrice` per step 2 above (recharged when `quantity` is fractional, else `price.price` unchanged), `discountPct = price.discountPct`, `ivaRate = product.ivaRate`, `iepsRate = product.iepsRate`. This server-computed snapshot is authoritative even for offline-originated quotes — a `clientRequestId`-bearing request carries only IDs/quantities, never client-computed snapshot values, so catalog drift between offline creation and sync time is always resolved in favor of the server's live catalog. The snapshot does NOT record which branch's price (base or override) was used — only the resolved `unitPrice` value; this snapshot is what `pos-api`'s "Convert quote to sale" carries forward unchanged, so a converted sale is never re-validated against branch price at conversion time.
-4. Compute totals using `QuoteTotalsCalculator` (domain service) — unchanged by the fractional-quantity surcharge (operates on `quantity * unitPrice`, agnostic to how `unitPrice` was resolved).
+3. Snapshot `productCodeSnapshot = product.code`, `productNameSnapshot = product.name`, `priceNameSnapshot = price.name`, `unitPrice` per step 2 above (recharged when `quantity` is fractional, else `price.price` unchanged), `discountPct = item.discountPctOverride ?? price.discountPct`, `discountAmount = item.discountAmount ?? 0`, `ivaRate = product.ivaRate`, `iepsRate = product.iepsRate`. This server-computed snapshot is authoritative even for offline-originated quotes — a `clientRequestId`-bearing request carries only IDs/quantities/discount selections, never client-computed line totals, so catalog drift between offline creation and sync time is always resolved in favor of the server's live catalog. The snapshot does NOT record which branch's price (base or override) was used — only the resolved `unitPrice` value; this snapshot is what `pos-api`'s "Convert quote to sale" carries forward unchanged (including `discountAmount`), so a converted sale is never re-validated against branch price or discount at conversion time.
+4. Compute totals using `QuoteTotalsCalculator` (domain service) — unchanged by the fractional-quantity surcharge (operates on `quantity * unitPrice`, agnostic to how `unitPrice` was resolved); now also receives `discountAmount` per line (see "QuoteTotalsCalculator (domain service)").
 5. Allocate the next folio number **for the quote's own branch** atomically via `allocateBranchFolio(tx, folioId, branchId)` — same per-branch counter and `folioCode` format (`<prefix><BRANCH_CODE>-<NNNNNN>`, e.g. `COT-ZARIOZ-000001`) described in `pos-api` — "Create sale (atomic emission)". If the folio is inactive → HTTP 400. Legacy `folioCode`s issued before this change are preserved unchanged.
 6. `INSERT` the `quotes` row with `status='draft'`, `creator_id=<userId from x-user-id>`, snapshotted folio info, `expires_at` from the body, and `client_request_id = clientRequestId` (or `null`).
 7. `INSERT` the `quote_items` rows.
@@ -283,6 +285,26 @@ The endpoint SHALL NOT touch `branch_inventory` at any point. Returns HTTP 201 w
 #### Scenario: Legacy folioCode is preserved, not renumbered
 - **WHEN** a quote exists with the legacy global-format `folioCode = "COT-000012"` (issued before branch-scoped counters were introduced)
 - **THEN** no new quote is ever assigned that same `folioCode`, and the legacy quote's `folioCode` is never modified
+
+#### Scenario: Flat-amount discount applied to a line
+- **WHEN** the body has an item with `quantity=1`, `price.price=500`, and `discountAmount=100` (no `discountPctOverride`)
+- **THEN** the system returns HTTP 201 with that line's `lineGross = 400` before tax extraction, and `discountPct=0` persisted on the `quote_item`
+
+#### Scenario: discountPctOverride now actually persists (bug fix)
+- **WHEN** the body has an item whose catalog `price.discountPct = 5` but the body sends `discountPctOverride: 15`
+- **THEN** the system returns HTTP 201 with `discountPct=15` persisted on the `quote_item` (the override wins) — previously this field was silently discarded and the catalog value was always used instead
+
+#### Scenario: discountAmount and discountPctOverride mutually exclusive on the same line
+- **WHEN** an item's body includes both `discountPctOverride: 10` and `discountAmount: 50`, both `> 0`
+- **THEN** the system returns HTTP 400 and the transaction does not commit
+
+#### Scenario: discountAmount out of range rejected
+- **WHEN** an item's `discountAmount` is `150` (exceeds the 100 MXN cap) or negative
+- **THEN** the system returns HTTP 400 and the transaction does not commit
+
+#### Scenario: discountAmount exceeding the line's gross clamps to zero, never negative
+- **WHEN** an item has `quantity=1`, `price.price=80`, `discountAmount=100`
+- **THEN** the system returns HTTP 201 with that line's `lineGross = 0` (not `-20`)
 
 ---
 
@@ -531,14 +553,14 @@ The system SHALL provide a pure domain service `QuoteTotalsCalculator` in `src/m
 computeTotals(lines: QuoteLineInput[]): QuoteTotalsResult
 ```
 
-`QuoteLineInput`: `{ quantity, unitPrice, discountPct?, ivaRate?, iepsRate? }` — all decimals; `discountPct` defaults to `0` when absent; `ivaRate`/`iepsRate` default to `0` when `null`/absent.
+`QuoteLineInput`: `{ quantity, unitPrice, discountPct?, discountAmount?, ivaRate?, iepsRate? }` — all decimals; `discountPct` defaults to `0` when absent; `discountAmount` defaults to `0` when absent; `ivaRate`/`iepsRate` default to `0` when `null`/absent.
 
 `QuoteTotalsResult`: `{ lines: QuoteLineTotals[], subtotal, taxTotal, total }`. Each `QuoteLineTotals`: `{ lineSubtotal, lineIva, lineIeps, lineTax, lineTotal }`.
 
 The formula and rounding strategy SHALL match `SaleTotalsCalculator` exactly. `unitPrice` is the final tax-inclusive price; tax is extracted, not added:
 
 ```
-lineGross    = round(quantity * unitPrice * (1 - discountPct / 100), 4)
+lineGross    = max(0, round(quantity * unitPrice * (1 - discountPct / 100), 4) - discountAmount)
 divisor      = 1 + ivaRate + iepsRate
 lineSubtotal = round(lineGross / divisor, 4)
 lineIva      = round(lineSubtotal * ivaRate, 4)
@@ -547,13 +569,13 @@ lineTax      = lineIva + lineIeps
 lineTotal    = lineGross
 ```
 
-Header totals = sum across lines. Rounding: banker's rounding (half-to-even) at 4 decimal places. The service SHALL throw if `quantity <= 0`, `unitPrice < 0`, `discountPct < 0 || discountPct > 100`, `ivaRate < 0 || ivaRate > 1`, or `iepsRate < 0 || iepsRate > 1`. No I/O dependencies.
+Header totals = sum across lines. Rounding: banker's rounding (half-to-even) at 4 decimal places. The service SHALL throw if `quantity <= 0`, `unitPrice < 0`, `discountPct < 0 || discountPct > 100`, `discountAmount < 0 || discountAmount > 100`, `(discountPct > 0 && discountAmount > 0)` (mutually exclusive), `ivaRate < 0 || ivaRate > 1`, or `iepsRate < 0 || iepsRate > 1`. No I/O dependencies.
 
-A unit test SHALL include an **equivalence block** that iterates over the same input vectors used by `SaleTotalsCalculator`'s tests and asserts identical outputs, guarding against silent divergence.
+A unit test SHALL include an **equivalence block** that iterates over the same input vectors used by `SaleTotalsCalculator`'s tests (including vectors exercising `discountAmount`) and asserts identical outputs, guarding against silent divergence.
 
 #### Scenario: Same fixture as SaleTotalsCalculator
 - **WHEN** `computeTotals` is invoked with the same input as a `SaleTotalsCalculator` fixture
-- **THEN** the returned `subtotal`, `taxTotal`, `total`, and per-line breakdown (including the tax-extraction formula) are exactly equal
+- **THEN** the returned `subtotal`, `taxTotal`, `total`, and per-line breakdown (including the tax-extraction formula and any `discountAmount`) are exactly equal
 
 #### Scenario: Invalid input rejected
 - **WHEN** `computeTotals([{ quantity: 0, unitPrice: 100 }])` is invoked
@@ -562,6 +584,10 @@ A unit test SHALL include an **equivalence block** that iterates over the same i
 #### Scenario: Domain purity
 - **WHEN** unit tests run against the calculator
 - **THEN** no Prisma, no fetch, no environment access is required
+
+#### Scenario: With flat-amount discount
+- **WHEN** `computeTotals([{ quantity: 1, unitPrice: 500, discountAmount: 100 }])` is invoked
+- **THEN** `lineGross = 400`, `lineTotal = 400`, matching the equivalent `SaleTotalsCalculator` call exactly
 
 ### Requirement: Branch scoping pattern for quote endpoints
 Every route handler in `quotes-api` that operates on a quote or on a branch-filtered listing SHALL enforce the branch-scoping pattern via the shared helper `enforceBranchScope(req, resourceBranchId)` from `src/modules/rbac/infrastructure/http/enforceBranchScope.ts`. The pattern matches `pos-api`: callers without `branches:access_all` whose `x-user-branch-id` differs from `resourceBranchId` receive HTTP 403 `{"error": "Forbidden", "required": "branches:access_all"}`.
