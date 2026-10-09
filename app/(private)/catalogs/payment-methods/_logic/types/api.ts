@@ -4,6 +4,7 @@ export interface PaymentMethodDto {
   name: string;
   description: string | null;
   isActive: boolean;
+  isCredit: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -20,6 +21,7 @@ export interface CreatePaymentMethodBody {
   name: string;
   description?: string | null;
   isActive?: boolean;
+  isCredit?: boolean;
 }
 
 export interface UpdatePaymentMethodBody {

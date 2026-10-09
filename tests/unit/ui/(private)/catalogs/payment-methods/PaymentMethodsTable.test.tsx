@@ -10,6 +10,7 @@ const ACTIVE_ITEM: PaymentMethod = {
   name: "Efectivo",
   description: "Pago en efectivo",
   isActive: true,
+  isCredit: false,
   createdAt: new Date("2026-05-01"),
   updatedAt: new Date("2026-05-01"),
 };
@@ -20,6 +21,7 @@ const INACTIVE_ITEM: PaymentMethod = {
   name: "Cheque",
   description: null,
   isActive: false,
+  isCredit: false,
   createdAt: new Date("2026-05-01"),
   updatedAt: new Date("2026-05-01"),
 };

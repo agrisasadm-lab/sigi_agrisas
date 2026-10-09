@@ -34,6 +34,7 @@ export function PaymentMethodEditModal({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [isActive, setIsActive] = useState(true);
+  const [isCredit, setIsCredit] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -61,11 +62,13 @@ export function PaymentMethodEditModal({
       setName("");
       setDescription("");
       setIsActive(true);
+      setIsCredit(false);
     } else if (entity) {
       setCode(entity.code);
       setName(entity.name);
       setDescription(entity.description ?? "");
       setIsActive(entity.isActive);
+      setIsCredit(entity.isCredit);
     }
     setValidationErrors({});
   }, [open, mode, entity]);
@@ -77,6 +80,7 @@ export function PaymentMethodEditModal({
         name,
         description: description || null,
         isActive,
+        isCredit,
       });
       if (!result.success) {
         const errs: Record<string, string> = {};
@@ -109,6 +113,7 @@ export function PaymentMethodEditModal({
 
   function getDiff(): UpdatePaymentMethodBody {
     if (!entity) return {};
+    // isCredit es inmutable tras creación (el backend lo ignora en PATCH) — nunca entra al diff.
     const diff: UpdatePaymentMethodBody = {};
     if (name !== entity.name) diff.name = name;
     const desc = description || null;
@@ -119,7 +124,7 @@ export function PaymentMethodEditModal({
 
   const isDirty =
     mode === "create"
-      ? code !== "" || name !== "" || description !== "" || !isActive
+      ? code !== "" || name !== "" || description !== "" || !isActive || isCredit
       : entity !== null &&
         (name !== entity.name ||
           (description || null) !== entity.description ||
@@ -130,7 +135,7 @@ export function PaymentMethodEditModal({
   function handleSave() {
     if (!validate()) return;
     if (mode === "create") {
-      onSave({ code, name, description: description || null, isActive });
+      onSave({ code, name, description: description || null, isActive, isCredit });
     } else {
       const diff = getDiff();
       if (Object.keys(diff).length === 0) return;
@@ -221,6 +226,26 @@ export function PaymentMethodEditModal({
           />
           <label htmlFor="pm-isActive" className="text-label-lg text-on-surface-variant cursor-pointer">
             Activo
+          </label>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Switch
+            checked={isCredit}
+            onChange={setIsCredit}
+            disabled={!isCreateMode}
+            aria-label="Es crédito"
+            id="pm-isCredit"
+          />
+          <label
+            htmlFor="pm-isCredit"
+            className={
+              isCreateMode
+                ? "text-label-lg text-on-surface-variant cursor-pointer"
+                : "text-label-lg text-on-surface-variant opacity-40 cursor-not-allowed"
+            }
+          >
+            Es crédito
           </label>
         </div>
 

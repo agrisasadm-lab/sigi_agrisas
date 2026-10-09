@@ -19,8 +19,17 @@ const BASE_ENTITY: PaymentMethod = {
   name: "Efectivo",
   description: "Pago en efectivo",
   isActive: true,
+  isCredit: false,
   createdAt: new Date("2026-05-01"),
   updatedAt: new Date("2026-05-01"),
+};
+
+const CREDIT_ENTITY: PaymentMethod = {
+  ...BASE_ENTITY,
+  id: "pm2",
+  code: "CREDITO",
+  name: "Crédito",
+  isCredit: true,
 };
 
 const defaultProps = {
@@ -82,8 +91,24 @@ describe("PaymentMethodEditModal — modo create", () => {
     await user.type(screen.getByLabelText("Nombre"), "Nuevo método");
     await user.click(screen.getByRole("button", { name: /guardar/i }));
     expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ code: "NUEVO", name: "Nuevo método" })
+      expect.objectContaining({ code: "NUEVO", name: "Nuevo método", isCredit: false })
     );
+  });
+
+  it("switch 'Es crédito' habilitado en modo create", () => {
+    render(<PaymentMethodEditModal {...defaultProps} mode="create" entity={null} />);
+    expect(screen.getByRole("switch", { name: "Es crédito" })).not.toBeDisabled();
+  });
+
+  it("togglear 'Es crédito' e incluirlo en onSave como true", async () => {
+    const onSave = jest.fn();
+    render(<PaymentMethodEditModal {...defaultProps} mode="create" entity={null} onSave={onSave} />);
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("Código"), "NUEVO");
+    await user.type(screen.getByLabelText("Nombre"), "Nuevo método");
+    await user.click(screen.getByRole("switch", { name: "Es crédito" }));
+    await user.click(screen.getByRole("button", { name: /guardar/i }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ isCredit: true }));
   });
 });
 
@@ -126,5 +151,25 @@ describe("PaymentMethodEditModal — modo edit", () => {
     await user.type(screen.getByLabelText("Nombre"), "Efectivo 2");
     await user.click(screen.getByRole("button", { name: /guardar/i }));
     expect(onSave).toHaveBeenCalledWith({ name: "Efectivo 2" });
+  });
+
+  it("switch 'Es crédito' deshabilitado y refleja el valor del entity", () => {
+    render(<PaymentMethodEditModal {...defaultProps} mode="edit" entity={CREDIT_ENTITY} />);
+    const switchEl = screen.getByRole("switch", { name: "Es crédito" });
+    expect(switchEl).toBeDisabled();
+    expect(switchEl).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("isCredit nunca aparece en el diff enviado a onSave", async () => {
+    const onSave = jest.fn();
+    render(
+      <PaymentMethodEditModal {...defaultProps} mode="edit" entity={CREDIT_ENTITY} onSave={onSave} />
+    );
+    const user = userEvent.setup();
+    await user.clear(screen.getByLabelText("Nombre"));
+    await user.type(screen.getByLabelText("Nombre"), "Crédito renombrado");
+    await user.click(screen.getByRole("button", { name: /guardar/i }));
+    expect(onSave).toHaveBeenCalledWith({ name: "Crédito renombrado" });
+    expect(onSave.mock.calls[0][0]).not.toHaveProperty("isCredit");
   });
 });

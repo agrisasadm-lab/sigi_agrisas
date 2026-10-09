@@ -79,6 +79,7 @@ describe("PaymentMethodsPage", () => {
           name: "Efectivo",
           description: null,
           isActive: true,
+          isCredit: false,
           createdAt: new Date(),
           updatedAt: new Date(),
         },

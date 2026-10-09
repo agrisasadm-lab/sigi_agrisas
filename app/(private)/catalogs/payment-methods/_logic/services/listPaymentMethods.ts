@@ -9,6 +9,7 @@ function toPaymentMethod(dto: PaymentMethodDto): PaymentMethod {
     name: dto.name,
     description: dto.description,
     isActive: dto.isActive,
+    isCredit: dto.isCredit,
     createdAt: new Date(dto.createdAt),
     updatedAt: new Date(dto.updatedAt),
   };

@@ -427,18 +427,6 @@ Returns HTTP 201 with the `SaleDetailDto` (including items, `quoteId`, `paidAmou
 - **WHEN** the body has an item with `dosificationId` that also includes `discountAmount: 50` (or `discountPctOverride: 10`)
 - **THEN** the system returns HTTP 201 with `discountPct=null` and `discountAmount=0` persisted on that line, identical to a dosification line that sent neither field — the body's discount fields are ignored for dosification lines, not rejected
 
-#### Scenario: Sale rejects the global base price when the branch has its own override
-- **WHEN** the body's `branchId` is ZARIOZ, an item's `productPriceId` references a `ProductPrice` whose `branchId = null` (base, still active), and the same product has a separate `ProductPrice` row with `branchId = ZARIOZ`
-- **THEN** the system returns HTTP 400 `{"error": "Product price does not belong to this branch"}` and the transaction does not commit — selecting the base price is no longer valid once ZARIOZ has its own price for that product
-
-#### Scenario: Folio numbering is independent per branch
-- **WHEN** branch ZARIOZ has already issued 5 sales under folio `TK` and branch PRADERA issues its first sale under the same folio
-- **THEN** PRADERA's sale receives `TK-PRADERA-000001`, independent of ZARIOZ's `TK-ZARIOZ-000005`
-
-#### Scenario: Legacy folioCode is preserved, not renumbered
-- **WHEN** a sale exists with the legacy global-format `folioCode = "TK-000038"` (issued before branch-scoped counters were introduced)
-- **THEN** no new sale is ever assigned that same `folioCode`, the legacy sale's `folioCode` is never modified, and branch-scoped counter assignment always produces the new format (`<prefix><BRANCH_CODE>-NNNNNN`) which cannot collide with the legacy format
-
 ### Requirement: Cancel sale
 The system SHALL expose `POST /api/v1/admin/sales/:id/cancel`. Requires `sales:cancel`. Body MAY include `reason: string | null` (max 500 chars). Branch scoping applies (callers without `branches:access_all` can only cancel sales in their assigned branch).
 

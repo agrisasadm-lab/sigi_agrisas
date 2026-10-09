@@ -4,6 +4,7 @@ export interface PaymentMethod {
   name: string;
   description: string | null;
   isActive: boolean;
+  isCredit: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
