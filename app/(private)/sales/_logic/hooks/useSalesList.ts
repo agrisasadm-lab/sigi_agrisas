@@ -49,7 +49,7 @@ export function useSalesList(params: UseSalesListParams): UseSalesListResult {
       });
 
     return () => controller.abort();
-  }, [page, pageSize, branchId, JSON.stringify(status), from, to, search, tick]);
+  }, [page, pageSize, branchId, status, from, to, search, tick]);
 
   const refresh = useCallback(() => setTick((t) => t + 1), []);
 

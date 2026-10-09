@@ -121,4 +121,26 @@ describe("useSaleSubmission — gating por offlineEnabled/ownerBranchId", () => 
     expect(mockEnqueueSale).not.toHaveBeenCalled();
     expect(result.current.status).toBe("offline-disabled");
   });
+
+  it("regression: usa offlineEnabled/ownerBranchId actualizados tras resolución async post-montaje, no los del primer render", async () => {
+    mockIsOnline.mockReturnValue(false);
+    mockOfflineSyncValue.offlineEnabled = false;
+    mockOfflineSyncValue.ownerBranchId = null;
+    mockEnqueueSale.mockResolvedValue({ clientRequestId: "abc" } as never);
+
+    const { result, rerender } = renderHook(() => useSaleSubmission());
+
+    mockOfflineSyncValue.offlineEnabled = true;
+    mockOfflineSyncValue.ownerBranchId = "branch-1";
+    rerender();
+
+    await act(async () => {
+      await result.current.submit(draft);
+    });
+
+    expect(mockEnqueueSale).toHaveBeenCalledWith(
+      expect.objectContaining({ ownerBranchId: "branch-1" })
+    );
+    expect(result.current.status).toBe("queued-offline");
+  });
 });

@@ -97,7 +97,7 @@ export function useQuoteSubmission(): UseQuoteSubmissionResult {
       setError(err as Error);
       setStatus("failed");
     }
-  }, []);
+  }, [offlineEnabled, ownerBranchId]);
 
   const reset = useCallback(() => {
     setStatus("idle");

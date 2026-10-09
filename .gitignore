@@ -101,6 +101,9 @@ lerna-debug.log*
 # claude code local settings (may contain per-session permission strings with secrets)
 .claude/settings.local.json
 
+# local tech-debt tracking (not versioned, per-session notes)
+TECH_DEBT_CHECKLIST.md
+
 # local MCP server config (may reference production project refs / credentials)
 .mcp.json
 .env*
