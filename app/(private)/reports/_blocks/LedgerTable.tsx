@@ -9,6 +9,7 @@ import type {
 import { Icon } from "../../../_components/atoms/Icon/Icon";
 import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
 import { fmtDateShort } from "../../../_lib/formatDate";
+import { Table, THead, TBody, Tr, Th, Td } from "../../../_components/molecules/DataTable/DataTable";
 
 function money(v: string): string {
   return formatMxCurrency(Number(v));
@@ -44,27 +45,27 @@ function MovementRow({
   printingId?: string | null;
 }) {
   return (
-    <tr className={`border-b border-outline-variant/40 ${indented ? "border-l-2 border-l-primary/30" : ""}`}>
-      <td className="px-3 py-3 tabular-nums text-on-surface-variant">{fmtDate(m.date)}</td>
-      <td className={`px-3 py-3 whitespace-nowrap ${indented ? "pl-6 text-on-surface-variant" : ""}`}>
+    <Tr hoverable={false} className={`border-b border-outline-variant/40 ${indented ? "border-l-2 border-l-primary/30" : ""}`}>
+      <Td className="px-3 tabular-nums text-on-surface-variant">{fmtDate(m.date)}</Td>
+      <Td className={`px-3 whitespace-nowrap ${indented ? "pl-6 text-on-surface-variant" : ""}`}>
         {TYPE_LABEL[m.type]}
-      </td>
-      <td className="px-3 py-3 font-mono text-on-surface-variant">{m.serie}</td>
-      <td className="px-3 py-3 text-right tabular-nums font-mono text-on-surface-variant">{m.factura}</td>
-      <td className="px-3 py-3 tabular-nums text-on-surface-variant">{fmtDate(m.dueDate)}</td>
-      <td className="px-3 py-3 text-right tabular-nums">{Number(m.debit) ? money(m.debit) : "—"}</td>
-      <td className="px-3 py-3 text-right tabular-nums">{Number(m.credit) ? money(m.credit) : "—"}</td>
-      <td className="px-3 py-3 text-right tabular-nums font-medium">{money(m.runningBalance)}</td>
-      <td className="px-3 py-3 text-on-surface-variant">{m.paymentMethodCode ?? "—"}</td>
-      <td className="px-3 py-3 text-on-surface-variant">{m.reference ?? "—"}</td>
-      <td className="px-3 py-3">
+      </Td>
+      <Td className="px-3 font-mono text-on-surface-variant">{m.serie}</Td>
+      <Td align="right" className="px-3 font-mono text-on-surface-variant">{m.factura}</Td>
+      <Td className="px-3 tabular-nums text-on-surface-variant">{fmtDate(m.dueDate)}</Td>
+      <Td align="right" className="px-3">{Number(m.debit) ? money(m.debit) : "—"}</Td>
+      <Td align="right" className="px-3">{Number(m.credit) ? money(m.credit) : "—"}</Td>
+      <Td align="right" className="px-3 font-medium">{money(m.runningBalance)}</Td>
+      <Td className="px-3 text-on-surface-variant">{m.paymentMethodCode ?? "—"}</Td>
+      <Td className="px-3 text-on-surface-variant">{m.reference ?? "—"}</Td>
+      <Td className="px-3">
         {m.status === "cancelled" ? (
           <span className="rounded-full bg-error-container/40 px-2 py-0.5 text-label-sm text-error">Cancelado</span>
         ) : (
           <span className="text-on-surface-variant">{m.status}</span>
         )}
-      </td>
-      <td className="px-3 py-3 text-center">
+      </Td>
+      <Td className="px-3 text-center">
         {m.type === "payment" && onPrintAnticipo ? (
           <button
             type="button"
@@ -78,8 +79,8 @@ function MovementRow({
         ) : (
           <span className="text-on-surface-variant">—</span>
         )}
-      </td>
-    </tr>
+      </Td>
+    </Tr>
   );
 }
 
@@ -92,24 +93,24 @@ export function LedgerTable({
 }: Props) {
   return (
     <div className="overflow-x-auto rounded-lg border border-outline-variant bg-surface-container-low">
-      <table className="w-full text-body-sm">
-        <thead>
-          <tr className="border-b border-outline-variant text-label-sm text-on-surface-variant uppercase tracking-wide">
-            <th className="px-3 py-3 text-left font-medium">Fecha</th>
-            <th className="px-3 py-3 text-left font-medium">Tipo</th>
-            <th className="px-3 py-3 text-left font-medium">Ser</th>
-            <th className="px-3 py-3 text-right font-medium">Factura</th>
-            <th className="px-3 py-3 text-left font-medium">Vencimiento</th>
-            <th className="px-3 py-3 text-right font-medium">Cargo</th>
-            <th className="px-3 py-3 text-right font-medium">Abono</th>
-            <th className="px-3 py-3 text-right font-medium">Saldo</th>
-            <th className="px-3 py-3 text-left font-medium">F.Pgo</th>
-            <th className="px-3 py-3 text-left font-medium">Referencia</th>
-            <th className="px-3 py-3 text-left font-medium">Estado</th>
-            <th className="px-3 py-3 text-center font-medium">Anticipo</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table>
+        <THead>
+          <Tr hoverable={false}>
+            <Th className="px-3">Fecha</Th>
+            <Th className="px-3">Tipo</Th>
+            <Th className="px-3">Ser</Th>
+            <Th align="right" className="px-3">Factura</Th>
+            <Th className="px-3">Vencimiento</Th>
+            <Th align="right" className="px-3">Cargo</Th>
+            <Th align="right" className="px-3">Abono</Th>
+            <Th align="right" className="px-3">Saldo</Th>
+            <Th className="px-3">F.Pgo</Th>
+            <Th className="px-3">Referencia</Th>
+            <Th className="px-3">Estado</Th>
+            <Th className="px-3 text-center">Anticipo</Th>
+          </Tr>
+        </THead>
+        <TBody>
           {groups.map((group, gi) => (
             <Fragment key={group.sale?.id ?? `orphan-${gi}`}>
               {group.sale ? (
@@ -121,11 +122,11 @@ export function LedgerTable({
                   printingId={printingId}
                 />
               ) : (
-                <tr key={`orphan-header-${gi}`}>
-                  <td colSpan={12} className="px-3 py-2 text-label-sm font-medium text-on-surface-variant bg-surface-container">
+                <Tr key={`orphan-header-${gi}`} hoverable={false}>
+                  <Td colSpan={12} className="px-3 py-2 text-label-sm font-medium text-on-surface-variant bg-surface-container">
                     Abonos sin venta visible en el rango
-                  </td>
-                </tr>
+                  </Td>
+                </Tr>
               )}
               {group.payments.map((p) => (
                 <MovementRow
@@ -138,19 +139,19 @@ export function LedgerTable({
               ))}
             </Fragment>
           ))}
-        </tbody>
+        </TBody>
         <tfoot>
-          <tr className="border-t-2 border-outline-variant bg-surface-container font-medium">
-            <td colSpan={5} className="px-3 py-3 text-label-sm text-on-surface-variant">
+          <Tr hoverable={false} className="border-t-2 border-outline-variant bg-surface-container font-medium">
+            <Td colSpan={5} className="px-3 text-label-sm text-on-surface-variant">
               {totals.movementCount} movimientos
-            </td>
-            <td className="px-3 py-3 text-right tabular-nums">{money(totals.totalDebit)}</td>
-            <td className="px-3 py-3 text-right tabular-nums">{money(totals.totalCredit)}</td>
-            <td className="px-3 py-3 text-right tabular-nums">{money(closingBalance)}</td>
-            <td colSpan={4} />
-          </tr>
+            </Td>
+            <Td align="right" className="px-3">{money(totals.totalDebit)}</Td>
+            <Td align="right" className="px-3">{money(totals.totalCredit)}</Td>
+            <Td align="right" className="px-3">{money(closingBalance)}</Td>
+            <Td colSpan={4} className="px-3" />
+          </Tr>
         </tfoot>
-      </table>
+      </Table>
     </div>
   );
 }

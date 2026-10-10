@@ -2,6 +2,7 @@
 
 import type { SalesCutBreakdownRowDto } from "../_logic/types/api";
 import { formatMxCurrency } from "../../../../_lib/formatMxCurrency";
+import { Table, THead, TBody, Tr, Th, Td } from "../../../../_components/molecules/DataTable/DataTable";
 
 function money(v: string): string {
   return formatMxCurrency(Number(v));
@@ -20,40 +21,40 @@ export function BreakdownTable({ title, conceptHeader, rows, quantityHeader }: P
     <div className="space-y-2">
       <h3 className="text-title-sm font-medium text-on-surface">{title}</h3>
       <div className="overflow-x-auto rounded-lg border border-outline-variant bg-surface-container-low">
-        <table className="w-full text-body-sm">
-          <thead>
-            <tr className="border-b border-outline-variant text-label-sm text-on-surface-variant uppercase tracking-wide">
-              <th className="px-4 py-3 text-left font-medium">{conceptHeader}</th>
-              <th className="px-4 py-3 text-right font-medium">Tickets</th>
-              {quantityHeader && <th className="px-4 py-3 text-right font-medium">{quantityHeader}</th>}
-              <th className="px-4 py-3 text-right font-medium">Subtotal</th>
-              <th className="px-4 py-3 text-right font-medium">Impuestos</th>
-              <th className="px-4 py-3 text-right font-medium">Total</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table>
+          <THead>
+            <Tr hoverable={false}>
+              <Th>{conceptHeader}</Th>
+              <Th align="right">Tickets</Th>
+              {quantityHeader && <Th align="right">{quantityHeader}</Th>}
+              <Th align="right">Subtotal</Th>
+              <Th align="right">Impuestos</Th>
+              <Th align="right">Total</Th>
+            </Tr>
+          </THead>
+          <TBody>
             {rows.length === 0 ? (
-              <tr>
-                <td colSpan={colCount} className="px-4 py-4 text-center text-on-surface-variant">Sin datos</td>
-              </tr>
+              <Tr hoverable={false}>
+                <Td colSpan={colCount} className="py-4 text-center text-on-surface-variant">Sin datos</Td>
+              </Tr>
             ) : (
               rows.map((r) => (
-                <tr key={r.key} className="border-b border-outline-variant/40">
-                  <td className="px-4 py-3">{r.label}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">{r.ticketCount}</td>
+                <Tr key={r.key} hoverable={false} className="border-b border-outline-variant/40">
+                  <Td>{r.label}</Td>
+                  <Td align="right" className="text-on-surface-variant">{r.ticketCount}</Td>
                   {quantityHeader && (
-                    <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">
+                    <Td align="right" className="text-on-surface-variant">
                       {r.quantitySold ?? "0"}
-                    </td>
+                    </Td>
                   )}
-                  <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">{money(r.subtotal)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">{money(r.taxTotal)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums font-medium">{money(r.total)}</td>
-                </tr>
+                  <Td align="right" className="text-on-surface-variant">{money(r.subtotal)}</Td>
+                  <Td align="right" className="text-on-surface-variant">{money(r.taxTotal)}</Td>
+                  <Td align="right" className="font-medium">{money(r.total)}</Td>
+                </Tr>
               ))
             )}
-          </tbody>
-        </table>
+          </TBody>
+        </Table>
       </div>
     </div>
   );
