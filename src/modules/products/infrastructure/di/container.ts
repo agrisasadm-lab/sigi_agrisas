@@ -39,7 +39,7 @@ const branchInventoryRepo = new PrismaBranchInventoryRepository(prisma);
 export const productsController = new ProductsController(
   new ListProductsUseCase(productRepo),
   new GetProductUseCase(productRepo),
-  new CreateProductUseCase(productRepo, departmentRepo, taxRateRepo, branchInventoryRepo),
+  new CreateProductUseCase(productRepo, departmentRepo, taxRateRepo, branchInventoryRepo, branchRepo),
   new UpdateProductUseCase(productRepo, departmentRepo, taxRateRepo),
   new SoftDeleteProductUseCase(productRepo),
   new UploadProductImageUseCase(productRepo, imageStorage),

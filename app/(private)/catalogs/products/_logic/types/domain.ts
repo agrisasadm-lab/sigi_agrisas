@@ -22,9 +22,9 @@ export interface Product {
   updatedAt: Date;
 }
 
-/** Respuesta de POST /products — incluye el resultado de la auto-asignación a la sucursal propia del creador (null si no aplica: admin, sin sucursal, o modo general). */
+/** Respuesta de POST /products — incluye las sucursales activas a las que se auto-asignó inventario (vacío en modo general o si no hay sucursales activas). */
 export interface CreatedProduct extends Product {
-  autoAssignedBranchId: string | null;
+  autoAssignedBranchIds: string[];
 }
 
 export interface ProductPrice {

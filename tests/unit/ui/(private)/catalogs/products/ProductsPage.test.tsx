@@ -35,7 +35,7 @@ const createdProduct = {
   taxRateCode: null, providerId: null, providerName: null, ivaRate: null, iepsRate: null,
   imageUrl: null, manufactureDate: null, acquisitionPrice: null, isTaxable: false,
   isActive: true, createdAt: new Date("2026-01-01"), updatedAt: new Date("2026-01-01"),
-  autoAssignedBranchId: null as string | null,
+  autoAssignedBranchIds: [] as string[],
 };
 
 function setup(mode: "general" | "branch", overrides: { can?: (perm: string) => boolean | "loading"; createOne?: jest.Mock } = {}) {
@@ -86,9 +86,9 @@ describe("ProductsPage — banner de éxito post-creación", () => {
     expect(screen.getByText(/PROD1/)).toBeInTheDocument();
   });
 
-  it("en modo branch con autoAssignedBranchId presente, muestra el banner con link 'Gestionar producto' y no 'Asignar a sucursal'", async () => {
+  it("en modo branch con autoAssignedBranchIds no vacío, muestra el banner con link 'Gestionar producto' y no 'Asignar a sucursal'", async () => {
     setup("branch", {
-      createOne: jest.fn().mockResolvedValue({ ...createdProduct, autoAssignedBranchId: "branch-1" }),
+      createOne: jest.fn().mockResolvedValue({ ...createdProduct, autoAssignedBranchIds: ["branch-1", "branch-2"] }),
     });
     render(<ProductsPage />);
 

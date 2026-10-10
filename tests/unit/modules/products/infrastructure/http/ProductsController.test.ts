@@ -22,13 +22,38 @@ import { SoftDeleteProductUseCase } from "@/modules/products/application/use-cas
 import { UploadProductImageUseCase } from "@/modules/products/application/use-cases/UploadProductImageUseCase";
 import { DeleteProductImageUseCase } from "@/modules/products/application/use-cases/DeleteProductImageUseCase";
 import { InMemoryBranchInventoryRepository } from "@/modules/inventory/infrastructure/repositories/InMemoryBranchInventoryRepository";
+import { InMemoryBranchRepository } from "@/modules/branches/infrastructure/repositories/InMemoryBranchRepository";
+import { Branch } from "@/modules/branches/domain/entities/Branch";
 
 const noopStorage = {
   upload: jest.fn().mockResolvedValue("https://example.supabase.co/storage/v1/object/public/product-images/test.jpg"),
   delete: jest.fn().mockResolvedValue(undefined),
 };
 
-async function buildController(branchInventoryRepo?: InMemoryBranchInventoryRepository) {
+function makeBranch(id: string, overrides: Partial<{ isActive: boolean }> = {}): Branch {
+  const now = new Date();
+  return Branch.create(id, {
+    code: id,
+    name: `Branch ${id}`,
+    address: null,
+    phone: null,
+    email: null,
+    isHeadquarters: false,
+    isActive: overrides.isActive ?? true,
+    addressStreet: null,
+    addressExteriorNumber: null,
+    addressInteriorNumber: null,
+    addressNeighborhood: null,
+    addressMunicipality: null,
+    addressState: null,
+    addressCountry: null,
+    addressZipCode: null,
+    createdAt: now,
+    updatedAt: now,
+  });
+}
+
+async function buildController(branchInventoryRepo?: InMemoryBranchInventoryRepository, branchRepo?: InMemoryBranchRepository) {
   const productRepo = new InMemoryProductRepository();
   productRepo.reset();
   const deptRepo = new InMemoryDepartmentRepository();
@@ -36,7 +61,7 @@ async function buildController(branchInventoryRepo?: InMemoryBranchInventoryRepo
   const ctrl = new ProductsController(
     new ListProductsUseCase(productRepo),
     new GetProductUseCase(productRepo),
-    new CreateProductUseCase(productRepo, deptRepo, undefined, branchInventoryRepo),
+    new CreateProductUseCase(productRepo, deptRepo, undefined, branchInventoryRepo, branchRepo),
     new UpdateProductUseCase(productRepo, deptRepo),
     new SoftDeleteProductUseCase(productRepo),
     new UploadProductImageUseCase(productRepo, noopStorage),
@@ -481,9 +506,10 @@ describe("ProductsController.list — branch scope mode", () => {
   });
 });
 
-describe("ProductsController.create — branch auto-assign", () => {
+describe("ProductsController.create — auto-assign to all active branches", () => {
   const userCanMock = rbacContainer.authorizationService.userCan as jest.Mock;
   const BRANCH_A = "55555555-5555-5555-5555-555555555555";
+  const BRANCH_B = "66666666-6666-6666-6666-666666666666";
   const USER_ID = "77777777-7777-7777-7777-777777777777";
   const originalMode = process.env.INVENTORY_SCOPE_MODE;
 
@@ -497,67 +523,78 @@ describe("ProductsController.create — branch auto-assign", () => {
     else process.env.INVENTORY_SCOPE_MODE = originalMode;
   });
 
-  it("branch mode: operator without branches:access_all with x-user-branch-id auto-assigns the product to their branch", async () => {
-    process.env.INVENTORY_SCOPE_MODE = "branch";
-    userCanMock.mockResolvedValue(false);
-    const branchInventoryRepo = new InMemoryBranchInventoryRepository();
-    const { ctrl, departmentId } = await buildController(branchInventoryRepo);
-
-    const res = await ctrl.create(
-      makeCreateReq({ code: "P1", name: "Arroz", unit: "kg", departmentId }, { "x-user-id": USER_ID, "x-user-branch-id": BRANCH_A })
-    );
-    expect(res.status).toBe(201);
-    const body = await res.json();
-    expect(body.autoAssignedBranchId).toBe(BRANCH_A);
-
-    const view = await branchInventoryRepo.findByBranchAndProduct(BRANCH_A, body.id);
-    expect(view).not.toBeNull();
-    expect(view?.inventory.quantity).toBe(0);
-  });
-
-  it("branch mode: admin (branches:access_all) does not trigger auto-assignment", async () => {
+  it("branch mode: admin (branches:access_all) auto-assigns the product to every active branch", async () => {
     process.env.INVENTORY_SCOPE_MODE = "branch";
     userCanMock.mockResolvedValue(true);
     const branchInventoryRepo = new InMemoryBranchInventoryRepository();
-    const { ctrl, departmentId } = await buildController(branchInventoryRepo);
+    const branchRepo = new InMemoryBranchRepository();
+    branchRepo.seed([makeBranch(BRANCH_A), makeBranch(BRANCH_B)]);
+    const { ctrl, departmentId } = await buildController(branchInventoryRepo, branchRepo);
 
-    const res = await ctrl.create(
-      makeCreateReq({ code: "P1", name: "Arroz", unit: "kg", departmentId }, { "x-user-id": USER_ID, "x-user-branch-id": BRANCH_A })
-    );
+    const res = await ctrl.create(makeCreateReq({ code: "P1", name: "Arroz", unit: "kg", departmentId }, { "x-user-id": USER_ID }));
     expect(res.status).toBe(201);
     const body = await res.json();
-    expect(body.autoAssignedBranchId).toBeNull();
+    expect([...body.autoAssignedBranchIds].sort()).toEqual([BRANCH_A, BRANCH_B]);
 
-    const view = await branchInventoryRepo.findByBranchAndProduct(BRANCH_A, body.id);
-    expect(view).toBeNull();
+    const viewA = await branchInventoryRepo.findByBranchAndProduct(BRANCH_A, body.id);
+    const viewB = await branchInventoryRepo.findByBranchAndProduct(BRANCH_B, body.id);
+    expect(viewA?.inventory.quantity).toBe(0);
+    expect(viewB?.inventory.quantity).toBe(0);
   });
 
-  it("branch mode: operator without branches:access_all and without an assigned branch does not trigger auto-assignment", async () => {
+  it("branch mode: operator without branches:access_all also auto-assigns to every active branch, not only their own", async () => {
     process.env.INVENTORY_SCOPE_MODE = "branch";
     userCanMock.mockResolvedValue(false);
     const branchInventoryRepo = new InMemoryBranchInventoryRepository();
-    const { ctrl, departmentId } = await buildController(branchInventoryRepo);
-
-    const res = await ctrl.create(
-      makeCreateReq({ code: "P1", name: "Arroz", unit: "kg", departmentId }, { "x-user-id": USER_ID, "x-user-branch-id": "" })
-    );
-    expect(res.status).toBe(201);
-    const body = await res.json();
-    expect(body.autoAssignedBranchId).toBeNull();
-  });
-
-  it("general mode: never auto-assigns even with an operator branch in headers", async () => {
-    delete process.env.INVENTORY_SCOPE_MODE;
-    userCanMock.mockResolvedValue(false);
-    const branchInventoryRepo = new InMemoryBranchInventoryRepository();
-    const { ctrl, departmentId } = await buildController(branchInventoryRepo);
+    const branchRepo = new InMemoryBranchRepository();
+    branchRepo.seed([makeBranch(BRANCH_A), makeBranch(BRANCH_B)]);
+    const { ctrl, departmentId } = await buildController(branchInventoryRepo, branchRepo);
 
     const res = await ctrl.create(
       makeCreateReq({ code: "P1", name: "Arroz", unit: "kg", departmentId }, { "x-user-id": USER_ID, "x-user-branch-id": BRANCH_A })
     );
     expect(res.status).toBe(201);
     const body = await res.json();
-    expect(body.autoAssignedBranchId).toBeNull();
+    expect([...body.autoAssignedBranchIds].sort()).toEqual([BRANCH_A, BRANCH_B]);
+  });
+
+  it("branch mode: excludes inactive branches from auto-assignment", async () => {
+    process.env.INVENTORY_SCOPE_MODE = "branch";
+    const branchInventoryRepo = new InMemoryBranchInventoryRepository();
+    const branchRepo = new InMemoryBranchRepository();
+    branchRepo.seed([makeBranch(BRANCH_A), makeBranch(BRANCH_B, { isActive: false })]);
+    const { ctrl, departmentId } = await buildController(branchInventoryRepo, branchRepo);
+
+    const res = await ctrl.create(makeCreateReq({ code: "P1", name: "Arroz", unit: "kg", departmentId }, { "x-user-id": USER_ID }));
+    const body = await res.json();
+    expect(body.autoAssignedBranchIds).toEqual([BRANCH_A]);
+  });
+
+  it("branch mode: no active branches yields an empty list without failing creation", async () => {
+    process.env.INVENTORY_SCOPE_MODE = "branch";
+    const branchInventoryRepo = new InMemoryBranchInventoryRepository();
+    const branchRepo = new InMemoryBranchRepository();
+    const { ctrl, departmentId } = await buildController(branchInventoryRepo, branchRepo);
+
+    const res = await ctrl.create(makeCreateReq({ code: "P1", name: "Arroz", unit: "kg", departmentId }, { "x-user-id": USER_ID }));
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.autoAssignedBranchIds).toEqual([]);
+  });
+
+  it("general mode: never auto-assigns even with active branches seeded", async () => {
+    delete process.env.INVENTORY_SCOPE_MODE;
+    const branchInventoryRepo = new InMemoryBranchInventoryRepository();
+    const branchRepo = new InMemoryBranchRepository();
+    branchRepo.seed([makeBranch(BRANCH_A)]);
+    const { ctrl, departmentId } = await buildController(branchInventoryRepo, branchRepo);
+
+    const res = await ctrl.create(
+      makeCreateReq({ code: "P1", name: "Arroz", unit: "kg", departmentId }, { "x-user-id": USER_ID, "x-user-branch-id": BRANCH_A })
+    );
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.autoAssignedBranchIds).toEqual([]);
 
     const view = await branchInventoryRepo.findByBranchAndProduct(BRANCH_A, body.id);
     expect(view).toBeNull();

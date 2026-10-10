@@ -37,7 +37,7 @@ interface CreateSuccess {
   productId: string;
   productCode: string;
   productName: string;
-  autoAssignedBranchId: string | null;
+  autoAssignedBranchIds: string[];
 }
 
 export function ProductsPage() {
@@ -137,7 +137,7 @@ export function ProductsPage() {
             productId: product.id,
             productCode: product.code,
             productName: product.name,
-            autoAssignedBranchId: product.autoAssignedBranchId,
+            autoAssignedBranchIds: product.autoAssignedBranchIds,
           });
         }
         if (product && stagedImage) {
@@ -247,7 +247,7 @@ export function ProductsPage() {
           <div className="mx-6 mt-4 flex items-center justify-between gap-3 rounded-md bg-primary-container px-4 py-3 text-label-lg text-on-primary-container">
             <span>
               <strong>{createSuccess.productCode}</strong> — {createSuccess.productName} creado.
-              {createSuccess.autoAssignedBranchId !== null ? (
+              {createSuccess.autoAssignedBranchIds.length > 0 ? (
                 <>
                   {" "}
                   <Link href={`/catalogs/products/${createSuccess.productId}`} className="underline font-medium">

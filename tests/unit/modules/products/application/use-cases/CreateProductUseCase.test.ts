@@ -3,6 +3,8 @@ import { InMemoryProductRepository } from "@/modules/products/infrastructure/rep
 import { InMemoryDepartmentRepository } from "@/modules/departments/infrastructure/repositories/InMemoryDepartmentRepository";
 import { InMemoryTaxRateRepository } from "@/modules/tax-rates/infrastructure/repositories/InMemoryTaxRateRepository";
 import { InMemoryBranchInventoryRepository } from "@/modules/inventory/infrastructure/repositories/InMemoryBranchInventoryRepository";
+import { InMemoryBranchRepository } from "@/modules/branches/infrastructure/repositories/InMemoryBranchRepository";
+import { Branch } from "@/modules/branches/domain/entities/Branch";
 import { CreateTaxRateUseCase } from "@/modules/tax-rates/application/use-cases/CreateTaxRateUseCase";
 import { DeactivateTaxRateUseCase } from "@/modules/tax-rates/application/use-cases/DeactivateTaxRateUseCase";
 import { ProductCodeAlreadyInUseError } from "@/modules/products/domain/errors/ProductCodeAlreadyInUseError";
@@ -118,14 +120,40 @@ describe("CreateProductUseCase", () => {
   });
 });
 
-describe("CreateProductUseCase — auto-assign a branch", () => {
+function makeBranch(id: string, overrides: Partial<{ isActive: boolean }> = {}): Branch {
+  const now = new Date();
+  return Branch.create(id, {
+    code: id,
+    name: `Branch ${id}`,
+    address: null,
+    phone: null,
+    email: null,
+    isHeadquarters: false,
+    isActive: overrides.isActive ?? true,
+    addressStreet: null,
+    addressExteriorNumber: null,
+    addressInteriorNumber: null,
+    addressNeighborhood: null,
+    addressMunicipality: null,
+    addressState: null,
+    addressCountry: null,
+    addressZipCode: null,
+    createdAt: now,
+    updatedAt: now,
+  });
+}
+
+describe("CreateProductUseCase — auto-assign to all active branches (scope mode branch)", () => {
   let repo: InMemoryProductRepository;
   let deptRepo: InMemoryDepartmentRepository;
   let branchInventoryRepo: InMemoryBranchInventoryRepository;
+  let branchRepo: InMemoryBranchRepository;
   let useCase: CreateProductUseCase;
   let departmentId: string;
+  const originalMode = process.env.INVENTORY_SCOPE_MODE;
 
   beforeEach(async () => {
+    process.env.INVENTORY_SCOPE_MODE = "branch";
     repo = new InMemoryProductRepository();
     repo.reset();
     deptRepo = new InMemoryDepartmentRepository();
@@ -133,31 +161,56 @@ describe("CreateProductUseCase — auto-assign a branch", () => {
     departmentId = dept.id;
     branchInventoryRepo = new InMemoryBranchInventoryRepository();
     branchInventoryRepo.reset();
-    useCase = new CreateProductUseCase(repo, deptRepo, undefined, branchInventoryRepo);
+    branchRepo = new InMemoryBranchRepository();
+    useCase = new CreateProductUseCase(repo, deptRepo, undefined, branchInventoryRepo, branchRepo);
   });
 
-  it("creates a branch_inventory row with quantity 0 when autoAssignBranchId is passed", async () => {
-    const result = await useCase.execute(
-      { code: "ARROZ_003", name: "Arroz", unit: "kg", departmentId },
-      "B1"
-    );
-    const view = await branchInventoryRepo.findByBranchAndProduct("B1", result.id);
-    expect(view).not.toBeNull();
-    expect(view?.inventory.quantity).toBe(0);
+  afterEach(() => {
+    if (originalMode === undefined) delete process.env.INVENTORY_SCOPE_MODE;
+    else process.env.INVENTORY_SCOPE_MODE = originalMode;
   });
 
-  it("does not create any inventory row when autoAssignBranchId is omitted", async () => {
+  it("creates a branch_inventory row with quantity 0 in every active branch", async () => {
+    branchRepo.seed([makeBranch("B1"), makeBranch("B2")]);
+    const result = await useCase.execute({ code: "ARROZ_003", name: "Arroz", unit: "kg", departmentId });
+    expect(result.autoAssignedBranchIds.sort()).toEqual(["B1", "B2"]);
+    const viewB1 = await branchInventoryRepo.findByBranchAndProduct("B1", result.id);
+    const viewB2 = await branchInventoryRepo.findByBranchAndProduct("B2", result.id);
+    expect(viewB1?.inventory.quantity).toBe(0);
+    expect(viewB2?.inventory.quantity).toBe(0);
+  });
+
+  it("excludes inactive branches", async () => {
+    branchRepo.seed([makeBranch("B1"), makeBranch("B3", { isActive: false })]);
     const result = await useCase.execute({ code: "ARROZ_004", name: "Arroz", unit: "kg", departmentId });
+    expect(result.autoAssignedBranchIds).toEqual(["B1"]);
+    const view = await branchInventoryRepo.findByBranchAndProduct("B3", result.id);
+    expect(view).toBeNull();
+  });
+
+  it("returns an empty list and creates no rows when there are no active branches", async () => {
+    const result = await useCase.execute({ code: "ARROZ_005", name: "Arroz", unit: "kg", departmentId });
+    expect(result.autoAssignedBranchIds).toEqual([]);
+  });
+
+  it("does not auto-assign in general scope mode", async () => {
+    delete process.env.INVENTORY_SCOPE_MODE;
+    branchRepo.seed([makeBranch("B1")]);
+    const result = await useCase.execute({ code: "ARROZ_006", name: "Arroz", unit: "kg", departmentId });
+    expect(result.autoAssignedBranchIds).toEqual([]);
     const view = await branchInventoryRepo.findByBranchAndProduct("B1", result.id);
     expect(view).toBeNull();
   });
 
-  it("still resolves with the created product when the auto-assign write fails (best-effort)", async () => {
-    jest.spyOn(branchInventoryRepo, "create").mockRejectedValueOnce(new Error("db down"));
-    const result = await useCase.execute(
-      { code: "ARROZ_005", name: "Arroz", unit: "kg", departmentId },
-      "B1"
-    );
-    expect(result.code).toBe("ARROZ_005");
+  it("still resolves with the created product and assigns the remaining branches when one insert fails (best-effort)", async () => {
+    branchRepo.seed([makeBranch("B1"), makeBranch("B2")]);
+    jest.spyOn(branchInventoryRepo, "create").mockImplementationOnce(() => {
+      throw new Error("db down");
+    });
+    const result = await useCase.execute({ code: "ARROZ_007", name: "Arroz", unit: "kg", departmentId });
+    expect(result.code).toBe("ARROZ_007");
+    expect(result.autoAssignedBranchIds.sort()).toEqual(["B1", "B2"]);
+    const viewB2 = await branchInventoryRepo.findByBranchAndProduct("B2", result.id);
+    expect(viewB2).not.toBeNull();
   });
 });

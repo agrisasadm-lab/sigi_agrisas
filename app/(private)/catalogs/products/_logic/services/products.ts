@@ -119,8 +119,8 @@ export async function createProduct(
     throw new NetworkError();
   }
   if (!res.ok) throw new NetworkError();
-  const dto = (await res.json()) as ProductDto & { autoAssignedBranchId: string | null };
-  return { ...toProduct(dto), autoAssignedBranchId: dto.autoAssignedBranchId };
+  const dto = (await res.json()) as ProductDto & { autoAssignedBranchIds: string[] };
+  return { ...toProduct(dto), autoAssignedBranchIds: dto.autoAssignedBranchIds };
 }
 
 export async function updateProduct(
