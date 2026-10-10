@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Icon } from "../../../../_components/atoms/Icon/Icon";
+import { IconButton } from "../../../../_components/atoms/IconButton/IconButton";
+import { Button } from "../../../../_components/atoms/Button/Button";
 import { Switch } from "../../../../_components/atoms/Switch/Switch";
 import { createProviderSchema, updateProviderSchema } from "../_logic/schemas/provider.schema";
 import type { Provider } from "../_logic/types/domain";
@@ -234,13 +235,14 @@ export function ProviderEditModal({
     >
       <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
         <h2 className="text-title-md font-semibold text-on-surface">{title}</h2>
-        <button
-          type="button"
+        <IconButton
+          icon="close"
+          iconSize={20}
+          ariaLabel="Cerrar"
+          variant="ghost"
           onClick={onClose}
-          className="p-1.5 rounded text-on-surface-variant hover:bg-surface-container-high"
-        >
-          <Icon name="close" size={20} />
-        </button>
+          className="rounded p-1.5"
+        />
       </div>
 
       <div className="px-6 py-5 space-y-6 max-h-[75vh] overflow-y-auto">
@@ -556,29 +558,18 @@ export function ProviderEditModal({
       </div>
 
       <div className="flex justify-end gap-3 px-6 py-4 border-t border-outline-variant bg-surface-container-lowest">
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={isSaving}
-          className="px-5 py-2.5 rounded-md border border-outline text-label-lg text-on-surface font-medium hover:bg-surface-container-high transition-colors disabled:opacity-40"
-        >
+        <Button type="button" variant="outlined" onClick={onClose} disabled={isSaving}>
           Cancelar
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="filled"
           onClick={handleSave}
           disabled={isDiffEmpty || isSaving || hasValidationErrors}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-primary text-on-primary text-label-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+          loading={isSaving}
         >
-          {isSaving ? (
-            <>
-              <Icon name="progress_activity" size={16} className="animate-spin" />
-              Guardando...
-            </>
-          ) : (
-            "Guardar"
-          )}
-        </button>
+          {isSaving ? "Guardando..." : "Guardar"}
+        </Button>
       </div>
     </dialog>
   );

@@ -2,6 +2,8 @@
 
 import { useState, useCallback } from "react";
 import { Switch } from "../../../../_components/atoms/Switch/Switch";
+import { Button } from "../../../../_components/atoms/Button/Button";
+import { Select } from "../../../../_components/atoms/Select/Select";
 import { ImageUploadField } from "../../../../_components/molecules/ImageUploadField/ImageUploadField";
 import { updateProduct } from "../_logic/services/products";
 import { uploadProductImage } from "../_logic/services/uploadProductImage";
@@ -153,10 +155,10 @@ export function ProductGeneralTab({ product, canWrite, deptOptions, onUpdated }:
 
       <div>
         <label className="block text-label-lg text-on-surface-variant mb-1">Departamento *</label>
-        <select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)} disabled={!canWrite} className={fieldClass}>
+        <Select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)} disabled={!canWrite}>
           <option value="">Selecciona un departamento</option>
           {deptOptions.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-        </select>
+        </Select>
         {deptError && <p className="text-label-sm text-error mt-1">{deptError}</p>}
       </div>
 
@@ -246,13 +248,9 @@ export function ProductGeneralTab({ product, canWrite, deptOptions, onUpdated }:
       )}
 
       {canWrite && (
-        <button
-          type="submit"
-          disabled={isSaving || isDiffEmpty}
-          className="px-4 py-2 rounded-md bg-primary text-on-primary text-label-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-        >
+        <Button type="submit" variant="filled" disabled={isSaving || isDiffEmpty} loading={isSaving}>
           {isSaving ? "Guardando…" : "Guardar cambios"}
-        </button>
+        </Button>
       )}
     </form>
   );

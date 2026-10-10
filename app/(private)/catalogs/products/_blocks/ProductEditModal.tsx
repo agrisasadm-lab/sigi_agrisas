@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Icon } from "../../../../_components/atoms/Icon/Icon";
 import { Switch } from "../../../../_components/atoms/Switch/Switch";
+import { Button } from "../../../../_components/atoms/Button/Button";
+import { Select } from "../../../../_components/atoms/Select/Select";
 import { createProductSchema, updateProductSchema } from "../_logic/schemas/product.schema";
 import { useTaxRatesOptions } from "../../../../_hooks/useTaxRatesOptions";
 import { TaxRateSelect } from "./TaxRateSelect";
@@ -258,16 +260,16 @@ export function ProductEditModal({
 
           <div>
             <label className="block text-label-lg text-on-surface-variant mb-1">Departamento *</label>
-            <select
+            <Select
               value={departmentId}
               onChange={(e) => setDepartmentId(e.target.value)}
-              className="w-full px-3 py-2 rounded-md border border-outline-variant bg-surface-container-lowest text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+              error={deptError ?? validationErrors.departmentId}
             >
               <option value="">Selecciona un departamento</option>
               {deptOptions.map((d) => (
                 <option key={d.id} value={d.id}>{d.name}</option>
               ))}
-            </select>
+            </Select>
             {(deptError || validationErrors.departmentId) && (
               <p className="text-label-sm text-error mt-1">{deptError ?? validationErrors.departmentId}</p>
             )}
@@ -410,9 +412,15 @@ export function ProductEditModal({
                   />
                 </label>
                 {stagedImage && (
-                  <button type="button" onClick={() => { setStagedImage(null); setImgPreview(null); }} className="text-label-sm text-error hover:underline">
+                  <Button
+                    type="button"
+                    variant="text"
+                    size="sm"
+                    onClick={() => { setStagedImage(null); setImgPreview(null); }}
+                    className="text-error underline"
+                  >
                     Quitar
-                  </button>
+                  </Button>
                 )}
               </div>
               {imgError && <p className="text-label-sm text-error mt-1">{imgError}</p>}
@@ -421,30 +429,17 @@ export function ProductEditModal({
         </div>
 
         <div className="px-6 pb-6 pt-2 flex justify-end gap-3 border-t border-outline-variant">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isSaving}
-            className="px-4 py-2 rounded-md text-label-lg text-on-surface-variant hover:bg-surface-container transition-colors"
-          >
+          <Button type="button" variant="text" onClick={onClose} disabled={isSaving}>
             Cancelar
-          </button>
+          </Button>
           {imageUploadWarning ? (
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-md bg-primary text-on-primary text-label-lg font-medium hover:opacity-90 transition-opacity"
-            >
+            <Button type="button" variant="filled" onClick={onClose}>
               Cerrar
-            </button>
+            </Button>
           ) : (
-            <button
-              type="submit"
-              disabled={isSaving || isDiffEmpty}
-              className="px-4 py-2 rounded-md bg-primary text-on-primary text-label-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
+            <Button type="submit" variant="filled" disabled={isSaving || isDiffEmpty} loading={isSaving}>
               {isSaving ? "Guardando…" : mode === "create" ? "Crear" : "Guardar"}
-            </button>
+            </Button>
           )}
         </div>
       </form>

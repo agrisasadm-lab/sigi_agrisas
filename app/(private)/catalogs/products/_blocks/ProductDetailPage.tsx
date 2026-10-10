@@ -10,6 +10,7 @@ import { ProductGeneralTab } from "./ProductGeneralTab";
 import { ProductPricesTab } from "./ProductPricesTab";
 import { ProductDosificationsTab } from "./ProductDosificationsTab";
 import { Icon } from "../../../../_components/atoms/Icon/Icon";
+import { Button } from "../../../../_components/atoms/Button/Button";
 import { ProductImage } from "../../../../_components/atoms/ProductImage/ProductImage";
 import { Skeleton } from "../../../../_components/atoms/Skeleton/Skeleton";
 import { ProductNotFoundError } from "../_logic/errors";
@@ -108,18 +109,19 @@ export function ProductDetailPage({ productId }: ProductDetailPageProps) {
 
       <div className="flex gap-1 border-b border-outline-variant">
         {tabs.map((t) => (
-          <button
+          <Button
             key={t.id}
             type="button"
+            variant="text"
             onClick={() => setTab(t.id)}
-            className={`px-4 py-3 text-label-lg font-medium transition-colors border-b-2 -mb-px ${
+            className={`rounded-none px-4 py-3 border-b-2 -mb-px hover:bg-transparent ${
               tab === t.id
                 ? "border-primary text-primary"
                 : "border-transparent text-on-surface-variant hover:text-on-surface"
             }`}
           >
             {t.label}
-          </button>
+          </Button>
         ))}
       </div>
 

@@ -20,6 +20,8 @@ import { CatalogError } from "../../_blocks/CatalogError";
 import { ConfirmDialog } from "../../../../_components/molecules/ConfirmDialog/ConfirmDialog";
 import { Skeleton } from "../../../../_components/atoms/Skeleton/Skeleton";
 import { Icon } from "../../../../_components/atoms/Icon/Icon";
+import { IconButton } from "../../../../_components/atoms/IconButton/IconButton";
+import { Select } from "../../../../_components/atoms/Select/Select";
 import { EmptyState } from "../../../../_components/molecules/EmptyState/EmptyState";
 import { ProductCodeAlreadyInUseError, ProductDepartmentInvalidError } from "../_logic/errors";
 import { uploadProductImage } from "../_logic/services/uploadProductImage";
@@ -203,28 +205,28 @@ export function ProductsPage() {
         createButtonLabel="Nuevo producto"
       />
       <div className="flex items-center gap-3 flex-wrap">
-        <select
+        <Select
           value={providerId ?? ""}
           onChange={(e) => handleProviderChange(e.target.value)}
           disabled={providerLoading}
-          className="rounded-md border border-outline-variant bg-surface-container-lowest text-body-md text-on-surface px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+          className="w-auto"
         >
           <option value="">Todos los proveedores</option>
           {providerOptions.map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
-        </select>
-        <select
+        </Select>
+        <Select
           value={departmentId ?? ""}
           onChange={(e) => handleDepartmentChange(e.target.value)}
           disabled={deptLoading}
-          className="rounded-md border border-outline-variant bg-surface-container-lowest text-body-md text-on-surface px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+          className="w-auto"
         >
           <option value="">Todos los departamentos</option>
           {deptOptions.map((d) => (
             <option key={d.id} value={d.id}>{d.name}</option>
           ))}
-        </select>
+        </Select>
       </div>
     </div>
   );
@@ -265,9 +267,15 @@ export function ProductsPage() {
                 )
               )}
             </span>
-            <button type="button" onClick={() => setCreateSuccess(null)} className="shrink-0 p-1 rounded hover:bg-black/10" title="Descartar">
-              <Icon name="close" size={16} />
-            </button>
+            <IconButton
+              icon="close"
+              iconSize={16}
+              ariaLabel="Descartar"
+              title="Descartar"
+              variant="ghost"
+              onClick={() => setCreateSuccess(null)}
+              className="shrink-0 rounded p-1 hover:bg-black/10"
+            />
           </div>
         )}
         {isLoading ? (

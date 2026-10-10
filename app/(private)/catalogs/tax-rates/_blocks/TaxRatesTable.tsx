@@ -1,7 +1,8 @@
 "use client";
 
-import { Icon } from "../../../../_components/atoms/Icon/Icon";
+import { IconButton } from "../../../../_components/atoms/IconButton/IconButton";
 import { Skeleton } from "../../../../_components/atoms/Skeleton/Skeleton";
+import { Table, THead, TBody, Tr, Th, Td } from "../../../../_components/molecules/DataTable/DataTable";
 import { CatalogStatusBadge } from "../../_blocks/CatalogStatusBadge";
 import type { TaxRate } from "../_logic/types/domain";
 import { useTableKeyboard } from "../../../../_hooks/useTableKeyboard";
@@ -40,36 +41,34 @@ export function TaxRatesTable({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-body-md">
-        <thead>
-          <tr className="border-b border-outline-variant bg-surface-container">
-            <th className="text-left px-4 py-3 text-label-lg text-on-surface-variant font-medium">Código</th>
-            <th className="text-left px-4 py-3 text-label-lg text-on-surface-variant font-medium">Nombre</th>
-            <th className="text-left px-4 py-3 text-label-lg text-on-surface-variant font-medium">Clave SAT</th>
-            <th className="text-left px-4 py-3 text-label-lg text-on-surface-variant font-medium">Tipo Factor</th>
-            <th className="text-left px-4 py-3 text-label-lg text-on-surface-variant font-medium">Valor</th>
-            <th className="text-left px-4 py-3 text-label-lg text-on-surface-variant font-medium">Tasa</th>
-            <th className="text-left px-4 py-3 text-label-lg text-on-surface-variant font-medium">Descripción</th>
-            <th className="text-left px-4 py-3 text-label-lg text-on-surface-variant font-medium">Estado</th>
-            {canWrite && (
-              <th className="text-right px-4 py-3 text-label-lg text-on-surface-variant font-medium">Acciones</th>
-            )}
-          </tr>
-        </thead>
-        <tbody>
+      <Table>
+        <THead>
+          <Tr hoverable={false}>
+            <Th>Código</Th>
+            <Th>Nombre</Th>
+            <Th>Clave SAT</Th>
+            <Th>Tipo Factor</Th>
+            <Th>Valor</Th>
+            <Th>Tasa</Th>
+            <Th>Descripción</Th>
+            <Th>Estado</Th>
+            {canWrite && <Th align="right">Acciones</Th>}
+          </Tr>
+        </THead>
+        <TBody>
           {items.map((item, idx) => (
-            <tr
+            <Tr
               key={item.id}
               {...getRowProps(idx)}
-              className="border-b border-outline-variant last:border-0 hover:bg-surface-container-low focus:bg-surface-container focus:outline-none transition-colors cursor-default"
+              className="focus:bg-surface-container focus:outline-none cursor-default"
             >
-              <td className="px-4 py-3 font-mono text-on-surface">{item.code}</td>
-              <td className="px-4 py-3 text-on-surface">{item.name}</td>
-              <td className="px-4 py-3 text-on-surface font-mono">{item.satTaxCode}</td>
-              <td className="px-4 py-3 text-on-surface">{item.factorType}</td>
-              <td className="px-4 py-3 text-on-surface font-mono">{item.displayValue}</td>
-              <td className="px-4 py-3 text-on-surface font-mono">{(item.rate * 100).toFixed(4)}%</td>
-              <td className="px-4 py-3 text-on-surface-variant">
+              <Td className="font-mono text-on-surface">{item.code}</Td>
+              <Td className="text-on-surface">{item.name}</Td>
+              <Td className="text-on-surface font-mono">{item.satTaxCode}</Td>
+              <Td className="text-on-surface">{item.factorType}</Td>
+              <Td className="text-on-surface font-mono">{item.displayValue}</Td>
+              <Td className="text-on-surface font-mono">{(item.rate * 100).toFixed(4)}%</Td>
+              <Td className="text-on-surface-variant">
                 {item.description ? (
                   <span title={item.description}>
                     {item.description.length > 50 ? item.description.slice(0, 50) + "…" : item.description}
@@ -77,49 +76,52 @@ export function TaxRatesTable({
                 ) : (
                   <span>—</span>
                 )}
-              </td>
-              <td className="px-4 py-3">
+              </Td>
+              <Td>
                 <CatalogStatusBadge isActive={item.isActive} />
-              </td>
+              </Td>
               {canWrite && (
-                <td className="px-4 py-3">
+                <Td align="right">
                   <div className="flex items-center justify-end gap-1">
                     {item.isActive ? (
                       <>
-                        <button
-                          type="button"
-                          onClick={() => onEdit(item)}
+                        <IconButton
+                          icon="edit"
+                          iconSize={18}
+                          ariaLabel="Editar"
                           title="Editar"
-                          className="p-2 rounded text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors"
-                        >
-                          <Icon name="edit" size={18} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onSoftDelete(item.id)}
+                          variant="ghost"
+                          onClick={() => onEdit(item)}
+                          className="rounded p-2 hover:text-primary"
+                        />
+                        <IconButton
+                          icon="delete"
+                          iconSize={18}
+                          ariaLabel="Desactivar"
                           title="Desactivar"
-                          className="p-2 rounded text-on-surface-variant hover:bg-error-container hover:text-error transition-colors"
-                        >
-                          <Icon name="delete" size={18} />
-                        </button>
+                          variant="ghost"
+                          onClick={() => onSoftDelete(item.id)}
+                          className="rounded p-2 hover:bg-error-container hover:text-error"
+                        />
                       </>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={() => onReactivate(item.id)}
+                      <IconButton
+                        icon="restore"
+                        iconSize={18}
+                        ariaLabel="Reactivar"
                         title="Reactivar"
-                        className="p-2 rounded text-on-surface-variant hover:bg-tertiary-container hover:text-on-tertiary-container transition-colors"
-                      >
-                        <Icon name="restore" size={18} />
-                      </button>
+                        variant="ghost"
+                        onClick={() => onReactivate(item.id)}
+                        className="rounded p-2 hover:bg-tertiary-container hover:text-on-tertiary-container"
+                      />
                     )}
                   </div>
-                </td>
+                </Td>
               )}
-            </tr>
+            </Tr>
           ))}
-        </tbody>
-      </table>
+        </TBody>
+      </Table>
     </div>
   );
 }

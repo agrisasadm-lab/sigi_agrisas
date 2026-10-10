@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Icon } from "../../../../_components/atoms/Icon/Icon";
+import { IconButton } from "../../../../_components/atoms/IconButton/IconButton";
+import { Button } from "../../../../_components/atoms/Button/Button";
+import { Select } from "../../../../_components/atoms/Select/Select";
 import { Switch } from "../../../../_components/atoms/Switch/Switch";
 import { createTaxRateSchema, updateTaxRateSchema } from "../_logic/schemas/taxRate.schema";
 import type { TaxRate } from "../_logic/types/domain";
@@ -183,9 +185,7 @@ export function TaxRateEditModal({
     >
       <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
         <h2 className="text-title-md font-semibold text-on-surface">{title}</h2>
-        <button type="button" onClick={onClose} className="p-1.5 rounded text-on-surface-variant hover:bg-surface-container-high">
-          <Icon name="close" size={20} />
-        </button>
+        <IconButton icon="close" iconSize={20} ariaLabel="Cerrar" variant="ghost" onClick={onClose} className="rounded p-1.5" />
       </div>
 
       <div className="px-6 py-5 space-y-5 max-h-[65vh] overflow-y-auto">
@@ -235,16 +235,16 @@ export function TaxRateEditModal({
 
           <div>
             <label className="block text-label-lg text-on-surface-variant mb-1" htmlFor="tr-factor-type">Tipo Factor</label>
-            <select
+            <Select
               id="tr-factor-type"
               value={factorType}
               onChange={(e) => setFactorType(e.target.value)}
-              className="w-full px-3 py-2 rounded-md border border-outline-variant bg-surface-container-lowest text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+              error={validationErrors.factorType}
             >
               {FACTOR_TYPES.map((ft) => (
                 <option key={ft} value={ft}>{ft}</option>
               ))}
-            </select>
+            </Select>
             {validationErrors.factorType && <p className="text-label-sm text-error mt-1">{validationErrors.factorType}</p>}
           </div>
         </div>
@@ -357,24 +357,18 @@ export function TaxRateEditModal({
       </div>
 
       <div className="flex justify-end gap-3 px-6 py-4 border-t border-outline-variant bg-surface-container-lowest">
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={isSaving}
-          className="px-5 py-2.5 rounded-md border border-outline text-label-lg text-on-surface font-medium hover:bg-surface-container-high transition-colors disabled:opacity-40"
-        >
+        <Button type="button" variant="outlined" onClick={onClose} disabled={isSaving}>
           Cancelar
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="filled"
           onClick={handleSave}
           disabled={!isDirty || isDiffEmpty || isSaving || Object.keys(validationErrors).length > 0}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-primary text-on-primary text-label-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+          loading={isSaving}
         >
-          {isSaving ? (
-            <><Icon name="progress_activity" size={16} className="animate-spin" />Guardando...</>
-          ) : "Guardar"}
-        </button>
+          {isSaving ? "Guardando..." : "Guardar"}
+        </Button>
       </div>
     </dialog>
   );

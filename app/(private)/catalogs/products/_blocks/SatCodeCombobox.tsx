@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useSatCodesSearch } from "../../../../_hooks/useSatCodesSearch";
+import { Button } from "../../../../_components/atoms/Button/Button";
 
 interface SatCodeComboboxProps {
   value: string;
@@ -57,13 +58,14 @@ export function SatCodeCombobox({ value, onChange, disabled, className }: SatCod
         <ul className="absolute z-10 mt-1 w-full max-h-56 overflow-y-auto rounded border border-outline-variant bg-surface shadow-lg">
           {options.map((opt) => (
             <li key={opt.code}>
-              <button
+              <Button
                 type="button"
+                variant="text"
                 onClick={() => handleSelect(opt.code)}
-                className="w-full text-left px-3 py-2 text-body-sm hover:bg-surface-container-low transition-colors"
+                className="w-full rounded-none justify-start px-3 py-2 text-body-sm text-on-surface hover:bg-surface-container-low"
               >
                 <span className="font-mono">{opt.code}</span> — {opt.description}
-              </button>
+              </Button>
             </li>
           ))}
         </ul>

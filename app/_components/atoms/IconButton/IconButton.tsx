@@ -10,6 +10,7 @@ interface IconButtonProps
   icon: IconName;
   ariaLabel: string;
   variant?: Variant;
+  iconSize?: number;
 }
 
 const variantClasses: Record<Variant, string> = {
@@ -22,6 +23,7 @@ export function IconButton({
   icon,
   ariaLabel,
   variant = "ghost",
+  iconSize,
   className,
   type = "button",
   ...props
@@ -38,7 +40,7 @@ export function IconButton({
       )}
       {...props}
     >
-      <Icon name={icon} />
+      <Icon name={icon} size={iconSize} />
     </button>
   );
 }
