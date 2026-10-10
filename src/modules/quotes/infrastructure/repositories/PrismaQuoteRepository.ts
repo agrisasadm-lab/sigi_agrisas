@@ -15,6 +15,7 @@ import { QuoteStatus } from "../../domain/value-objects/QuoteStatus";
 import { QuoteJoinedFields } from "../../application/mappers/toQuoteDto";
 import { InactiveResourceError } from "../../domain/errors/InactiveResourceError";
 import { allocateBranchFolio } from "@/shared/infrastructure/folios/allocateBranchFolio";
+import { isPrismaUniqueError } from "@/shared/infrastructure/prisma/errors";
 
 type PrismaQuoteWithJoins = {
   id: string;
@@ -211,61 +212,74 @@ export class PrismaQuoteRepository implements QuoteRepository {
   async createWithItems(data: CreateQuoteData): Promise<QuoteSummary> {
     const quoteId = randomUUID();
 
-    const summary = await this.prisma.$transaction(async (tx) => {
-      const { folioNumber, folioCode } = await allocateBranchFolio(tx, data.folioId, data.branchId);
+    try {
+      const summary = await this.prisma.$transaction(async (tx) => {
+        const { folioNumber, folioCode } = await allocateBranchFolio(tx, data.folioId, data.branchId);
 
-      // Use raw INSERT to support nullable customer_id (Prisma client was generated
-      // before the NOT NULL constraint was dropped, so ORM validation rejects null).
-      await tx.$executeRaw`
-        INSERT INTO quotes (
-          id, folio_id, folio_number, folio_code, branch_id, customer_id, creator_id,
-          status, subtotal, tax_total, total, notes, expires_at, client_request_id, updated_at
-        ) VALUES (
-          ${quoteId}::text,
-          ${data.folioId}::text,
-          ${folioNumber}::integer,
-          ${folioCode}::varchar,
-          ${data.branchId}::text,
-          ${data.customerId ?? null}::text,
-          ${data.creatorId}::uuid,
-          'draft',
-          ${new Prisma.Decimal(data.subtotal)}::decimal,
-          ${new Prisma.Decimal(data.taxTotal)}::decimal,
-          ${new Prisma.Decimal(data.total)}::decimal,
-          ${data.notes ?? null}::text,
-          ${data.expiresAt ?? null}::timestamp,
-          ${data.clientRequestId ?? null}::text,
-          NOW()
-        )
-      `;
+        // Use raw INSERT to support nullable customer_id (Prisma client was generated
+        // before the NOT NULL constraint was dropped, so ORM validation rejects null).
+        await tx.$executeRaw`
+          INSERT INTO quotes (
+            id, folio_id, folio_number, folio_code, branch_id, customer_id, creator_id,
+            status, subtotal, tax_total, total, notes, expires_at, client_request_id, updated_at
+          ) VALUES (
+            ${quoteId}::text,
+            ${data.folioId}::text,
+            ${folioNumber}::integer,
+            ${folioCode}::varchar,
+            ${data.branchId}::text,
+            ${data.customerId ?? null}::text,
+            ${data.creatorId}::uuid,
+            'draft',
+            ${new Prisma.Decimal(data.subtotal)}::decimal,
+            ${new Prisma.Decimal(data.taxTotal)}::decimal,
+            ${new Prisma.Decimal(data.total)}::decimal,
+            ${data.notes ?? null}::text,
+            ${data.expiresAt ?? null}::timestamp,
+            ${data.clientRequestId ?? null}::text,
+            NOW()
+          )
+        `;
 
-      for (const it of data.items) {
-        await tx.quoteItem.create({
-          data: {
-            quoteId,
-            productId: it.productId,
-            productPriceId: it.productPriceId,
-            productCodeSnapshot: it.productCodeSnapshot,
-            productNameSnapshot: it.productNameSnapshot,
-            priceNameSnapshot: it.priceNameSnapshot,
-            quantity: new Prisma.Decimal(it.quantity),
-            unitPrice: new Prisma.Decimal(it.unitPrice),
-            discountPct: it.discountPct === null ? null : new Prisma.Decimal(it.discountPct),
-            discountAmount: new Prisma.Decimal(it.discountAmount),
-            ivaRate: it.ivaRate === null ? null : new Prisma.Decimal(it.ivaRate),
-            iepsRate: it.iepsRate === null ? null : new Prisma.Decimal(it.iepsRate),
-            lineSubtotal: new Prisma.Decimal(it.lineSubtotal),
-            lineTax: new Prisma.Decimal(it.lineTax),
-            lineTotal: new Prisma.Decimal(it.lineTotal),
-          },
-        });
+        for (const it of data.items) {
+          await tx.quoteItem.create({
+            data: {
+              quoteId,
+              productId: it.productId,
+              productPriceId: it.productPriceId,
+              productCodeSnapshot: it.productCodeSnapshot,
+              productNameSnapshot: it.productNameSnapshot,
+              priceNameSnapshot: it.priceNameSnapshot,
+              quantity: new Prisma.Decimal(it.quantity),
+              unitPrice: new Prisma.Decimal(it.unitPrice),
+              discountPct: it.discountPct === null ? null : new Prisma.Decimal(it.discountPct),
+              discountAmount: new Prisma.Decimal(it.discountAmount),
+              ivaRate: it.ivaRate === null ? null : new Prisma.Decimal(it.ivaRate),
+              iepsRate: it.iepsRate === null ? null : new Prisma.Decimal(it.iepsRate),
+              lineSubtotal: new Prisma.Decimal(it.lineSubtotal),
+              lineTax: new Prisma.Decimal(it.lineTax),
+              lineTotal: new Prisma.Decimal(it.lineTotal),
+            },
+          });
+        }
+
+        const row = await tx.quote.findUnique({ where: { id: quoteId }, include: includeJoins });
+        return toSummary(row as unknown as PrismaQuoteWithJoins);
+      });
+
+      return summary;
+    } catch (err) {
+      // Idempotent replay lost the race with a concurrent retry carrying the same
+      // clientRequestId (e.g. an offline-sync outbox retry fired before the winning
+      // attempt's response was acknowledged). The raw INSERT above surfaces a unique-
+      // constraint violation as P2010 ("Raw query failed") with meta.code "23505",
+      // not as P2002 — see TECH_DEBT_CHECKLIST.md §1-bis.
+      if (data.clientRequestId && isPrismaUniqueError(err, "client_request_id")) {
+        const existing = await this.findByClientRequestId(data.clientRequestId);
+        if (existing) return existing;
       }
-
-      const row = await tx.quote.findUnique({ where: { id: quoteId }, include: includeJoins });
-      return toSummary(row as unknown as PrismaQuoteWithJoins);
-    });
-
-    return summary;
+      throw err;
+    }
   }
 
   async replaceItemsAndRecalculate(

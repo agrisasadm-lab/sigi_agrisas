@@ -191,7 +191,7 @@ Optional body: `notes: string | null` (max 1000 chars), `expiresAt: string | nul
 
 **Branch scoping**: callers without `branches:access_all` MUST pass `branchId === x-user-branch-id`; mismatch returns HTTP 403. Callers without an assigned branch (`x-user-branch-id` empty) and without `branches:access_all` return HTTP 403.
 
-**Idempotent replay via `clientRequestId`**: when the body includes a non-null `clientRequestId`, the controller SHALL, BEFORE any other validation in the atomic flow below, look up an existing `quotes` row with `client_request_id = clientRequestId`. If found, the system SHALL return HTTP 201 with that existing quote's `QuoteDetailDto` unchanged — it SHALL NOT re-validate the body, re-allocate a folio, or insert a new row. If not found, the atomic flow proceeds as normal and, on success, persists `client_request_id = clientRequestId` on the new `quotes` row. `client_request_id` is nullable and unique; online-created quotes (no `clientRequestId` in the body) leave it `null` and are never matched by this lookup.
+**Idempotent replay via `clientRequestId`**: when the body includes a non-null `clientRequestId`, the controller SHALL, BEFORE any other validation in the atomic flow below, look up an existing `quotes` row with `client_request_id = clientRequestId`. If found, the system SHALL return HTTP 201 with that existing quote's `QuoteDetailDto` unchanged — it SHALL NOT re-validate the body, re-allocate a folio, or insert a new row. If not found, the atomic flow proceeds as normal and, on success, persists `client_request_id = clientRequestId` on the new `quotes` row. `client_request_id` is nullable and unique; online-created quotes (no `clientRequestId` in the body) leave it `null` and are never matched by this lookup. **This lookup-then-insert sequence is not itself atomic against a second, concurrent request carrying the same `clientRequestId`** (e.g. an `offline-sync` outbox retry fired before the first attempt's response is acknowledged): if both requests pass the lookup and attempt to insert, the database's unique constraint on `client_request_id` lets only one `INSERT` succeed. Because this `INSERT` is a raw `$executeRaw` statement (needed to support a nullable `customerId` ahead of a pending Prisma Client regeneration), the resulting conflict surfaces as Prisma error `P2010` ("Raw query failed") with `meta.code === "23505"`, not as the `P2002` Prisma raises for ORM-level unique violations. The system SHALL treat this conflict identically to the pre-insert lookup match regardless of which error shape it takes — it SHALL discard the failed attempt, re-query the now-existing `quotes` row by `client_request_id`, and return HTTP 201 with that row's `QuoteDetailDto`. It SHALL NOT surface this as an HTTP 500.
 
 **Atomic flow (inside a Prisma transaction)**:
 
@@ -203,6 +203,8 @@ Optional body: `notes: string | null` (max 1000 chars), `expiresAt: string | nul
 5. Allocate the next folio number **for the quote's own branch** atomically via `allocateBranchFolio(tx, folioId, branchId)` — same per-branch counter and `folioCode` format (`<prefix><BRANCH_CODE>-<NNNNNN>`, e.g. `COT-ZARIOZ-000001`) described in `pos-api` — "Create sale (atomic emission)". If the folio is inactive → HTTP 400. Legacy `folioCode`s issued before this change are preserved unchanged.
 6. `INSERT` the `quotes` row with `status='draft'`, `creator_id=<userId from x-user-id>`, snapshotted folio info, `expires_at` from the body, and `client_request_id = clientRequestId` (or `null`).
 7. `INSERT` the `quote_items` rows.
+
+If step 6 fails with a unique-constraint violation on `client_request_id` (the concurrent-replay case described above, surfaced as Prisma `P2010`/`23505` because of the raw INSERT), the system SHALL abandon step 7 for this attempt, re-query the existing `quotes` row by `client_request_id`, and return it instead.
 
 The endpoint SHALL NOT touch `branch_inventory` at any point. Returns HTTP 201 with the `QuoteDetailDto` (including items).
 
@@ -257,6 +259,10 @@ The endpoint SHALL NOT touch `branch_inventory` at any point. Returns HTTP 201 w
 #### Scenario: Idempotent replay of an offline-queued quote
 - **WHEN** a caller sends a body with `clientRequestId: X` and there already exists a `quotes` row with `client_request_id = X` (from a previous, already-committed request with the exact same `clientRequestId`, e.g. a retry of an `offline-sync` outbox item whose original response was lost)
 - **THEN** the system returns HTTP 201 with that existing quote's `QuoteDetailDto`; no new row is inserted and no folio is allocated
+
+#### Scenario: Concurrent duplicate clientRequestId resolved idempotently
+- **WHEN** two requests carrying the exact same non-null `clientRequestId` reach the atomic flow close enough together that both pass the pre-insert lookup (step 0) before either has committed, and the database's unique constraint on `client_request_id` lets only one raw `INSERT` (step 6) succeed, surfacing Prisma error `P2010` with `meta.code === "23505"` on the loser
+- **THEN** the request whose `INSERT` loses the race returns HTTP 201 with the winning request's `QuoteDetailDto` (same `id`, same folio) instead of HTTP 500; no duplicate `quote_items` rows are created
 
 #### Scenario: clientRequestId omitted behaves exactly as before
 - **WHEN** the body does not include `clientRequestId` (or sends it as `null`)

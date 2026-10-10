@@ -18,6 +18,7 @@ import { recordInventoryMovement, type LowStockSignal } from "@/shared/infrastru
 import { inventoryQuantityOf } from "@/shared/domain/services/inventoryQuantityOf";
 import type { AdminNotificationService } from "@/shared/application/services/AdminNotificationService";
 import { isBranchScopedInventory } from "@/shared/infrastructure/config/inventoryScope";
+import { isPrismaUniqueError } from "@/shared/infrastructure/prisma/errors";
 
 /** Suma `days` días naturales a una fecha, devolviendo una nueva instancia. */
 function addDays(base: Date, days: number): Date {
@@ -312,73 +313,87 @@ export class PrismaSaleRepository implements SaleRepository {
     const saleId = randomUUID();
     const lowStockSignals: LowStockSignal[] = [];
 
-    const summary = await this.prisma.$transaction(async (tx) => {
-      const { folioNumber, folioCode } = await allocateBranchFolio(tx, data.folioId, data.branchId);
-      const completedAt = new Date();
+    let summary: SaleSummary;
+    try {
+      summary = await this.prisma.$transaction(async (tx) => {
+        const { folioNumber, folioCode } = await allocateBranchFolio(tx, data.folioId, data.branchId);
+        const completedAt = new Date();
 
-      for (const item of data.items) {
-        const { lowStockSignal } = await recordInventoryMovement(tx, {
-          branchId: data.branchId,
-          productId: item.productId,
-          movementAt: completedAt,
-          movementType: "sale",
-          direction: "OUT",
-          quantity: inventoryQuantityOf(item.quantity, item.numPartsSnapshot),
-          unitPrice: item.unitPrice,
-          customerId: data.customerId,
-          folioId: data.folioId,
-          folioCode,
-          folioNumber,
-          sourceType: "sale",
-          sourceId: saleId,
-          allowRowCreation: !isBranchScopedInventory(),
-        });
-        if (lowStockSignal) lowStockSignals.push(lowStockSignal);
-      }
+        for (const item of data.items) {
+          const { lowStockSignal } = await recordInventoryMovement(tx, {
+            branchId: data.branchId,
+            productId: item.productId,
+            movementAt: completedAt,
+            movementType: "sale",
+            direction: "OUT",
+            quantity: inventoryQuantityOf(item.quantity, item.numPartsSnapshot),
+            unitPrice: item.unitPrice,
+            customerId: data.customerId,
+            folioId: data.folioId,
+            folioCode,
+            folioNumber,
+            sourceType: "sale",
+            sourceId: saleId,
+            allowRowCreation: !isBranchScopedInventory(),
+          });
+          if (lowStockSignal) lowStockSignals.push(lowStockSignal);
+        }
 
-      let dueDate: Date | null = null;
+        let dueDate: Date | null = null;
 
-      // Credit sale: debit customer balance (increase debt) + set due date
-      if (data.paymentStatus !== "paid" && data.customerId) {
-        const cust = await tx.customer.findUnique({
-          where: { id: data.customerId },
-          select: { creditDays: true },
-        });
-        dueDate = addDays(completedAt, cust?.creditDays ?? 30);
-        await tx.$executeRaw`
+        // Credit sale: debit customer balance (increase debt) + set due date
+        if (data.paymentStatus !== "paid" && data.customerId) {
+          const cust = await tx.customer.findUnique({
+            where: { id: data.customerId },
+            select: { creditDays: true },
+          });
+          dueDate = addDays(completedAt, cust?.creditDays ?? 30);
+          await tx.$executeRaw`
           UPDATE customers SET current_balance = current_balance + ${data.total}::numeric
           WHERE id = ${data.customerId}
         `;
-      }
+        }
 
-      await tx.sale.create({
-        data: {
-          id: saleId,
-          folioId: data.folioId,
-          folioNumber,
-          folioCode,
-          branchId: data.branchId,
-          customerId: data.customerId,
-          cashierId: data.cashierId,
-          paymentMethodId: data.paymentMethodId,
-          quoteId: data.quoteId ?? null,
-          clientRequestId: data.clientRequestId ?? null,
-          status: "completed",
-          paidAmount: new Prisma.Decimal(data.paidAmount),
-          paymentStatus: data.paymentStatus,
-          subtotal: new Prisma.Decimal(data.subtotal),
-          taxTotal: new Prisma.Decimal(data.taxTotal),
-          total: new Prisma.Decimal(data.total),
-          notes: data.notes,
-          dueDate,
-          completedAt,
-          items: { create: data.items.map(toSaleItemCreate) },
-        },
+        await tx.sale.create({
+          data: {
+            id: saleId,
+            folioId: data.folioId,
+            folioNumber,
+            folioCode,
+            branchId: data.branchId,
+            customerId: data.customerId,
+            cashierId: data.cashierId,
+            paymentMethodId: data.paymentMethodId,
+            quoteId: data.quoteId ?? null,
+            clientRequestId: data.clientRequestId ?? null,
+            status: "completed",
+            paidAmount: new Prisma.Decimal(data.paidAmount),
+            paymentStatus: data.paymentStatus,
+            subtotal: new Prisma.Decimal(data.subtotal),
+            taxTotal: new Prisma.Decimal(data.taxTotal),
+            total: new Prisma.Decimal(data.total),
+            notes: data.notes,
+            dueDate,
+            completedAt,
+            items: { create: data.items.map(toSaleItemCreate) },
+          },
+        });
+
+        const row = await tx.sale.findUnique({ where: { id: saleId }, include: includeJoins });
+        return toSummary(row as unknown as PrismaSaleWithJoins);
       });
-
-      const row = await tx.sale.findUnique({ where: { id: saleId }, include: includeJoins });
-      return toSummary(row as unknown as PrismaSaleWithJoins);
-    });
+    } catch (err) {
+      // Idempotent replay lost the race with a concurrent retry carrying the same
+      // clientRequestId (e.g. an offline-sync outbox retry fired before the winning
+      // attempt's response was acknowledged): the unique constraint on
+      // client_request_id let only one INSERT through. Resolve to the winner's row
+      // instead of surfacing a 500 — see TECH_DEBT_CHECKLIST.md §1-bis.
+      if (data.clientRequestId && isPrismaUniqueError(err, "client_request_id")) {
+        const existing = await this.findByClientRequestId(data.clientRequestId);
+        if (existing) return existing;
+      }
+      throw err;
+    }
 
     await this.fireLowStockNotifications(lowStockSignals, summary.joined.branchName ?? summary.sale.branchId);
     return summary;
@@ -388,83 +403,94 @@ export class PrismaSaleRepository implements SaleRepository {
     const saleId = randomUUID();
     const lowStockSignals: LowStockSignal[] = [];
 
-    const summary = await this.prisma.$transaction(async (tx) => {
-      const { folioNumber, folioCode } = await allocateBranchFolio(tx, data.folioId, data.branchId);
-      const completedAt = new Date();
+    let summary: SaleSummary;
+    try {
+      summary = await this.prisma.$transaction(async (tx) => {
+        const { folioNumber, folioCode } = await allocateBranchFolio(tx, data.folioId, data.branchId);
+        const completedAt = new Date();
 
-      for (const item of data.items) {
-        const { lowStockSignal } = await recordInventoryMovement(tx, {
-          branchId: data.branchId,
-          productId: item.productId,
-          movementAt: completedAt,
-          movementType: "sale",
-          direction: "OUT",
-          quantity: inventoryQuantityOf(item.quantity, item.numPartsSnapshot),
-          unitPrice: item.unitPrice,
-          customerId: data.customerId,
-          folioId: data.folioId,
-          folioCode,
-          folioNumber,
-          sourceType: "sale",
-          sourceId: saleId,
-          allowRowCreation: !isBranchScopedInventory(),
-        });
-        if (lowStockSignal) lowStockSignals.push(lowStockSignal);
-      }
+        for (const item of data.items) {
+          const { lowStockSignal } = await recordInventoryMovement(tx, {
+            branchId: data.branchId,
+            productId: item.productId,
+            movementAt: completedAt,
+            movementType: "sale",
+            direction: "OUT",
+            quantity: inventoryQuantityOf(item.quantity, item.numPartsSnapshot),
+            unitPrice: item.unitPrice,
+            customerId: data.customerId,
+            folioId: data.folioId,
+            folioCode,
+            folioNumber,
+            sourceType: "sale",
+            sourceId: saleId,
+            allowRowCreation: !isBranchScopedInventory(),
+          });
+          if (lowStockSignal) lowStockSignals.push(lowStockSignal);
+        }
 
-      let dueDate: Date | null = null;
+        let dueDate: Date | null = null;
 
-      // Credit sale: debit customer balance (increase debt) + set due date
-      if (data.paymentStatus !== "paid" && data.customerId) {
-        const cust = await tx.customer.findUnique({
-          where: { id: data.customerId },
-          select: { creditDays: true },
-        });
-        dueDate = addDays(completedAt, cust?.creditDays ?? 30);
-        await tx.$executeRaw`
+        // Credit sale: debit customer balance (increase debt) + set due date
+        if (data.paymentStatus !== "paid" && data.customerId) {
+          const cust = await tx.customer.findUnique({
+            where: { id: data.customerId },
+            select: { creditDays: true },
+          });
+          dueDate = addDays(completedAt, cust?.creditDays ?? 30);
+          await tx.$executeRaw`
           UPDATE customers SET current_balance = current_balance + ${data.total}::numeric
           WHERE id = ${data.customerId}
         `;
+        }
+
+        await tx.sale.create({
+          data: {
+            id: saleId,
+            folioId: data.folioId,
+            folioNumber,
+            folioCode,
+            branchId: data.branchId,
+            customerId: data.customerId,
+            cashierId: data.cashierId,
+            paymentMethodId: data.paymentMethodId,
+            quoteId: data.quoteId,
+            clientRequestId: data.clientRequestId ?? null,
+            status: "completed",
+            paidAmount: new Prisma.Decimal(data.paidAmount),
+            paymentStatus: data.paymentStatus,
+            subtotal: new Prisma.Decimal(data.subtotal),
+            taxTotal: new Prisma.Decimal(data.taxTotal),
+            total: new Prisma.Decimal(data.total),
+            notes: data.notes,
+            dueDate,
+            completedAt,
+            items: { create: data.items.map(toSaleItemCreate) },
+          },
+        });
+
+        // Atomically mark the originating quote as converted (both link directions consistent).
+        await tx.quote.update({
+          where: { id: data.quoteId },
+          data: {
+            status: "converted",
+            convertedAt: new Date(),
+            convertedSaleId: saleId,
+          },
+        });
+
+        const row = await tx.sale.findUnique({ where: { id: saleId }, include: includeJoins });
+        return toSummary(row as unknown as PrismaSaleWithJoins);
+      });
+    } catch (err) {
+      // Same concurrent-replay race as createCompleted above, applied to the
+      // quote-conversion path.
+      if (data.clientRequestId && isPrismaUniqueError(err, "client_request_id")) {
+        const existing = await this.findByClientRequestId(data.clientRequestId);
+        if (existing) return existing;
       }
-
-      await tx.sale.create({
-        data: {
-          id: saleId,
-          folioId: data.folioId,
-          folioNumber,
-          folioCode,
-          branchId: data.branchId,
-          customerId: data.customerId,
-          cashierId: data.cashierId,
-          paymentMethodId: data.paymentMethodId,
-          quoteId: data.quoteId,
-          clientRequestId: data.clientRequestId ?? null,
-          status: "completed",
-          paidAmount: new Prisma.Decimal(data.paidAmount),
-          paymentStatus: data.paymentStatus,
-          subtotal: new Prisma.Decimal(data.subtotal),
-          taxTotal: new Prisma.Decimal(data.taxTotal),
-          total: new Prisma.Decimal(data.total),
-          notes: data.notes,
-          dueDate,
-          completedAt,
-          items: { create: data.items.map(toSaleItemCreate) },
-        },
-      });
-
-      // Atomically mark the originating quote as converted (both link directions consistent).
-      await tx.quote.update({
-        where: { id: data.quoteId },
-        data: {
-          status: "converted",
-          convertedAt: new Date(),
-          convertedSaleId: saleId,
-        },
-      });
-
-      const row = await tx.sale.findUnique({ where: { id: saleId }, include: includeJoins });
-      return toSummary(row as unknown as PrismaSaleWithJoins);
-    });
+      throw err;
+    }
 
     await this.fireLowStockNotifications(lowStockSignals, summary.joined.branchName ?? summary.sale.branchId);
     return summary;

@@ -205,7 +205,7 @@ The body MUST NOT include any explicit `isCredit` flag; the credit flow is activ
 
 **Branch scoping**: callers without `branches:access_all` MUST pass `branchId === x-user-branch-id`; mismatch returns HTTP 403. Callers without an assigned branch (`x-user-branch-id` empty) and without `branches:access_all` return HTTP 403.
 
-**Idempotent replay via `clientRequestId`**: when the body includes a non-null `clientRequestId`, the controller SHALL, BEFORE any other validation in the atomic flow below, look up an existing `sales` row with `client_request_id = clientRequestId`. If found, the system SHALL return HTTP 201 with that existing sale's `SaleDetailDto` unchanged — it SHALL NOT re-validate the body, re-allocate a folio, re-decrement inventory, or insert a new row. If not found, the atomic flow proceeds as normal and, on success, persists `client_request_id = clientRequestId` on the new `sales` row. `client_request_id` is nullable and unique; online-created sales (no `clientRequestId` in the body) leave it `null` and are never matched by this lookup.
+**Idempotent replay via `clientRequestId`**: when the body includes a non-null `clientRequestId`, the controller SHALL, BEFORE any other validation in the atomic flow below, look up an existing `sales` row with `client_request_id = clientRequestId`. If found, the system SHALL return HTTP 201 with that existing sale's `SaleDetailDto` unchanged — it SHALL NOT re-validate the body, re-allocate a folio, re-decrement inventory, or insert a new row. If not found, the atomic flow proceeds as normal and, on success, persists `client_request_id = clientRequestId` on the new `sales` row. `client_request_id` is nullable and unique; online-created sales (no `clientRequestId` in the body) leave it `null` and are never matched by this lookup. **This lookup-then-insert sequence is not itself atomic against a second, concurrent request carrying the same `clientRequestId`** (e.g. an `offline-sync` outbox retry fired before the first attempt's response is acknowledged): if both requests pass the lookup and attempt to insert, the database's unique constraint on `client_request_id` lets only one `INSERT` succeed. The system SHALL treat the resulting unique-constraint violation identically to the pre-insert lookup match — it SHALL discard the failed attempt, re-query the now-existing `sales` row by `client_request_id`, and return HTTP 201 with that row's `SaleDetailDto`. It SHALL NOT surface this as an HTTP 500, and SHALL NOT re-fire the low-stock notification for the attempt that lost the race.
 
 **Credit flow auto-activation (non-blocking)**: after loading the `paymentMethod`, if `paymentMethod.isCredit === true`, the controller SHALL:
 
@@ -245,6 +245,8 @@ The `quoteId` does NOT constrain whether the sale is cash or credit — the `pay
 12. `INSERT` the `sale_items` rows.
 13. If `paymentMethod.isCredit === true`: `UPDATE customers SET current_balance = current_balance + ? WHERE id = ?` (sale.customerId) — regardless of `creditLimitExceeded`.
 14. If `quoteId` non-null: `UPDATE quotes SET status='converted', converted_at=NOW(), converted_sale_id=<newSaleId> WHERE id = quoteId`.
+
+If step 11 fails with a unique-constraint violation on `client_request_id` (the concurrent-replay case described above), the system SHALL abandon steps 12–14 for this attempt, re-query the existing `sales` row by `client_request_id`, and return it instead — steps 9's inventory decrement for the losing attempt is rolled back by the transaction, so it is never double-applied.
 
 Returns HTTP 201 with the `SaleDetailDto` (including items, `quoteId`, `paidAmount`, `paymentStatus`, the derived `isCredit` from the JOIN, and `creditLimitExceeded: boolean` — always `false` for non-credit sales).
 
@@ -374,6 +376,10 @@ Returns HTTP 201 with the `SaleDetailDto` (including items, `quoteId`, `paidAmou
 #### Scenario: Idempotent replay of an offline-queued sale
 - **WHEN** a caller sends a body with `clientRequestId: X` and there already exists a `sales` row with `client_request_id = X` (from a previous, already-committed request with the exact same `clientRequestId`, e.g. a retry of an `offline-sync` outbox item whose original response was lost)
 - **THEN** the system returns HTTP 201 with that existing sale's `SaleDetailDto`; no new row is inserted, no folio is allocated, and `branch_inventory` is not decremented again
+
+#### Scenario: Concurrent duplicate clientRequestId resolved idempotently
+- **WHEN** two requests carrying the exact same non-null `clientRequestId` reach the atomic flow close enough together that both pass the pre-insert lookup (step 0) before either has committed, and the database's unique constraint on `client_request_id` lets only one `INSERT` (step 11) succeed
+- **THEN** the request whose `INSERT` loses the race returns HTTP 201 with the winning request's `SaleDetailDto` (same `id`, same folio) instead of HTTP 500; no low-stock notification is fired for the losing attempt; `branch_inventory` reflects exactly one decrement for this sale, not two
 
 #### Scenario: clientRequestId omitted behaves exactly as before
 - **WHEN** the body does not include `clientRequestId` (or sends it as `null`)

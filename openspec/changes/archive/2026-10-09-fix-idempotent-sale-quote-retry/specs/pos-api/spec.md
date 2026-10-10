@@ -1,0 +1,256 @@
+## MODIFIED Requirements
+
+### Requirement: Create sale (atomic emission)
+The system SHALL expose `POST /api/v1/admin/sales` that emits a completed sale in a single transaction. Requires `sales:create`. Required body:
+
+- `branchId: string` (UUID of an active branch)
+- `customerId: string` (UUID of an active customer)
+- `paymentMethodId: string` (UUID of an active payment method)
+- `folioId: string` (UUID of an active folio)
+- `items: SaleItemInput[]` (at least 1 item)
+
+Each `SaleItemInput`:
+
+- `productId: string` (UUID of an active product)
+- `productPriceId: string` (UUID of a price belonging to `productId`) **OR** `dosificationId: string` (UUID of a dosification belonging to `productId`) — exactly one of the two SHALL be present; both present or both absent → HTTP 400.
+- `quantity: number` (decimal `> 0`; max 14 integer + 4 decimal digits). For a dosification line, `quantity` is the number of parts sold (MAY exceed the dosification's `numParts`).
+- `discountPctOverride: number | null` (optional; decimal `0–100`). When present on a `productPriceId`-based item, overrides the catalog's `price.discountPct` for this line. Ignored (never applied) on a `dosificationId`-based item.
+- `discountAmount: number | null` (optional; decimal `0–100`, MXN). A flat-amount discount for this line, mutually exclusive with `discountPctOverride`/the catalog `discountPct` on the same line — both `> 0` on the same item → HTTP 400. Ignored (forced to `0`) on a `dosificationId`-based item regardless of what the body sends.
+
+Optional body:
+
+- `notes: string | null` (max 1000 chars)
+- `quoteId: string | null` (UUID of an authorized, not-yet-converted quote; defaults to `null`)
+- `clientRequestId: string | null` (UUID; idempotency key used by offline-created sales queued via `offline-sync` — see "Idempotent replay via clientRequestId" below; defaults to `null` for online-created sales)
+
+The body MUST NOT include any explicit `isCredit` flag; the credit flow is activated automatically when the selected `paymentMethod` has `isCredit=true` (see "Credit flow auto-activation" below).
+
+**Branch scoping**: callers without `branches:access_all` MUST pass `branchId === x-user-branch-id`; mismatch returns HTTP 403. Callers without an assigned branch (`x-user-branch-id` empty) and without `branches:access_all` return HTTP 403.
+
+**Idempotent replay via `clientRequestId`**: when the body includes a non-null `clientRequestId`, the controller SHALL, BEFORE any other validation in the atomic flow below, look up an existing `sales` row with `client_request_id = clientRequestId`. If found, the system SHALL return HTTP 201 with that existing sale's `SaleDetailDto` unchanged — it SHALL NOT re-validate the body, re-allocate a folio, re-decrement inventory, or insert a new row. If not found, the atomic flow proceeds as normal and, on success, persists `client_request_id = clientRequestId` on the new `sales` row. `client_request_id` is nullable and unique; online-created sales (no `clientRequestId` in the body) leave it `null` and are never matched by this lookup. **This lookup-then-insert sequence is not itself atomic against a second, concurrent request carrying the same `clientRequestId`** (e.g. an `offline-sync` outbox retry fired before the first attempt's response is acknowledged): if both requests pass the lookup and attempt to insert, the database's unique constraint on `client_request_id` lets only one `INSERT` succeed. The system SHALL treat the resulting unique-constraint violation identically to the pre-insert lookup match — it SHALL discard the failed attempt, re-query the now-existing `sales` row by `client_request_id`, and return HTTP 201 with that row's `SaleDetailDto`. It SHALL NOT surface this as an HTTP 500, and SHALL NOT re-fire the low-stock notification for the attempt that lost the race.
+
+**Credit flow auto-activation (non-blocking)**: after loading the `paymentMethod`, if `paymentMethod.isCredit === true`, the controller SHALL:
+
+1. Verify the caller has `sales:create_credit`; otherwise HTTP 403 `{"error":"Forbidden","required":"sales:create_credit"}`.
+2. The system SHALL NOT reject the sale for lacking a credit line or for exceeding `creditLimit`. Instead, once the final total is known, it computes an informational flag: `creditLimitExceeded = customer.creditLimit !== null && (customer.currentBalance + sale.total) > customer.creditLimit`. When `customer.creditLimit === null` (no credit line configured), `creditLimitExceeded` is `false` — there is no limit to exceed.
+
+This computation runs AFTER total calculation but BEFORE folio allocation, all within the same transaction; it never aborts the transaction.
+
+**`quoteId` validation when present**: if the body includes a non-null `quoteId`, the controller SHALL:
+
+1. Load the quote; if it does not exist → HTTP 400 `{"error": "Quote not found", "reason": "not_found"}`.
+2. Verify `quote.status === 'authorized'` AND `quote.convertedSaleId === null`. If not → HTTP 400 `{"error": "Quote cannot be linked to a new sale (status=<actual>)", "reason": "wrong_status"}`.
+3. Verify `quote.branchId === branchId` and `quote.customerId === customerId` (the sale's branch/customer must match the quote's; mismatch → HTTP 400 `{"error": "...", "reason": "branch_mismatch" | "customer_mismatch"}`). The quote does NOT constrain `paymentMethodId`, `folioId`, or `items` — those are governed by the sale body.
+4. Persist `sale.quoteId = quoteId`; ALSO update the quote in the same transaction: `quote.status='converted'`, `quote.convertedAt=NOW()`, `quote.convertedSaleId=<newSaleId>` (this keeps both sides consistent regardless of whether the caller used `POST /sales` or `POST /quotes/:id/convert`).
+
+The `quoteId` does NOT constrain whether the sale is cash or credit — the `paymentMethodId` of the body decides.
+
+**Atomic flow (inside a Prisma transaction)**:
+
+0. If `clientRequestId` is non-null, perform the idempotent-replay lookup described above; short-circuit on a match before any of the following steps.
+1. Validate `customer.isActive`, `branch.isActive`, `paymentMethod.isActive`, `folio.isActive`. Any inactive → HTTP 400.
+2. Load `paymentMethod.isCredit` (via `include` or join) so the downstream branching is consistent within the transaction.
+3. If `quoteId` is non-null: validate per the rules above; failure → HTTP 400.
+4. For each item:
+   - If `productPriceId` is present: load the `Product` and `ProductPrice`; verify `productPrice.productId === item.productId` (else `ProductPriceMismatchError` → HTTP 400), that the price belongs to a product whose `isActive = true` (else HTTP 400), and that `productPrice.branchId === branchId` — **every `ProductPrice` row belongs to exactly one branch; there is no global/base price and no fallback to another branch's price** (mismatch → `ProductPriceNotAvailableForBranchError` → HTTP 400 `{"error": "Product price does not belong to this branch"}`; the error message SHALL NOT disclose the price or the other branch it belongs to). If `item.quantity` is NOT an integer (`quantity % 1 !== 0`), resolve the currently configured `dosificationSurchargePct` from `settings-api` (default `5.0` when unconfigured) and compute `unitPrice = price.price * (1 + surchargePct / 100)`; if `item.quantity` IS an integer, `unitPrice = price.price` unchanged (no surcharge). This surcharge applies uniformly to every product — there is no per-product or per-department opt-out.
+   - If `dosificationId` is present instead: load the `Product` and `ProductDosification`; verify `dosification.productId === item.productId` (else HTTP 400) and `dosification.isActive = true` (else HTTP 400); load the product's default `ProductPrice` for the sale's own `branchId` (`branchId = <sale's branchId> AND isDefault=true`) — if none exists for that exact branch → HTTP 400 `{"error": "Dosification requires a default price"}` (there is no fallback to any other branch's default); resolve the currently configured `dosificationSurchargePct` from `settings-api` (default `5.0` when unconfigured); compute `unitPrice = DosificationPriceCalculator.computeUnitPrice(defaultPrice.price, dosification.numParts, surchargePct)`. This is the ONLY surcharge applied to dosification lines — the fractional-quantity surcharge above SHALL NOT additionally apply here, regardless of whether `quantity` is itself fractional, to avoid double-charging the configured percentage on the same line.
+   - `quantity > 0` (else HTTP 400) for either case. The system MAY skip enforcement of `minQuantity` in v1 (documented, applies only to price-based lines).
+5. Snapshot `productCodeSnapshot = product.code`, `productNameSnapshot = product.name`; for price-based lines: `priceNameSnapshot = price.name`, `unitPrice` per step 4 above (recharged when `quantity` is fractional, else `price.price` unchanged), `discountPct = item.discountPctOverride ?? price.discountPct`, `discountAmount = item.discountAmount ?? 0`; for dosification lines: `priceNameSnapshot = dosification.name`, `unitPrice` per above, `discountPct = null`, `discountAmount = 0` (both forced regardless of body — a dosification line never carries either kind of discount), `dosificationId = dosification.id`, `numPartsSnapshot = dosification.numParts`. Both kinds set `ivaRate = product.ivaRate`, `iepsRate = product.iepsRate`. This server-computed snapshot is authoritative even for offline-originated sales — a `clientRequestId`-bearing request carries only IDs/quantities/discount selections, never client-computed line totals, so catalog drift between offline creation and sync time is always resolved in favor of the server's live catalog.
+6. Compute totals using `SaleTotalsCalculator` (domain service) — unchanged by dosification lines or by the fractional-quantity surcharge (operates on `quantity * unitPrice`, agnostic to what `quantity` represents or how `unitPrice` was resolved); now also receives `discountAmount` per line (see "SaleTotalsCalculator (domain service)").
+7. If `paymentMethod.isCredit === true`: compute the informational `creditLimitExceeded` flag per "Credit flow auto-activation" above. This step never aborts the transaction.
+8. Allocate the next folio number **for the sale's own branch** atomically via `allocateBranchFolio(tx, folioId, branchId)`: `INSERT INTO folio_branch_counters (folio_id, branch_id, current_number) VALUES (?, ?, 1) ON CONFLICT (folio_id, branch_id) DO UPDATE SET current_number = folio_branch_counters.current_number + 1 RETURNING current_number`. The resulting `folioCode` SHALL be `<prefix><BRANCH_CODE>-<currentNumber padded to 6 digits>` (e.g. `TK-ZARIOZ-000001`), where `<BRANCH_CODE>` is the issuing branch's `code`. If the folio is inactive → HTTP 400. Folio numbers are allocated strictly in the order requests reach this step — for a sale queued offline and synced later, this MAY differ from the chronological order in which the sale was actually created at the register (this is expected and accepted behavior for `offline-sync`, not a bug). Legacy `folioCode`s issued before this change (global format, e.g. `TK-000038`) are preserved unchanged — the new format cannot collide with them.
+9. For each item, decrement inventory using the base-unit amount (`quantity / numPartsSnapshot` for dosification lines, `quantity` otherwise — see "Sale aggregate model"): `UPDATE branch_inventory SET quantity = quantity - ${amount}, updated_at = NOW() WHERE branch_id = ? AND product_id = ?`. If the update affects 0 rows (no inventory record exists for this pair), the system SHALL `INSERT INTO branch_inventory (branch_id, product_id, quantity) VALUES (?, ?, -${amount})` (creates the record with negative initial quantity). The result `quantity` MAY be negative — this is the implementation of the rule "selling with stock 0 leaves negative quantity awaiting transfer", and is the same mechanism that allows an offline-queued sale to succeed at sync time even if the branch's real stock dropped below the sale's quantity while it was queued. **After each such decrement**, the system SHALL evaluate the low-stock notification trigger per `admin-notifications-api` "Notify admin on low stock" (best-effort, never blocks or fails this endpoint).
+10. Compute `paidAmount` and `paymentStatus`:
+    - If `paymentMethod.isCredit === false`: `paidAmount = total`, `paymentStatus = 'paid'`.
+    - If `paymentMethod.isCredit === true`: `paidAmount = 0`, `paymentStatus = 'pending'` (regardless of `creditLimitExceeded`).
+11. `INSERT` the `sales` row with `status='completed'`, `completedAt=NOW()`, snapshotted folio info, `quote_id = quoteId` (or `null`), `paid_amount`, `payment_status`, `client_request_id = clientRequestId` (or `null`).
+12. `INSERT` the `sale_items` rows.
+13. If `paymentMethod.isCredit === true`: `UPDATE customers SET current_balance = current_balance + ? WHERE id = ?` (sale.customerId) — regardless of `creditLimitExceeded`.
+14. If `quoteId` non-null: `UPDATE quotes SET status='converted', converted_at=NOW(), converted_sale_id=<newSaleId> WHERE id = quoteId`.
+
+If step 11 fails with a unique-constraint violation on `client_request_id` (the concurrent-replay case described above), the system SHALL abandon steps 12–14 for this attempt, re-query the existing `sales` row by `client_request_id`, and return it instead — steps 9's inventory decrement for the losing attempt is rolled back by the transaction, so it is never double-applied.
+
+Returns HTTP 201 with the `SaleDetailDto` (including items, `quoteId`, `paidAmount`, `paymentStatus`, the derived `isCredit` from the JOIN, and `creditLimitExceeded: boolean` — always `false` for non-credit sales).
+
+**BREAKING**: this endpoint no longer returns HTTP 409 for `CreditLimitExceededError` or `CustomerHasNoCreditLineError`. Callers that previously branched on those 409 responses MUST instead read `creditLimitExceeded` from the HTTP 201 body.
+
+#### Scenario: Successful cash sale
+- **WHEN** an `operator` with `x-user-branch-id: B1` and `sales:create` sends a valid body for branch B1 with 2 items, selecting a `paymentMethod` whose `isCredit=false` (no `quoteId`)
+- **THEN** the system returns HTTP 201 with the `SaleDetailDto` (`quoteId: null`, `isCredit: false`, `paidAmount: total`, `paymentStatus: 'paid'`, `creditLimitExceeded: false`), `branch_inventory.quantity` decremented by each item's quantity, and the `(folioId, B1)` row in `folio_branch_counters` incremented by 1 (not `folios.current_number`)
+- **AND** `customer.currentBalance` is NOT modified
+
+#### Scenario: Successful credit sale via CREDITO payment method
+- **WHEN** an `operator` with `sales:create` and `sales:create_credit` sends a body selecting the `paymentMethod` whose `code='CREDITO'` and `isCredit=true` for a customer with `creditLimit=10000`, `currentBalance=2000`, and the new sale `total=5000`
+- **THEN** the system returns HTTP 201 with `paidAmount=0`, `paymentStatus='pending'`, `isCredit=true` (derived), `creditLimitExceeded=false` (7000 ≤ 10000); `customer.currentBalance` becomes `7000` after the transaction commits
+
+#### Scenario: Credit payment method selected without sales:create_credit
+- **WHEN** a caller with `sales:create` (but NOT `sales:create_credit`) selects a `paymentMethod` whose `isCredit=true`
+- **THEN** the system returns HTTP 403 `{"error":"Forbidden","required":"sales:create_credit"}`
+
+#### Scenario: Credit sale exceeds creditLimit — sale still completes with warning flag
+- **WHEN** the body selects a `paymentMethod` with `isCredit=true` for a customer with `creditLimit=10000`, `currentBalance=8000`, and `sale.total=5000`
+- **THEN** the system returns HTTP 201 (NOT 409) with `creditLimitExceeded=true`, `paidAmount=0`, `paymentStatus='pending'`; the sale, sale items, folio increment, and inventory decrement are all persisted; `customer.currentBalance` becomes `13000`
+
+#### Scenario: Credit sale for customer without credit line — sale still completes
+- **WHEN** the body selects a `paymentMethod` with `isCredit=true` for a customer with `creditLimit=null`
+- **THEN** the system returns HTTP 201 (NOT 409) with `creditLimitExceeded=false` (no limit configured, so nothing to exceed); the sale is persisted normally with `paidAmount=0`, `paymentStatus='pending'`
+
+#### Scenario: Successful sale with quoteId (cash)
+- **WHEN** the body includes `quoteId: Q` and a `paymentMethod` whose `isCredit=false`, where `Q` is an authorized quote with `convertedSaleId: null` and matching `branchId`/`customerId`
+- **THEN** the system returns HTTP 201 with `quoteId: Q`, `isCredit=false`, `paidAmount=total`, `paymentStatus='paid'`; and the quote row has `status='converted'`, `convertedSaleId=<newSaleId>`
+
+#### Scenario: Conversion from quote to credit sale
+- **WHEN** the body includes both `quoteId: Q` and a `paymentMethod` whose `isCredit=true`, and the caller has `sales:create_credit`
+- **THEN** the system applies BOTH the quote conversion AND the credit flow: the sale has `quoteId=Q`, `isCredit=true` (derived), `paidAmount=0`, `paymentStatus='pending'`; `customer.currentBalance += total`; the quote is marked converted
+
+#### Scenario: Invalid quoteId (already converted)
+- **WHEN** the body includes `quoteId: Q` where `Q` has `status='converted'`
+- **THEN** the system returns HTTP 400 `{"error": "Quote cannot be linked to a new sale (status=converted)", "reason": "wrong_status"}` and the transaction does not commit
+
+#### Scenario: Invalid quoteId (draft)
+- **WHEN** the body includes `quoteId: Q` where `Q` has `status='draft'`
+- **THEN** the system returns HTTP 400 `{"error": "Quote cannot be linked to a new sale (status=draft)", "reason": "wrong_status"}`
+
+#### Scenario: Quote branch mismatch
+- **WHEN** the body has `branchId: B1` but `quoteId: Q` where `Q.branchId = B2`
+- **THEN** the system returns HTTP 400 and the transaction does not commit
+
+#### Scenario: Quote customer mismatch
+- **WHEN** the body has `customerId: C1` but `quoteId: Q` where `Q.customerId = C2`
+- **THEN** the system returns HTTP 400
+
+#### Scenario: Selling product with no inventory record
+- **WHEN** the body includes a `productId` that has no `branch_inventory` row for the target branch
+- **THEN** the system creates the row with `quantity = -item.quantity` and returns HTTP 201
+
+#### Scenario: Selling product with stock 0
+- **WHEN** the current `branch_inventory.quantity = 0` and the item `quantity = 5`
+- **THEN** the system updates the row to `quantity = -5` and returns HTTP 201
+
+#### Scenario: Selling more than available (still allowed)
+- **WHEN** the current `branch_inventory.quantity = 3` and the item `quantity = 10`
+- **THEN** the system updates the row to `quantity = -7` and returns HTTP 201
+
+#### Scenario: Branch scoping violation
+- **WHEN** an `operator` with `x-user-branch-id: B1` posts a body with `branchId: B2`
+- **THEN** the system returns HTTP 403 `{"error": "Forbidden", "required": "branches:access_all"}`
+
+#### Scenario: Inactive customer
+- **WHEN** the body's `customerId` references a customer with `isActive=false`
+- **THEN** the system returns HTTP 400 `{"error": "Customer is inactive"}` and the transaction does not commit
+
+#### Scenario: Mismatched productPrice
+- **WHEN** an item has `productId: A` but `productPriceId: P` where `P.product_id !== A`
+- **THEN** the system returns HTTP 400 `{"error": "Product price does not belong to product"}` and the transaction does not commit
+
+#### Scenario: Empty items
+- **WHEN** the body has `items: []`
+- **THEN** the system returns HTTP 400 `{"error": "Sale must include at least one item"}`
+
+#### Scenario: Inactive folio
+- **WHEN** the body's `folioId` references a folio with `isActive=false`
+- **THEN** the system returns HTTP 400
+
+#### Scenario: Forbidden without sales:create
+- **WHEN** a caller without `sales:create` calls the endpoint
+- **THEN** the system returns HTTP 403 `{"error": "Forbidden", "required": "sales:create"}`
+
+#### Scenario: Sale creation crossing reorder point triggers admin notification
+- **WHEN** a sale item's decrement leaves `branch_inventory.quantity < reorder_point` for that (branch, product), and no notification for that pair was sent in the last 24h
+- **THEN** the system still returns HTTP 201 as normal, AND — per `admin-notifications-api` — an email is sent to the configured admin address and `lastLowStockNotifiedAt` is updated; a failure to send this email does NOT affect the HTTP 201 response
+
+#### Scenario: Dosification sale decrements a fraction of base stock
+- **WHEN** the body has one item with `dosificationId` referencing a dosification with `numParts=4` and `quantity=3`, for a product whose default price (for the sale's own branch) is `100` and whose `branch_inventory.quantity = 10`, and no `pricing_settings` row exists yet (default 5% surcharge applies)
+- **THEN** the system returns HTTP 201 with `unitPrice = (100/4)*1.05 = 26.25` on that line; `branch_inventory.quantity` becomes `10 - (3/4) = 9.25`
+
+#### Scenario: Dosification without default price rejected
+- **WHEN** the body has an item with `dosificationId` referencing a dosification whose product has no default `ProductPrice` for the sale's own branch
+- **THEN** the system returns HTTP 400 `{"error": "Dosification requires a default price"}` and the transaction does not commit — there is no fallback to another branch's default
+
+#### Scenario: Dosification/productPrice mutual exclusivity
+- **WHEN** an item includes both `productPriceId` and `dosificationId`, or neither
+- **THEN** the system returns HTTP 400
+
+#### Scenario: Dosification not belonging to product
+- **WHEN** an item has `productId: A` but `dosificationId: D` where `D.product_id !== A`
+- **THEN** the system returns HTTP 400 and the transaction does not commit
+
+#### Scenario: Inactive dosification rejected
+- **WHEN** an item's `dosificationId` references a dosification with `isActive=false`
+- **THEN** the system returns HTTP 400
+
+#### Scenario: Fractional quantity on a normal-price line applies the surcharge
+- **WHEN** the body has an item with `productPriceId` (no `dosificationId`) whose `price.price = 100`, `quantity = 0.5`, and `dosificationSurchargePct = 5` (default)
+- **THEN** the system returns HTTP 201 with `unitPrice = 105` on that line (`100 * 1.05`) and `lineTotal` computed from that recharged `unitPrice * 0.5`, before tax extraction
+
+#### Scenario: Integer quantity on a normal-price line never gets the surcharge
+- **WHEN** the body has an item with `productPriceId`, `price.price = 100`, `quantity = 2`
+- **THEN** the system returns HTTP 201 with `unitPrice = 100` (unchanged) — the surcharge is not applied because `quantity` is a whole number
+
+#### Scenario: Fractional quantity applies regardless of product or department
+- **WHEN** the body has items for two different products in two different departments, both `productPriceId`-based with `quantity = 1.25`
+- **THEN** both lines get the same configured `dosificationSurchargePct` applied to their `unitPrice` — there is no per-product or per-department exclusion
+
+#### Scenario: Dosification line with fractional quantity does not get the surcharge twice
+- **WHEN** the body has an item with `dosificationId` (numParts=4, default price 100) and `quantity = 1.5` (a fractional number of parts)
+- **THEN** the system returns HTTP 201 with `unitPrice = (100/4)*1.05 = 26.25` — the same single dosification surcharge as an integer-quantity dosification line; the fractional-quantity surcharge for normal-price lines is NOT additionally applied
+
+#### Scenario: Idempotent replay of an offline-queued sale
+- **WHEN** a caller sends a body with `clientRequestId: X` and there already exists a `sales` row with `client_request_id = X` (from a previous, already-committed request with the exact same `clientRequestId`, e.g. a retry of an `offline-sync` outbox item whose original response was lost)
+- **THEN** the system returns HTTP 201 with that existing sale's `SaleDetailDto`; no new row is inserted, no folio is allocated, and `branch_inventory` is not decremented again
+
+#### Scenario: Concurrent duplicate clientRequestId resolved idempotently
+- **WHEN** two requests carrying the exact same non-null `clientRequestId` reach the atomic flow close enough together that both pass the pre-insert lookup (step 0) before either has committed, and the database's unique constraint on `client_request_id` lets only one `INSERT` (step 11) succeed
+- **THEN** the request whose `INSERT` loses the race returns HTTP 201 with the winning request's `SaleDetailDto` (same `id`, same folio) instead of HTTP 500; no low-stock notification is fired for the losing attempt; `branch_inventory` reflects exactly one decrement for this sale, not two
+
+#### Scenario: clientRequestId omitted behaves exactly as before
+- **WHEN** the body does not include `clientRequestId` (or sends it as `null`)
+- **THEN** the system behaves exactly as the pre-existing online flow: no idempotency lookup is attempted, `client_request_id` is persisted as `null`
+
+#### Scenario: Sale synced offline may leave stock negative beyond the pre-existing tolerance
+- **WHEN** an offline-queued sale (via `clientRequestId`) is synced and, by the time it reaches step 9, `branch_inventory.quantity` for an item is now lower than the sale's quantity because other sales (online or from other offline queues) consumed stock while this one was queued
+- **THEN** the system still returns HTTP 201 and updates `branch_inventory.quantity` to a negative value, exactly as it already does for any sale (online or offline) selling more than available (see "Selling more than available (still allowed)")
+
+#### Scenario: Sale uses the branch's own price
+- **WHEN** the body's `branchId` is B1 and an item's `productPriceId` references a `ProductPrice` whose `branchId = B1`
+- **THEN** the system returns HTTP 201 and `unitPrice` on that line is resolved from that price
+
+#### Scenario: Sale rejects a price belonging to another branch
+- **WHEN** the body's `branchId` is B1 but an item's `productPriceId` references a `ProductPrice` whose `branchId = B2`
+- **THEN** the system returns HTTP 400 `{"error": "Product price does not belong to this branch"}` and the transaction does not commit; the response body does not include the B2 price value — this is the ONLY branch-price resolution rule; there is no global/base price and no fallback between branches
+
+#### Scenario: Dosification default price is resolved strictly from the sale's own branch
+- **WHEN** the body's `branchId` is B1, the item has `dosificationId` referencing a dosification whose product has a default `ProductPrice` for branch B2 but none for B1
+- **THEN** the system returns HTTP 400 `{"error": "Dosification requires a default price"}` — a default price belonging to a different branch is never used as a substitute
+
+#### Scenario: Folio numbering is independent per branch
+- **WHEN** branch B1 has already issued 5 sales under folio `TK` and branch B2 issues its first sale under the same folio
+- **THEN** B2's sale receives `TK-<B2_CODE>-000001`, independent of B1's `TK-<B1_CODE>-000005`
+
+#### Scenario: Legacy folioCode is preserved, not renumbered
+- **WHEN** a sale exists with the legacy global-format `folioCode = "TK-000038"` (issued before branch-scoped counters were introduced)
+- **THEN** no new sale is ever assigned that same `folioCode`, the legacy sale's `folioCode` is never modified, and branch-scoped counter assignment always produces the new format (`<prefix><BRANCH_CODE>-NNNNNN`) which cannot collide with the legacy format
+
+#### Scenario: Flat-amount discount applied to a line
+- **WHEN** the body has an item with `productPriceId`, `quantity=1`, `price.price=500`, and `discountAmount=100` (no `discountPctOverride`)
+- **THEN** the system returns HTTP 201 with that line's `lineGross = 500 - 100 = 400` before tax extraction, and `discountPct=0` (no catalog override applied) persisted on the `sale_item`
+
+#### Scenario: discountPctOverride now actually persists (bug fix)
+- **WHEN** the body has an item whose catalog `price.discountPct = 5` but the body sends `discountPctOverride: 15`
+- **THEN** the system returns HTTP 201 with `discountPct=15` persisted on the `sale_item` (the override wins) — previously this field was silently discarded and the catalog value was always used instead
+
+#### Scenario: discountAmount and discountPctOverride mutually exclusive on the same line
+- **WHEN** an item's body includes both `discountPctOverride: 10` and `discountAmount: 50`, both `> 0`
+- **THEN** the system returns HTTP 400 and the transaction does not commit
+
+#### Scenario: discountAmount out of range rejected
+- **WHEN** an item's `discountAmount` is `150` (exceeds the 100 MXN cap) or negative
+- **THEN** the system returns HTTP 400 and the transaction does not commit
+
+#### Scenario: discountAmount exceeding the line's gross clamps to zero, never negative
+- **WHEN** an item has `quantity=1`, `price.price=80`, `discountAmount=100`
+- **THEN** the system returns HTTP 201 with that line's `lineGross = 0` (not `-20`)
+
+#### Scenario: Dosification line ignores discountAmount and discountPctOverride even if sent
+- **WHEN** the body has an item with `dosificationId` that also includes `discountAmount: 50` (or `discountPctOverride: 10`)
+- **THEN** the system returns HTTP 201 with `discountPct=null` and `discountAmount=0` persisted on that line, identical to a dosification line that sent neither field — the body's discount fields are ignored for dosification lines, not rejected

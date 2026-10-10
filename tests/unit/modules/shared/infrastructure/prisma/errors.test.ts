@@ -25,6 +25,48 @@ describe("isPrismaUniqueError", () => {
   it("does not match when target is not present in meta.target", () => {
     expect(isPrismaUniqueError({ code: "P2002", meta: { target: ["code"] } }, "rfc")).toBe(false);
   });
+
+  it("returns true for a raw-query P2010/23505 unique violation without a target filter", () => {
+    expect(
+      isPrismaUniqueError({
+        code: "P2010",
+        meta: { code: "23505", message: 'duplicate key value violates unique constraint "quotes_client_request_id_key"' },
+      })
+    ).toBe(true);
+  });
+
+  it("matches when target is included in meta.message for a P2010/23505 error", () => {
+    expect(
+      isPrismaUniqueError(
+        {
+          code: "P2010",
+          meta: { code: "23505", message: 'duplicate key value violates unique constraint "quotes_client_request_id_key"' },
+        },
+        "client_request_id"
+      )
+    ).toBe(true);
+  });
+
+  it("does not match when target is not present in meta.message for a P2010/23505 error", () => {
+    expect(
+      isPrismaUniqueError(
+        {
+          code: "P2010",
+          meta: { code: "23505", message: 'duplicate key value violates unique constraint "quotes_folio_code_key"' },
+        },
+        "client_request_id"
+      )
+    ).toBe(false);
+  });
+
+  it("does not match a P2010 error whose underlying db code is not 23505", () => {
+    expect(
+      isPrismaUniqueError({
+        code: "P2010",
+        meta: { code: "42601", message: "syntax error" },
+      })
+    ).toBe(false);
+  });
 });
 
 describe("isPrismaNotFoundError", () => {
