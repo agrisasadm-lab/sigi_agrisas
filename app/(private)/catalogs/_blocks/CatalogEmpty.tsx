@@ -1,4 +1,5 @@
 import { EmptyState } from "../../../_components/molecules/EmptyState/EmptyState";
+import { Button } from "../../../_components/atoms/Button/Button";
 
 interface CatalogEmptyProps {
   canWrite?: boolean;
@@ -15,13 +16,14 @@ export function CatalogEmpty({ canWrite, onCreate, filtered, onClearFilters }: C
         title="Ningún elemento coincide con los filtros"
         action={
           onClearFilters && (
-            <button
+            <Button
               type="button"
+              variant="text"
               onClick={onClearFilters}
-              className="text-label-lg text-primary underline underline-offset-2"
+              className="underline underline-offset-2"
             >
               Limpiar filtros
-            </button>
+            </Button>
           )
         }
       />
@@ -34,13 +36,9 @@ export function CatalogEmpty({ canWrite, onCreate, filtered, onClearFilters }: C
       description="Comienza agregando el primer elemento."
       action={
         canWrite && onCreate ? (
-          <button
-            type="button"
-            onClick={onCreate}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-primary text-on-primary text-label-lg font-medium hover:opacity-90 transition-opacity"
-          >
+          <Button type="button" variant="filled" onClick={onCreate}>
             Crear el primero
-          </button>
+          </Button>
         ) : undefined
       }
     />

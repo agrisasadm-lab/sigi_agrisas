@@ -10,6 +10,10 @@ import { ConfirmDialog } from "../../../../_components/molecules/ConfirmDialog/C
 import { Badge } from "../../../../_components/atoms/Badge/Badge";
 import { Icon } from "../../../../_components/atoms/Icon/Icon";
 import { Skeleton } from "../../../../_components/atoms/Skeleton/Skeleton";
+import { Button } from "../../../../_components/atoms/Button/Button";
+import { IconButton } from "../../../../_components/atoms/IconButton/IconButton";
+import { Select } from "../../../../_components/atoms/Select/Select";
+import { Table, THead, TBody, Tr, Th, Td } from "../../../../_components/molecules/DataTable/DataTable";
 import type { ProductPrice } from "../_logic/types/domain";
 import type { CreatePriceBody, UpdatePriceBody } from "../_logic/types/api";
 
@@ -158,8 +162,8 @@ function PriceModal({
           {defaultError && <p className="text-label-sm text-error">{defaultError}</p>}
         </div>
         <div className="px-6 pb-6 pt-2 flex justify-end gap-3 border-t border-outline-variant">
-          <button type="button" onClick={onClose} disabled={isSaving} className="px-4 py-2 rounded-md text-label-lg text-on-surface-variant hover:bg-surface-container transition-colors">Cancelar</button>
-          <button type="submit" disabled={isSaving || isDiffEmpty} className="px-4 py-2 rounded-md bg-primary text-on-primary text-label-lg font-medium hover:opacity-90 disabled:opacity-50">{isSaving ? "Guardando…" : mode === "create" ? "Crear" : "Guardar"}</button>
+          <Button type="button" variant="text" onClick={onClose} disabled={isSaving}>Cancelar</Button>
+          <Button type="submit" variant="filled" disabled={isSaving || isDiffEmpty} loading={isSaving}>{isSaving ? "Guardando…" : mode === "create" ? "Crear" : "Guardar"}</Button>
         </div>
       </form>
     </dialog>
@@ -211,68 +215,90 @@ export function ProductPricesTab({ productId, canWrite }: ProductPricesTabProps)
 
       <div className="flex items-center gap-2 px-1">
         <label htmlFor="price-branch-scope" className="text-label-lg text-on-surface-variant">Sucursal</label>
-        <select
+        <Select
           id="price-branch-scope"
           value={selectedBranchId ?? ""}
           onChange={(e) => setSelectedBranchId(e.target.value || null)}
           disabled={visibleBranches.length === 0}
-          className="px-3 py-1.5 rounded-md border border-outline-variant bg-surface-container-lowest text-body-md focus:outline-none focus:ring-2 focus:ring-primary"
+          className="w-auto py-1.5"
         >
           {visibleBranches.map((b) => (
             <option key={b.id} value={b.id}>{b.name}</option>
           ))}
-        </select>
+        </Select>
       </div>
 
       <div className="bg-surface-container-low rounded-lg border border-outline-variant overflow-hidden">
         <div className="px-4 py-3 border-b border-outline-variant flex items-center justify-between">
           <span className="text-label-lg font-medium text-on-surface">Precios</span>
           {canWrite && (
-            <button type="button" onClick={() => { setNameError(null); setDefaultError(null); setModal({mode:"create", entity:null, createBranchId: selectedBranchId}); }} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-primary text-on-primary text-label-sm font-medium hover:opacity-90">
-              <Icon name="add" size={14} />Nuevo precio
-            </button>
+            <Button
+              type="button"
+              variant="filled"
+              size="sm"
+              icon="add"
+              onClick={() => { setNameError(null); setDefaultError(null); setModal({mode:"create", entity:null, createBranchId: selectedBranchId}); }}
+            >
+              Nuevo precio
+            </Button>
           )}
         </div>
         {prices.length === 0 ? (
           <p className="p-6 text-center text-on-surface-variant text-body-md">Sin precios configurados.</p>
         ) : (
-          <table className="w-full text-left text-body-md">
-            <thead>
-              <tr className="text-label-lg text-on-surface-variant border-b border-outline-variant">
-                <th className="px-4 py-2 font-medium">Nombre</th>
-                <th className="px-4 py-2 font-medium text-right">Precio</th>
-                <th className="px-4 py-2 font-medium text-right">Cant. mín.</th>
-                <th className="px-4 py-2 font-medium text-right">Descuento</th>
-                <th className="px-4 py-2 font-medium">Default</th>
-                {canWrite && <th className="px-4 py-2 font-medium">Acciones</th>}
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="text-left">
+            <THead>
+              <Tr hoverable={false}>
+                <Th>Nombre</Th>
+                <Th align="right">Precio</Th>
+                <Th align="right">Cant. mín.</Th>
+                <Th align="right">Descuento</Th>
+                <Th>Default</Th>
+                {canWrite && <Th>Acciones</Th>}
+              </Tr>
+            </THead>
+            <TBody>
               {prices.map((p, idx) => {
                 return (
-                  <tr
+                  <Tr
                     key={p.id}
                     {...getPriceRowProps(idx)}
-                    className="border-b border-outline-variant hover:bg-surface-container-low focus:bg-surface-container focus:outline-none transition-colors cursor-default"
+                    className="focus:bg-surface-container focus:outline-none cursor-default"
                   >
-                    <td className="px-4 py-2">{p.name}</td>
-                    <td className="px-4 py-2 text-right">${p.price.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-right">{p.minQuantity}</td>
-                    <td className="px-4 py-2 text-right">{p.discountPct != null ? `${p.discountPct}%` : "—"}</td>
-                    <td className="px-4 py-2">{p.isDefault && <Badge variant="read">Default</Badge>}</td>
+                    <Td>{p.name}</Td>
+                    <Td align="right">${p.price.toFixed(2)}</Td>
+                    <Td align="right">{p.minQuantity}</Td>
+                    <Td align="right">{p.discountPct != null ? `${p.discountPct}%` : "—"}</Td>
+                    <Td>{p.isDefault && <Badge variant="read">Default</Badge>}</Td>
                     {canWrite && (
-                      <td className="px-4 py-2">
+                      <Td>
                         <div className="flex gap-2">
-                          <button type="button" onClick={() => { setNameError(null); setDefaultError(null); setModal({mode:"edit", entity:p}); }} className="p-1 rounded hover:bg-surface-container text-on-surface-variant" title="Editar"><Icon name="edit" size={14}/></button>
-                          <button type="button" onClick={() => setConfirmDeleteId(p.id)} className="p-1 rounded hover:bg-error/10 text-error" title="Eliminar"><Icon name="delete" size={14}/></button>
+                          <IconButton
+                            icon="edit"
+                            iconSize={14}
+                            ariaLabel="Editar"
+                            title="Editar"
+                            variant="ghost"
+                            onClick={() => { setNameError(null); setDefaultError(null); setModal({mode:"edit", entity:p}); }}
+                            className="rounded p-1"
+                          />
+                          <IconButton
+                            icon="delete"
+                            iconSize={14}
+                            ariaLabel="Eliminar"
+                            title="Eliminar"
+                            variant="ghost"
+                            onClick={() => setConfirmDeleteId(p.id)}
+                            className="rounded p-1 hover:bg-error/10 hover:text-error"
+                          />
                         </div>
-                      </td>
+                      </Td>
                     )}
-                  </tr>
+                  </Tr>
                 );
               })}
-            </tbody>
-          </table>
+            </TBody>
+          </Table>
         )}
       </div>
 

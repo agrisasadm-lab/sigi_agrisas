@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { Icon } from "../../../../_components/atoms/Icon/Icon";
+import { Button } from "../../../../_components/atoms/Button/Button";
 import { ProductImage } from "../../../../_components/atoms/ProductImage/ProductImage";
+import { Table, THead, TBody, Tr, Th, Td } from "../../../../_components/molecules/DataTable/DataTable";
 import { CatalogStatusBadge } from "../../_blocks/CatalogStatusBadge";
 import type { Product } from "../_logic/types/domain";
 import { useTableKeyboard } from "../../../../_hooks/useTableKeyboard";
@@ -36,50 +38,50 @@ export function ProductsTable({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-left text-body-md">
-        <thead>
-          <tr className="border-b border-outline-variant text-label-lg text-on-surface-variant">
-            <th className="px-4 py-3 font-medium w-12"></th>
-            <th className="px-4 py-3 font-medium">Código</th>
-            <th className="px-4 py-3 font-medium">Nombre</th>
-            <th className="px-4 py-3 font-medium">Departamento</th>
-            <th className="px-4 py-3 font-medium">Proveedor</th>
-            <th className="px-4 py-3 font-medium">Tasa</th>
-            <th className="px-4 py-3 font-medium">Unidad</th>
-            <th className="px-4 py-3 font-medium text-right">IVA</th>
-            <th className="px-4 py-3 font-medium text-right">IEPS</th>
-            <th className="px-4 py-3 font-medium">Sujeto a impuestos</th>
-            <th className="px-4 py-3 font-medium">Estado</th>
-            <th className="px-4 py-3 font-medium">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table className="text-left">
+        <THead>
+          <Tr hoverable={false}>
+            <Th className="w-12"></Th>
+            <Th>Código</Th>
+            <Th>Nombre</Th>
+            <Th>Departamento</Th>
+            <Th>Proveedor</Th>
+            <Th>Tasa</Th>
+            <Th>Unidad</Th>
+            <Th align="right">IVA</Th>
+            <Th align="right">IEPS</Th>
+            <Th>Sujeto a impuestos</Th>
+            <Th>Estado</Th>
+            <Th>Acciones</Th>
+          </Tr>
+        </THead>
+        <TBody>
           {items.map((item, idx) => (
-            <tr
+            <Tr
               key={item.id}
               {...getRowProps(idx)}
-              className="border-b border-outline-variant hover:bg-surface-container-low focus:bg-surface-container focus:outline-none transition-colors cursor-default"
+              className="focus:bg-surface-container focus:outline-none cursor-default"
             >
-              <td className="px-2 py-2">
+              <Td className="px-2 py-2">
                 <ProductImage src={item.imageUrl ?? null} alt={item.name} size={40} />
-              </td>
-              <td className="px-4 py-3 font-mono text-label-lg">{item.code}</td>
-              <td className="px-4 py-3">{item.name}</td>
-              <td className="px-4 py-3 text-on-surface-variant">{item.departmentName}</td>
-              <td className="px-4 py-3 text-on-surface-variant">{item.providerName ?? "—"}</td>
-              <td className="px-4 py-3 font-mono text-on-surface-variant text-label-sm">{item.taxRateCode ?? "—"}</td>
-              <td className="px-4 py-3 text-on-surface-variant">{item.unitDescription ?? item.unit}</td>
-              <td className="px-4 py-3 text-right">{formatTaxRate(item.ivaRate)}</td>
-              <td className="px-4 py-3 text-right">{formatTaxRate(item.iepsRate)}</td>
-              <td className="px-4 py-3">
+              </Td>
+              <Td className="font-mono text-label-lg">{item.code}</Td>
+              <Td>{item.name}</Td>
+              <Td className="text-on-surface-variant">{item.departmentName}</Td>
+              <Td className="text-on-surface-variant">{item.providerName ?? "—"}</Td>
+              <Td className="font-mono text-on-surface-variant text-label-sm">{item.taxRateCode ?? "—"}</Td>
+              <Td className="text-on-surface-variant">{item.unitDescription ?? item.unit}</Td>
+              <Td align="right">{formatTaxRate(item.ivaRate)}</Td>
+              <Td align="right">{formatTaxRate(item.iepsRate)}</Td>
+              <Td>
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-label-sm font-medium ${item.isTaxable ? "bg-tertiary-container text-on-tertiary-container" : "bg-surface-container-high text-on-surface-variant"}`}>
                   {item.isTaxable ? "Sí" : "No"}
                 </span>
-              </td>
-              <td className="px-4 py-3">
+              </Td>
+              <Td>
                 <CatalogStatusBadge isActive={item.isActive} />
-              </td>
-              <td className="px-4 py-3">
+              </Td>
+              <Td>
                 <div className="flex items-center gap-2">
                   <Link
                     href={`/catalogs/products/${item.id}`}
@@ -90,42 +92,48 @@ export function ProductsTable({
                   </Link>
                   {canWrite && (
                     <>
-                      <button
+                      <Button
                         type="button"
+                        variant="text"
+                        size="sm"
+                        icon="edit"
                         onClick={() => onEdit(item)}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded text-label-sm text-on-surface-variant hover:bg-surface-container transition-colors"
                         title="Editar"
-                      >
-                        <Icon name="edit" size={14} />
-                      </button>
+                        aria-label="Editar"
+                        className="px-2 py-1 text-on-surface-variant hover:bg-surface-container"
+                      />
                       {item.isActive ? (
-                        <button
+                        <Button
                           type="button"
+                          variant="text"
+                          size="sm"
+                          icon="block"
                           onClick={() => onDelete(item)}
-                          className="inline-flex items-center gap-1 px-2 py-1 rounded text-label-sm text-error hover:bg-error/10 transition-colors"
                           title="Desactivar"
-                        >
-                          <Icon name="block" size={14} />
-                        </button>
+                          aria-label="Desactivar"
+                          className="px-2 py-1 text-error hover:bg-error/10"
+                        />
                       ) : (
-                        <button
+                        <Button
                           type="button"
+                          variant="text"
+                          size="sm"
+                          icon="check_circle"
                           onClick={() => onReactivate(item)}
-                          className="inline-flex items-center gap-1 px-2 py-1 rounded text-label-sm text-primary hover:bg-primary/10 transition-colors"
                           title="Reactivar"
+                          className="px-2 py-1 hover:bg-primary/10"
                         >
-                          <Icon name="check_circle" size={14} />
                           Reactivar
-                        </button>
+                        </Button>
                       )}
                     </>
                   )}
                 </div>
-              </td>
-            </tr>
+              </Td>
+            </Tr>
           ))}
-        </tbody>
-      </table>
+        </TBody>
+      </Table>
     </div>
   );
 }

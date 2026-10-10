@@ -1,6 +1,7 @@
 "use client";
 
 import type { TaxRateOption } from "../../../../_hooks/useTaxRatesOptions";
+import { Select } from "../../../../_components/atoms/Select/Select";
 
 interface TaxRateSelectProps {
   value: string | null;
@@ -12,7 +13,7 @@ interface TaxRateSelectProps {
 
 export function TaxRateSelect({ value, onChange, options, disabled, className }: TaxRateSelectProps) {
   return (
-    <select
+    <Select
       value={value ?? ""}
       onChange={(e) => onChange(e.target.value || null)}
       disabled={disabled}
@@ -24,6 +25,6 @@ export function TaxRateSelect({ value, onChange, options, disabled, className }:
           {tr.code} — {tr.name} ({(tr.rate * 100).toFixed(2)}%)
         </option>
       ))}
-    </select>
+    </Select>
   );
 }

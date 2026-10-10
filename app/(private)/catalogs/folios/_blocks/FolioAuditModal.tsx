@@ -2,7 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "../../../../_components/atoms/Icon/Icon";
+import { IconButton } from "../../../../_components/atoms/IconButton/IconButton";
+import { Button } from "../../../../_components/atoms/Button/Button";
+import { Select } from "../../../../_components/atoms/Select/Select";
 import { Skeleton } from "../../../../_components/atoms/Skeleton/Skeleton";
+import { Table, THead, TBody, Tr, Th, Td } from "../../../../_components/molecules/DataTable/DataTable";
 import { auditFolio } from "../_logic/services/listFolios";
 import type { FolioAuditResult } from "../_logic/types/domain";
 import { useCurrentUser } from "../../../../_hooks/useCurrentUser";
@@ -96,13 +100,14 @@ export function FolioAuditModal({ folioId, open, onClose }: FolioAuditModalProps
     >
       <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
         <h2 className="text-title-md font-semibold text-on-surface">Auditoría de folio</h2>
-        <button
-          type="button"
+        <IconButton
+          icon="close"
+          iconSize={20}
+          ariaLabel="Cerrar"
+          variant="ghost"
           onClick={onClose}
-          className="p-1.5 rounded text-on-surface-variant hover:bg-surface-container-high"
-        >
-          <Icon name="close" size={20} />
-        </button>
+          className="rounded p-1.5"
+        />
       </div>
 
       <div className="px-6 py-5 max-h-[70vh] overflow-y-auto space-y-5">
@@ -123,17 +128,17 @@ export function FolioAuditModal({ folioId, open, onClose }: FolioAuditModalProps
             {isBranchScoped && (
               <div className="flex items-center gap-2">
                 <label htmlFor="audit-branch-scope" className="text-label-sm text-on-surface-variant">Sucursal</label>
-                <select
+                <Select
                   id="audit-branch-scope"
                   value={auditBranchId}
                   onChange={(e) => setAuditBranchId(e.target.value)}
-                  className="px-3 py-1.5 rounded-md border border-outline-variant bg-surface-container-lowest text-body-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-auto py-1.5 text-body-sm"
                 >
                   <option value="">Global (histórico)</option>
                   {branches.map((b) => (
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
-                </select>
+                </Select>
               </div>
             )}
 
@@ -200,37 +205,34 @@ export function FolioAuditModal({ folioId, open, onClose }: FolioAuditModalProps
               <>
                 {data.sequence.length > 0 && (
                   <div className="overflow-x-auto rounded-md border border-outline-variant">
-                    <table className="w-full text-body-sm">
-                      <thead>
-                        <tr className="border-b border-outline-variant bg-surface-container">
-                          <th className="text-left px-3 py-2 text-label-sm text-on-surface-variant font-medium tabular-nums">Número</th>
-                          <th className="text-left px-3 py-2 text-label-sm text-on-surface-variant font-medium">Tipo</th>
-                          <th className="text-left px-3 py-2 text-label-sm text-on-surface-variant font-medium">Estado</th>
-                          <th className="text-left px-3 py-2 text-label-sm text-on-surface-variant font-medium">Fecha</th>
-                        </tr>
-                      </thead>
-                      <tbody>
+                    <Table className="text-body-sm">
+                      <THead>
+                        <Tr hoverable={false}>
+                          <Th className="tabular-nums">Número</Th>
+                          <Th>Tipo</Th>
+                          <Th>Estado</Th>
+                          <Th>Fecha</Th>
+                        </Tr>
+                      </THead>
+                      <TBody>
                         {pageItems.map((item) => (
-                          <tr
-                            key={`${item.documentType}-${item.documentId}`}
-                            className="border-b border-outline-variant last:border-0 hover:bg-surface-container-low"
-                          >
-                            <td className="px-3 py-2 font-mono text-on-surface tabular-nums">{item.number}</td>
-                            <td className="px-3 py-2 text-on-surface">{DOC_TYPE_LABEL[item.documentType] ?? item.documentType}</td>
-                            <td className="px-3 py-2 text-on-surface-variant">
+                          <Tr key={`${item.documentType}-${item.documentId}`}>
+                            <Td className="font-mono text-on-surface tabular-nums">{item.number}</Td>
+                            <Td className="text-on-surface">{DOC_TYPE_LABEL[item.documentType] ?? item.documentType}</Td>
+                            <Td className="text-on-surface-variant">
                               {STATUS_LABEL[item.status] ?? item.status}
-                            </td>
-                            <td className="px-3 py-2 text-on-surface-variant tabular-nums">
+                            </Td>
+                            <Td className="text-on-surface-variant tabular-nums">
                               {new Date(item.issuedAt).toLocaleDateString("es-MX", {
                                 day: "2-digit",
                                 month: "short",
                                 year: "numeric",
                               })}
-                            </td>
-                          </tr>
+                            </Td>
+                          </Tr>
                         ))}
-                      </tbody>
-                    </table>
+                      </TBody>
+                    </Table>
                   </div>
                 )}
 
@@ -240,22 +242,24 @@ export function FolioAuditModal({ folioId, open, onClose }: FolioAuditModalProps
                       Página {page} de {totalPages}
                     </span>
                     <div className="flex gap-2">
-                      <button
+                      <Button
                         type="button"
+                        variant="outlined"
+                        size="sm"
                         onClick={() => setPage((p) => Math.max(1, p - 1))}
                         disabled={page === 1}
-                        className="px-3 py-1.5 rounded border border-outline text-label-sm text-on-surface disabled:opacity-40 hover:bg-surface-container-high transition-colors"
                       >
                         Anterior
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         type="button"
+                        variant="outlined"
+                        size="sm"
                         onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                         disabled={page === totalPages}
-                        className="px-3 py-1.5 rounded border border-outline text-label-sm text-on-surface disabled:opacity-40 hover:bg-surface-container-high transition-colors"
                       >
                         Siguiente
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -266,13 +270,9 @@ export function FolioAuditModal({ folioId, open, onClose }: FolioAuditModalProps
       </div>
 
       <div className="flex justify-end px-6 py-4 border-t border-outline-variant bg-surface-container-lowest">
-        <button
-          type="button"
-          onClick={onClose}
-          className="px-5 py-2.5 rounded-md border border-outline text-label-lg text-on-surface font-medium hover:bg-surface-container-high transition-colors"
-        >
+        <Button type="button" variant="outlined" onClick={onClose}>
           Cerrar
-        </button>
+        </Button>
       </div>
     </dialog>
   );

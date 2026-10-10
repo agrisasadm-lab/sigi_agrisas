@@ -9,6 +9,10 @@ import { ConfirmDialog } from "../../../../_components/molecules/ConfirmDialog/C
 import { CatalogStatusBadge } from "../../_blocks/CatalogStatusBadge";
 import { Icon } from "../../../../_components/atoms/Icon/Icon";
 import { Skeleton } from "../../../../_components/atoms/Skeleton/Skeleton";
+import { Button } from "../../../../_components/atoms/Button/Button";
+import { IconButton } from "../../../../_components/atoms/IconButton/IconButton";
+import { Select } from "../../../../_components/atoms/Select/Select";
+import { Table, THead, TBody, Tr, Th, Td } from "../../../../_components/molecules/DataTable/DataTable";
 import type { ProductDosification } from "../_logic/types/domain";
 import type { CreateDosificationBody, UpdateDosificationBody } from "../_logic/types/api";
 
@@ -96,8 +100,8 @@ function DosifModal({
           </div>
         </div>
         <div className="px-6 pb-6 pt-2 flex justify-end gap-3 border-t border-outline-variant">
-          <button type="button" onClick={onClose} disabled={isSaving} className="px-4 py-2 rounded-md text-label-lg text-on-surface-variant hover:bg-surface-container transition-colors">Cancelar</button>
-          <button type="submit" disabled={isSaving || isDiffEmpty} className="px-4 py-2 rounded-md bg-primary text-on-primary text-label-lg font-medium hover:opacity-90 disabled:opacity-50">{isSaving ? "Guardando…" : mode === "create" ? "Crear" : "Guardar"}</button>
+          <Button type="button" variant="text" onClick={onClose} disabled={isSaving}>Cancelar</Button>
+          <Button type="submit" variant="filled" disabled={isSaving || isDiffEmpty} loading={isSaving}>{isSaving ? "Guardando…" : mode === "create" ? "Crear" : "Guardar"}</Button>
         </div>
       </form>
     </dialog>
@@ -145,73 +149,103 @@ export function ProductDosificationsTab({ productId, canWrite }: ProductDosifica
 
       <div className="flex items-center gap-2 px-1">
         <label htmlFor="dosification-branch-scope" className="text-label-lg text-on-surface-variant">Sucursal</label>
-        <select
+        <Select
           id="dosification-branch-scope"
           value={selectedBranchId ?? ""}
           onChange={(e) => setSelectedBranchId(e.target.value || null)}
           disabled={branches.length === 0}
-          className="px-3 py-1.5 rounded-md border border-outline-variant bg-surface-container-lowest text-body-md focus:outline-none focus:ring-2 focus:ring-primary"
+          className="w-auto py-1.5"
         >
           {branches.map((b) => (
             <option key={b.id} value={b.id}>{b.name}</option>
           ))}
-        </select>
+        </Select>
       </div>
 
       <div className="bg-surface-container-low rounded-lg border border-outline-variant overflow-hidden">
         <div className="px-4 py-3 border-b border-outline-variant flex items-center justify-between">
           <span className="text-label-lg font-medium text-on-surface">Dosificaciones</span>
           {canWrite && (
-            <button type="button" onClick={() => { setNameError(null); setModal({mode:"create", entity:null}); }} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-primary text-on-primary text-label-sm font-medium hover:opacity-90">
-              <Icon name="add" size={14} />Nueva dosificación
-            </button>
+            <Button
+              type="button"
+              variant="filled"
+              size="sm"
+              icon="add"
+              onClick={() => { setNameError(null); setModal({mode:"create", entity:null}); }}
+            >
+              Nueva dosificación
+            </Button>
           )}
         </div>
         {dosifications.length === 0 ? (
           <p className="p-6 text-center text-on-surface-variant text-body-md">Sin dosificaciones configuradas.</p>
         ) : (
-          <table className="w-full text-left text-body-md">
-            <thead>
-              <tr className="text-label-lg text-on-surface-variant border-b border-outline-variant">
-                <th className="px-4 py-2 font-medium">Nombre</th>
-                <th className="px-4 py-2 font-medium text-right">Partes</th>
-                <th className="px-4 py-2 font-medium text-right">Precio unitario</th>
-                <th className="px-4 py-2 font-medium">Estado</th>
-                {canWrite && <th className="px-4 py-2 font-medium">Acciones</th>}
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="text-left">
+            <THead>
+              <Tr hoverable={false}>
+                <Th>Nombre</Th>
+                <Th align="right">Partes</Th>
+                <Th align="right">Precio unitario</Th>
+                <Th>Estado</Th>
+                {canWrite && <Th>Acciones</Th>}
+              </Tr>
+            </THead>
+            <TBody>
               {dosifications.map((d, idx) => (
-                <tr
+                <Tr
                   key={d.id}
                   {...getDosifRowProps(idx)}
-                  className="border-b border-outline-variant hover:bg-surface-container-low focus:bg-surface-container focus:outline-none transition-colors cursor-default"
+                  className="focus:bg-surface-container focus:outline-none cursor-default"
                 >
-                  <td className="px-4 py-2">{d.name}</td>
-                  <td className="px-4 py-2 text-right">{d.numParts}</td>
-                  <td className="px-4 py-2 text-right">
+                  <Td>{d.name}</Td>
+                  <Td align="right">{d.numParts}</Td>
+                  <Td align="right">
                     {d.requiresDefaultPrice
                       ? <span className="text-on-surface-variant text-label-sm">Requiere precio default en esta sucursal</span>
                       : d.computedUnitPrice != null ? `$${d.computedUnitPrice.toFixed(2)}` : "—"
                     }
-                  </td>
-                  <td className="px-4 py-2"><CatalogStatusBadge isActive={d.isActive} /></td>
+                  </Td>
+                  <Td><CatalogStatusBadge isActive={d.isActive} /></Td>
                   {canWrite && (
-                    <td className="px-4 py-2">
+                    <Td>
                       <div className="flex gap-2">
-                        <button type="button" onClick={() => { setNameError(null); setModal({mode:"edit", entity:d}); }} className="p-1 rounded hover:bg-surface-container text-on-surface-variant" title="Editar"><Icon name="edit" size={14}/></button>
+                        <IconButton
+                          icon="edit"
+                          iconSize={14}
+                          ariaLabel="Editar"
+                          title="Editar"
+                          variant="ghost"
+                          onClick={() => { setNameError(null); setModal({mode:"edit", entity:d}); }}
+                          className="rounded p-1"
+                        />
                         {d.isActive ? (
-                          <button type="button" onClick={() => setConfirmDeleteId(d.id)} className="p-1 rounded hover:bg-error/10 text-error" title="Desactivar"><Icon name="block" size={14}/></button>
+                          <IconButton
+                            icon="block"
+                            iconSize={14}
+                            ariaLabel="Desactivar"
+                            title="Desactivar"
+                            variant="ghost"
+                            onClick={() => setConfirmDeleteId(d.id)}
+                            className="rounded p-1 hover:bg-error/10 hover:text-error"
+                          />
                         ) : (
-                          <button type="button" onClick={() => reactivateOne(d.id)} className="p-1 rounded hover:bg-primary/10 text-primary text-label-sm" title="Reactivar"><Icon name="check_circle" size={14}/></button>
+                          <IconButton
+                            icon="check_circle"
+                            iconSize={14}
+                            ariaLabel="Reactivar"
+                            title="Reactivar"
+                            variant="ghost"
+                            onClick={() => reactivateOne(d.id)}
+                            className="rounded p-1 hover:bg-primary/10 hover:text-primary"
+                          />
                         )}
                       </div>
-                    </td>
+                    </Td>
                   )}
-                </tr>
+                </Tr>
               ))}
-            </tbody>
-          </table>
+            </TBody>
+          </Table>
         )}
       </div>
 
