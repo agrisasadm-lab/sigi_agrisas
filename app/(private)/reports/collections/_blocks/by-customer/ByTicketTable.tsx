@@ -2,6 +2,7 @@
 
 import type { CollectionsByTicketRowDto } from "../../_logic/by-customer/types/api";
 import { formatMxCurrency } from "../../../../../_lib/formatMxCurrency";
+import { Table, THead, TBody, Tr, Th, Td } from "../../../../../_components/molecules/DataTable/DataTable";
 
 function money(v: string): string {
   return formatMxCurrency(Number(v));
@@ -10,32 +11,32 @@ function money(v: string): string {
 export function ByTicketTable({ rows }: { rows: CollectionsByTicketRowDto[] }) {
   return (
     <div className="overflow-x-auto rounded-lg border border-outline-variant bg-surface-container-low">
-      <table className="w-full text-body-sm">
-        <thead>
-          <tr className="border-b border-outline-variant text-label-sm text-on-surface-variant uppercase tracking-wide">
-            <th className="px-4 py-3 text-left font-medium">Ticket</th>
-            <th className="px-4 py-3 text-left font-medium">Cliente</th>
-            <th className="px-4 py-3 text-right font-medium">Abonos</th>
-            <th className="px-4 py-3 text-right font-medium">Total</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table>
+        <THead>
+          <Tr hoverable={false}>
+            <Th>Ticket</Th>
+            <Th>Cliente</Th>
+            <Th align="right">Abonos</Th>
+            <Th align="right">Total</Th>
+          </Tr>
+        </THead>
+        <TBody>
           {rows.length === 0 ? (
-            <tr>
-              <td colSpan={4} className="px-4 py-4 text-center text-on-surface-variant">Sin cobranza</td>
-            </tr>
+            <Tr hoverable={false}>
+              <Td colSpan={4} className="py-4 text-center text-on-surface-variant">Sin cobranza</Td>
+            </Tr>
           ) : (
             rows.map((r) => (
-              <tr key={r.saleId} className="border-b border-outline-variant/40">
-                <td className="px-4 py-3">{r.factura}</td>
-                <td className="px-4 py-3">{r.customerName}</td>
-                <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">{r.count}</td>
-                <td className="px-4 py-3 text-right tabular-nums font-medium">{money(r.total)}</td>
-              </tr>
+              <Tr key={r.saleId} hoverable={false} className="border-b border-outline-variant/40">
+                <Td>{r.factura}</Td>
+                <Td>{r.customerName}</Td>
+                <Td align="right" className="text-on-surface-variant">{r.count}</Td>
+                <Td align="right" className="font-medium">{money(r.total)}</Td>
+              </Tr>
             ))
           )}
-        </tbody>
-      </table>
+        </TBody>
+      </Table>
     </div>
   );
 }

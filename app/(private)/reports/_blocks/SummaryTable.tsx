@@ -2,6 +2,7 @@
 
 import type { AccountStatementSummaryRowDto } from "../_logic/types/api";
 import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
+import { Table, THead, TBody, Tr, Th, Td } from "../../../_components/molecules/DataTable/DataTable";
 
 function money(v: string | null): string {
   return v === null ? "—" : formatMxCurrency(Number(v));
@@ -15,38 +16,39 @@ interface Props {
 export function SummaryTable({ rows, onRowClick }: Props) {
   return (
     <div className="overflow-x-auto rounded-lg border border-outline-variant bg-surface-container-low">
-      <table className="w-full text-body-sm">
-        <thead>
-          <tr className="border-b border-outline-variant text-label-sm text-on-surface-variant uppercase tracking-wide">
-            <th className="px-4 py-3 text-left font-medium">Código</th>
-            <th className="px-4 py-3 text-left font-medium">Cliente</th>
-            <th className="px-4 py-3 text-right font-medium">Saldo inicial</th>
-            <th className="px-4 py-3 text-right font-medium">Cargado</th>
-            <th className="px-4 py-3 text-right font-medium">Abonado</th>
-            <th className="px-4 py-3 text-right font-medium">Saldo</th>
-            <th className="px-4 py-3 text-right font-medium">Límite</th>
-            <th className="px-4 py-3 text-right font-medium">Disponible</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table>
+        <THead>
+          <Tr hoverable={false}>
+            <Th>Código</Th>
+            <Th>Cliente</Th>
+            <Th align="right">Saldo inicial</Th>
+            <Th align="right">Cargado</Th>
+            <Th align="right">Abonado</Th>
+            <Th align="right">Saldo</Th>
+            <Th align="right">Límite</Th>
+            <Th align="right">Disponible</Th>
+          </Tr>
+        </THead>
+        <TBody>
           {rows.map((r) => (
-            <tr
+            <Tr
               key={r.customerId}
               onClick={() => onRowClick(r.customerId)}
+              hoverable={false}
               className="border-b border-outline-variant/40 hover:bg-surface-container-low/60 cursor-pointer transition-colors"
             >
-              <td className="px-4 py-3 font-mono text-on-surface-variant">{r.customerCode}</td>
-              <td className="px-4 py-3 max-w-[220px] truncate">{r.customerName}</td>
-              <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">{money(r.initialBalance)}</td>
-              <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">{money(r.totalCharged)}</td>
-              <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">{money(r.totalPaid)}</td>
-              <td className="px-4 py-3 text-right tabular-nums font-medium">{money(r.currentBalance)}</td>
-              <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">{money(r.creditLimit)}</td>
-              <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">{money(r.availableCredit)}</td>
-            </tr>
+              <Td className="font-mono text-on-surface-variant">{r.customerCode}</Td>
+              <Td className="max-w-[220px] truncate">{r.customerName}</Td>
+              <Td align="right" className="text-on-surface-variant">{money(r.initialBalance)}</Td>
+              <Td align="right" className="text-on-surface-variant">{money(r.totalCharged)}</Td>
+              <Td align="right" className="text-on-surface-variant">{money(r.totalPaid)}</Td>
+              <Td align="right" className="font-medium">{money(r.currentBalance)}</Td>
+              <Td align="right" className="text-on-surface-variant">{money(r.creditLimit)}</Td>
+              <Td align="right" className="text-on-surface-variant">{money(r.availableCredit)}</Td>
+            </Tr>
           ))}
-        </tbody>
-      </table>
+        </TBody>
+      </Table>
     </div>
   );
 }
