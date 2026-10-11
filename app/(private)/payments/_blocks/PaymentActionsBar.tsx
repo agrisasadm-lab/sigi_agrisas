@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "../../../_components/atoms/Button/Button";
 import { useCurrentUser } from "../../../_hooks/useCurrentUser";
 import { CancelPaymentModal } from "./CancelPaymentModal";
 import type { PaymentDetail } from "../_logic/types/domain";
@@ -19,13 +20,9 @@ export function PaymentActionsBar({ payment, onCancelled }: PaymentActionsBarPro
 
   return (
     <div className="flex gap-3">
-      <button
-        type="button"
-        onClick={() => setShowCancel(true)}
-        className="rounded-full border border-error text-error px-4 py-2 text-body-sm font-medium hover:bg-error/5 transition-colors"
-      >
+      <Button type="button" variant="outlined" onClick={() => setShowCancel(true)} className="border-error text-error hover:bg-error/5">
         Cancelar abono
-      </button>
+      </Button>
 
       {showCancel && (
         <CancelPaymentModal

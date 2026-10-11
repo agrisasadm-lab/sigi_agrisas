@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "../../../_components/atoms/Button/Button";
+import { Select } from "../../../_components/atoms/Select/Select";
 import { Spinner } from "../../../_components/atoms/Spinner/Spinner";
 import { useFoliosOptions } from "../../../_hooks/useFoliosOptions";
 import { usePaymentMethodsOptions } from "../../../_hooks/usePaymentMethodsOptions";
@@ -80,18 +82,14 @@ export function ConvertQuoteModal({
           {foliosLoading ? (
             <Spinner size="sm" />
           ) : (
-            <select
-              value={folioId}
-              onChange={(e) => setFolioId(e.target.value)}
-              className="w-full rounded border border-outline px-3 py-2 text-body-sm bg-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-            >
+            <Select value={folioId} onChange={(e) => setFolioId(e.target.value)}>
               <option value="">— Selecciona folio fiscal —</option>
               {folios.map((f) => (
                 <option key={f.id} value={f.id}>
                   {f.nextFolioCode ?? `${f.prefix ? `${f.prefix}-` : ""}${f.currentNumber + 1}`} ({f.name})
                 </option>
               ))}
-            </select>
+            </Select>
           )}
         </div>
 
@@ -100,16 +98,12 @@ export function ConvertQuoteModal({
           {pmLoading ? (
             <Spinner size="sm" />
           ) : (
-            <select
-              value={paymentMethodId}
-              onChange={(e) => setPaymentMethodId(e.target.value)}
-              className="w-full rounded border border-outline px-3 py-2 text-body-sm bg-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-            >
+            <Select value={paymentMethodId} onChange={(e) => setPaymentMethodId(e.target.value)}>
               <option value="">— Selecciona forma de pago —</option>
               {paymentMethods.map((pm) => (
                 <option key={pm.id} value={pm.id}>{pm.name}</option>
               ))}
-            </select>
+            </Select>
           )}
         </div>
 
@@ -127,23 +121,12 @@ export function ConvertQuoteModal({
         </div>
 
         <div className="flex gap-3 justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isSaving}
-            className="rounded-full border border-outline px-4 py-2 text-label-lg text-on-surface-variant hover:bg-surface-container-low transition-colors disabled:opacity-50"
-          >
+          <Button type="button" variant="outlined" onClick={onClose} disabled={isSaving} className="text-on-surface-variant">
             Cancelar
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!canSubmit}
-            className="rounded-full bg-primary text-on-primary px-4 py-2 text-label-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
-          >
-            {isSaving && <Spinner size="sm" />}
+          </Button>
+          <Button type="button" variant="filled" onClick={handleSubmit} disabled={!canSubmit} loading={isSaving}>
             Convertir
-          </button>
+          </Button>
         </div>
       </div>
     </div>

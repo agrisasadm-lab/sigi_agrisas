@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { Button } from "../../../_components/atoms/Button/Button";
 import { Combobox } from "../../../_components/molecules/Combobox/Combobox";
 import { useCurrentUser } from "../../../_hooks/useCurrentUser";
 import { useDebounce } from "../../../_hooks/useDebounce";
@@ -48,13 +49,14 @@ export function CustomerPicker({ value, onChange, onOpenQuickAdd, branchId }: Cu
 
   const footerSlot =
     canWrite === true ? (
-      <button
+      <Button
         type="button"
+        variant="text"
         onMouseDown={(e) => { e.preventDefault(); onOpenQuickAdd(); }}
-        className="w-full px-3 py-2 text-left text-label-sm text-primary hover:bg-primary/5 flex items-center gap-2 transition-colors"
+        className="w-full justify-start rounded-none px-3 py-2 text-label-sm hover:bg-primary/5"
       >
         + Nuevo cliente
-      </button>
+      </Button>
     ) : null;
 
   function handleChange(id: string) {

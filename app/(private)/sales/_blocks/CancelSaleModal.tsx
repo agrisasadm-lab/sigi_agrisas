@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Spinner } from "../../../_components/atoms/Spinner/Spinner";
+import { Button } from "../../../_components/atoms/Button/Button";
 import { SaleStatusBadge } from "./SaleStatusBadge";
 import type { SaleDetail } from "../_logic/types/domain";
 
@@ -30,13 +30,9 @@ export function CancelSaleModal({ sale, isSaving, onConfirm, onClose }: CancelSa
               <p>Motivo: {sale.cancellationReason}</p>
             )}
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full rounded-full bg-primary py-2 text-body-sm font-medium text-on-primary"
-          >
+          <Button type="button" variant="filled" onClick={onClose} className="w-full">
             Cerrar
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -68,23 +64,12 @@ export function CancelSaleModal({ sale, isSaving, onConfirm, onClose }: CancelSa
         </div>
 
         <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isSaving}
-            className="flex-1 rounded-full border border-outline py-2 text-body-sm font-medium text-on-surface hover:bg-surface-container-low transition-colors disabled:opacity-50"
-          >
+          <Button type="button" variant="outlined" onClick={onClose} disabled={isSaving} className="flex-1">
             Cancelar
-          </button>
-          <button
-            type="button"
-            onClick={() => onConfirm(reason.trim() || undefined)}
-            disabled={isSaving}
-            className="flex-1 rounded-full bg-error py-2 text-body-sm font-medium text-on-error hover:bg-error/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {isSaving && <Spinner size="sm" />}
+          </Button>
+          <Button type="button" variant="destructive" onClick={() => onConfirm(reason.trim() || undefined)} loading={isSaving} className="flex-1">
             Confirmar cancelación
-          </button>
+          </Button>
         </div>
       </div>
     </div>

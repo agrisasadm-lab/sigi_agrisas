@@ -12,6 +12,7 @@ import { InvoiceActionsBar } from "./InvoiceActionsBar";
 import { CancelInvoiceModal } from "./CancelInvoiceModal";
 import { SendInvoiceEmailModal } from "./SendInvoiceEmailModal";
 import { EmptyState } from "../../../_components/molecules/EmptyState/EmptyState";
+import { Button } from "../../../_components/atoms/Button/Button";
 import { Spinner } from "../../../_components/atoms/Spinner/Spinner";
 import { Icon } from "../../../_components/atoms/Icon/Icon";
 import { InvoiceNotFoundError, BillingForbiddenError } from "../_logic/errors";
@@ -122,7 +123,7 @@ export function InvoiceDetailPage({ id }: InvoiceDetailPageProps) {
       {mutationError && (
         <div className="rounded-md bg-error-container/30 border border-error/30 px-4 py-3 flex items-start justify-between gap-2">
           <p className="text-body-sm text-error">{mutationError.message}</p>
-          <button type="button" onClick={clearError} className="text-error text-label-sm hover:underline flex-shrink-0">Cerrar</button>
+          <Button type="button" variant="text" onClick={clearError} className="flex-shrink-0 rounded-none p-0 text-label-sm text-error underline hover:bg-transparent">Cerrar</Button>
         </div>
       )}
 

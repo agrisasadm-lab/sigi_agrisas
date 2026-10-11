@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Spinner } from "../../../_components/atoms/Spinner/Spinner";
+import { Button } from "../../../_components/atoms/Button/Button";
 import { QuoteExpiredError, QuoteNotEditableError } from "../_logic/errors";
 import type { AuthorizeQuoteBody } from "../_logic/types/api";
 import type { QuoteDetail } from "../_logic/types/domain";
@@ -67,23 +67,12 @@ export function AuthorizeQuoteModal({
         </div>
 
         <div className="flex gap-3 justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isSaving}
-            className="rounded-full border border-outline px-4 py-2 text-label-lg text-on-surface-variant hover:bg-surface-container-low transition-colors disabled:opacity-50"
-          >
+          <Button type="button" variant="outlined" onClick={onClose} disabled={isSaving} className="text-on-surface-variant">
             Cancelar
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={isSaving}
-            className="rounded-full bg-primary text-on-primary px-4 py-2 text-label-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
-          >
-            {isSaving && <Spinner size="sm" />}
+          </Button>
+          <Button type="button" variant="filled" onClick={handleSubmit} loading={isSaving}>
             Autorizar
-          </button>
+          </Button>
         </div>
       </div>
     </div>

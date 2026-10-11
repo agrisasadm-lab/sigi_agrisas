@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { SaleItem } from "../_logic/types/domain";
 import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
+import { Table, THead, TBody, Tr, Th, Td } from "../../../_components/molecules/DataTable/DataTable";
 
 function fmt(n: number) { return formatMxCurrency(n); }
 function pct(n: number) { return `${(n * 100).toFixed(0)}%`; }
@@ -18,35 +19,35 @@ export function SaleItemsTable({
 }: SaleItemsTableProps) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-body-sm">
-        <thead>
-          <tr className="border-b border-outline-variant text-label-sm text-on-surface-variant uppercase tracking-wide">
-            <th className="px-4 py-3 text-left font-medium">Código</th>
-            <th className="px-4 py-3 text-left font-medium">Producto</th>
-            <th className="px-4 py-3 text-left font-medium">Precio</th>
-            <th className="px-4 py-3 text-right font-medium">Cant.</th>
-            <th className="px-4 py-3 text-right font-medium">Desc.</th>
-            <th className="px-4 py-3 text-right font-medium">IVA</th>
-            <th className="px-4 py-3 text-right font-medium">IEPS</th>
-            <th className="px-4 py-3 text-right font-medium">Subtotal</th>
-            <th className="px-4 py-3 text-right font-medium">Total</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table>
+        <THead>
+          <Tr hoverable={false}>
+            <Th>Código</Th>
+            <Th>Producto</Th>
+            <Th>Precio</Th>
+            <Th align="right">Cant.</Th>
+            <Th align="right">Desc.</Th>
+            <Th align="right">IVA</Th>
+            <Th align="right">IEPS</Th>
+            <Th align="right">Subtotal</Th>
+            <Th align="right">Total</Th>
+          </Tr>
+        </THead>
+        <TBody>
           {items.map((item) => {
             const returnedQty = returnedQuantityBySaleItem[item.id] ?? 0;
             const remaining = Math.max(0, item.quantity - returnedQty);
             return (
-              <tr key={item.id} className="border-b border-outline-variant/40">
-                <td className="px-4 py-3 font-mono text-label-sm">{item.productCodeSnapshot}</td>
-                <td className="px-4 py-3 max-w-[200px]">
+              <Tr key={item.id} hoverable={false} className="border-b border-outline-variant/40">
+                <Td className="font-mono text-label-sm">{item.productCodeSnapshot}</Td>
+                <Td className="max-w-[200px]">
                   <div>{item.productNameSnapshot}</div>
-                </td>
-                <td className="px-4 py-3 text-on-surface-variant">
+                </Td>
+                <Td className="text-on-surface-variant">
                   <div>{item.priceNameSnapshot}</div>
                   <div className="text-label-sm tabular-nums">{fmt(item.unitPrice)}</div>
-                </td>
-                <td className="px-4 py-3 text-right tabular-nums">
+                </Td>
+                <Td align="right">
                   {renderQuantityCell ? (
                     renderQuantityCell(item, returnedQty, remaining)
                   ) : (
@@ -59,19 +60,19 @@ export function SaleItemsTable({
                       )}
                     </>
                   )}
-                </td>
-                <td className="px-4 py-3 text-right tabular-nums">
+                </Td>
+                <Td align="right">
                   {item.discountAmount > 0 ? fmt(item.discountAmount) : item.discountPct > 0 ? `${item.discountPct}%` : "—"}
-                </td>
-                <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">{pct(item.ivaRate)}</td>
-                <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">{pct(item.iepsRate)}</td>
-                <td className="px-4 py-3 text-right tabular-nums">{fmt(item.lineSubtotal)}</td>
-                <td className="px-4 py-3 text-right tabular-nums font-medium">{fmt(item.lineTotal)}</td>
-              </tr>
+                </Td>
+                <Td align="right" className="text-on-surface-variant">{pct(item.ivaRate)}</Td>
+                <Td align="right" className="text-on-surface-variant">{pct(item.iepsRate)}</Td>
+                <Td align="right">{fmt(item.lineSubtotal)}</Td>
+                <Td align="right" className="font-medium">{fmt(item.lineTotal)}</Td>
+              </Tr>
             );
           })}
-        </tbody>
-      </table>
+        </TBody>
+      </Table>
     </div>
   );
 }

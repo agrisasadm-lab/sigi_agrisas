@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { PaymentStatusBadge } from "./PaymentStatusBadge";
 import { Skeleton } from "../../../_components/atoms/Skeleton/Skeleton";
+import { Table, THead, TBody, Tr, Th, Td } from "../../../_components/molecules/DataTable/DataTable";
 import type { Payment } from "../_logic/types/domain";
 import { useTableKeyboard } from "../../../_hooks/useTableKeyboard";
 import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
@@ -38,72 +39,72 @@ export function PaymentsTable({ items, isLoading, showBranch, onEnter }: Payment
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-body-sm">
-        <thead>
-          <tr className="border-b border-outline-variant text-label-sm text-on-surface-variant uppercase tracking-wide">
-            <th className="px-4 py-3 text-left font-medium">Folio recibo</th>
-            <th className="px-4 py-3 text-left font-medium">Folio venta</th>
-            <th className="px-4 py-3 text-left font-medium">Cliente</th>
-            <th className="px-4 py-3 text-left font-medium">Cobrador</th>
-            <th className="px-4 py-3 text-left font-medium">Método</th>
-            {showBranch && <th className="px-4 py-3 text-left font-medium">Sucursal</th>}
-            <th className="px-4 py-3 text-right font-medium">Monto</th>
-            <th className="px-4 py-3 text-right font-medium">Monto total</th>
-            <th className="px-4 py-3 text-right font-medium">Saldo pendiente</th>
-            <th className="px-4 py-3 text-left font-medium">Fecha</th>
-            <th className="px-4 py-3 text-left font-medium">Estado</th>
-            <th className="px-4 py-3 text-left font-medium">Acción</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table>
+        <THead>
+          <Tr hoverable={false}>
+            <Th>Folio recibo</Th>
+            <Th>Folio venta</Th>
+            <Th>Cliente</Th>
+            <Th>Cobrador</Th>
+            <Th>Método</Th>
+            {showBranch && <Th>Sucursal</Th>}
+            <Th align="right">Monto</Th>
+            <Th align="right">Monto total</Th>
+            <Th align="right">Saldo pendiente</Th>
+            <Th>Fecha</Th>
+            <Th>Estado</Th>
+            <Th>Acción</Th>
+          </Tr>
+        </THead>
+        <TBody>
           {items.map((p, idx) => {
             const folioLabel = p.folioPrefix
               ? `${p.folioPrefix}${p.folioNumber}`
               : String(p.folioNumber);
             return (
-              <tr
+              <Tr
                 key={p.id}
                 {...getRowProps(idx)}
-                className="border-b border-outline-variant/40 hover:bg-surface-container-low focus:bg-surface-container focus:outline-none transition-colors cursor-default"
+                className="border-b border-outline-variant/40 focus:bg-surface-container focus:outline-none cursor-default"
               >
-                <td className="px-4 py-3 font-mono text-on-surface-variant">{folioLabel}</td>
-                <td className="px-4 py-3">
+                <Td className="font-mono text-on-surface-variant">{folioLabel}</Td>
+                <Td>
                   {p.saleFolioCode ? (
                     <Link href={`/sales/${p.saleId}`} className="text-primary hover:underline">
                       {p.saleFolioCode}
                     </Link>
                   ) : "—"}
-                </td>
-                <td className="px-4 py-3 max-w-[140px] truncate text-on-surface-variant">
+                </Td>
+                <Td className="max-w-[140px] truncate text-on-surface-variant">
                   {p.customerName ?? "—"}
-                </td>
-                <td className="px-4 py-3 max-w-[140px] truncate text-on-surface-variant">
+                </Td>
+                <Td className="max-w-[140px] truncate text-on-surface-variant">
                   {p.userName ?? "—"}
-                </td>
-                <td className="px-4 py-3 text-on-surface-variant">{p.paymentMethodName ?? "—"}</td>
+                </Td>
+                <Td className="text-on-surface-variant">{p.paymentMethodName ?? "—"}</Td>
                 {showBranch && (
-                  <td className="px-4 py-3 text-on-surface-variant">{p.branchName ?? "—"}</td>
+                  <Td className="text-on-surface-variant">{p.branchName ?? "—"}</Td>
                 )}
-                <td className="px-4 py-3 text-right tabular-nums font-medium">{fmt(p.amount)}</td>
-                <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">{fmt(p.saleTotal)}</td>
-                <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">{fmt(p.saleDueAmount)}</td>
-                <td className="px-4 py-3 text-on-surface-variant tabular-nums">{fmtDate(p.createdAt)}</td>
-                <td className="px-4 py-3">
+                <Td align="right" className="font-medium">{fmt(p.amount)}</Td>
+                <Td align="right" className="text-on-surface-variant">{fmt(p.saleTotal)}</Td>
+                <Td align="right" className="text-on-surface-variant">{fmt(p.saleDueAmount)}</Td>
+                <Td className="text-on-surface-variant tabular-nums">{fmtDate(p.createdAt)}</Td>
+                <Td>
                   <PaymentStatusBadge status={p.status} salePaymentStatus={p.salePaymentStatus} />
-                </td>
-                <td className="px-4 py-3">
+                </Td>
+                <Td>
                   <Link
                     href={`/payments/${p.id}`}
                     className="text-label-sm text-primary hover:underline"
                   >
                     Ver
                   </Link>
-                </td>
-              </tr>
+                </Td>
+              </Tr>
             );
           })}
-        </tbody>
-      </table>
+        </TBody>
+      </Table>
     </div>
   );
 }

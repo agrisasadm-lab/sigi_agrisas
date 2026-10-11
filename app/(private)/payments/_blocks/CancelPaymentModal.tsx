@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { Button } from "../../../_components/atoms/Button/Button";
 import { usePaymentMutations } from "../_logic/hooks/usePaymentMutations";
 import { PaymentAlreadyCancelledError } from "../_logic/errors";
 
@@ -77,22 +78,18 @@ export function CancelPaymentModal({ paymentId, onSuccess, onClose }: CancelPaym
       )}
 
       <div className="flex justify-end gap-3">
-        <button
+        <Button
           type="button"
+          variant="text"
           onClick={onClose}
           disabled={isSaving}
-          className="px-4 py-2 rounded text-label-lg text-on-surface hover:bg-surface-container-highest transition-colors"
+          className="rounded px-4 py-2 text-on-surface hover:bg-surface-container-highest"
         >
           Volver
-        </button>
-        <button
-          type="button"
-          onClick={handleConfirm}
-          disabled={isSaving}
-          className="px-4 py-2 rounded text-label-lg bg-error-container text-on-error-container hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isSaving ? "Cancelando..." : "Confirmar cancelación"}
-        </button>
+        </Button>
+        <Button type="button" variant="destructive" onClick={handleConfirm} loading={isSaving}>
+          Confirmar cancelación
+        </Button>
       </div>
     </dialog>
   );

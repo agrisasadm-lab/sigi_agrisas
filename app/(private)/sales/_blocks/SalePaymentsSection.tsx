@@ -6,7 +6,9 @@ import { useSalePayments } from "../../payments/_logic/hooks/useSalePayments";
 import { PaymentStatusBadge } from "../../payments/_blocks/PaymentStatusBadge";
 import { RegisterPaymentModal } from "../../payments/_blocks/RegisterPaymentModal";
 import { CancelPaymentModal } from "../../payments/_blocks/CancelPaymentModal";
+import { Button } from "../../../_components/atoms/Button/Button";
 import { Skeleton } from "../../../_components/atoms/Skeleton/Skeleton";
+import { Table, THead, TBody, Tr, Th, Td } from "../../../_components/molecules/DataTable/DataTable";
 import type { SaleDetail } from "../_logic/types/domain";
 import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
 import { fmtDateTimeShort } from "../../../_lib/formatDate";
@@ -47,13 +49,9 @@ export function SalePaymentsSection({ saleId, sale, onPaymentMutated }: SalePaym
           Abonos {!isLoading && payments.length > 0 ? `(${payments.length})` : ""}
         </h2>
         {showCta && (
-          <button
-            type="button"
-            onClick={() => setShowRegister(true)}
-            className="rounded-full bg-primary text-on-primary px-4 py-1.5 text-label-md font-medium hover:bg-primary/90 transition-colors"
-          >
+          <Button type="button" variant="filled" onClick={() => setShowRegister(true)} className="px-4 py-1.5 text-label-md">
             + Registrar abono
-          </button>
+          </Button>
         )}
       </div>
 
@@ -88,19 +86,19 @@ export function SalePaymentsSection({ saleId, sale, onPaymentMutated }: SalePaym
               <p className="text-body-sm text-on-surface-variant">Sin abonos registrados.</p>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-body-sm">
-                  <thead>
-                    <tr className="border-b border-outline-variant text-label-sm text-on-surface-variant uppercase tracking-wide">
-                      <th className="px-3 py-2 text-left font-medium">Folio recibo</th>
-                      <th className="px-3 py-2 text-left font-medium">Cobrador</th>
-                      <th className="px-3 py-2 text-left font-medium">Método</th>
-                      <th className="px-3 py-2 text-right font-medium">Monto</th>
-                      <th className="px-3 py-2 text-left font-medium">Fecha</th>
-                      <th className="px-3 py-2 text-left font-medium">Estado</th>
-                      <th className="px-3 py-2 text-left font-medium" />
-                    </tr>
-                  </thead>
-                  <tbody>
+                <Table>
+                  <THead>
+                    <Tr hoverable={false}>
+                      <Th className="py-2 px-3">Folio recibo</Th>
+                      <Th className="py-2 px-3">Cobrador</Th>
+                      <Th className="py-2 px-3">Método</Th>
+                      <Th align="right" className="py-2 px-3">Monto</Th>
+                      <Th className="py-2 px-3">Fecha</Th>
+                      <Th className="py-2 px-3">Estado</Th>
+                      <Th className="py-2 px-3" />
+                    </Tr>
+                  </THead>
+                  <TBody>
                     {payments.map((p) => {
                       const folioLabel = p.folioPrefix
                         ? `${p.folioPrefix}${p.folioNumber}`
@@ -110,41 +108,43 @@ export function SalePaymentsSection({ saleId, sale, onPaymentMutated }: SalePaym
                       const isExpanded = expandedPaymentId === p.id;
                       return (
                         <Fragment key={p.id}>
-                          <tr className="border-b border-outline-variant/40 hover:bg-surface-container-low/60 transition-colors">
-                            <td className="px-3 py-2 font-mono text-on-surface-variant">
+                          <Tr className="border-b border-outline-variant/40 hover:bg-surface-container-low/60">
+                            <Td className="py-2 px-3 font-mono text-on-surface-variant">
                               {folioLabel}
                               {hasItems && (
-                                <button
+                                <Button
                                   type="button"
+                                  variant="text"
                                   onClick={() => setExpandedPaymentId(isExpanded ? null : p.id)}
-                                  className="ml-2 text-label-sm text-primary hover:underline font-sans"
+                                  className="ml-2 rounded-none p-0 text-label-sm font-sans underline hover:bg-transparent"
                                 >
                                   {isExpanded ? "Ocultar desglose" : "Ver desglose"}
-                                </button>
+                                </Button>
                               )}
-                            </td>
-                            <td className="px-3 py-2 text-on-surface-variant max-w-[140px] truncate">{p.userName ?? "—"}</td>
-                            <td className="px-3 py-2 text-on-surface-variant">{p.paymentMethodName ?? "—"}</td>
-                            <td className="px-3 py-2 text-right tabular-nums font-medium">{fmt(p.amount)}</td>
-                            <td className="px-3 py-2 text-on-surface-variant tabular-nums">{fmtDate(p.createdAt)}</td>
-                            <td className="px-3 py-2">
+                            </Td>
+                            <Td className="py-2 px-3 text-on-surface-variant max-w-[140px] truncate">{p.userName ?? "—"}</Td>
+                            <Td className="py-2 px-3 text-on-surface-variant">{p.paymentMethodName ?? "—"}</Td>
+                            <Td align="right" className="py-2 px-3 font-medium">{fmt(p.amount)}</Td>
+                            <Td className="py-2 px-3 text-on-surface-variant tabular-nums">{fmtDate(p.createdAt)}</Td>
+                            <Td className="py-2 px-3">
                               <PaymentStatusBadge status={p.status} salePaymentStatus={paymentStatus} />
-                            </td>
-                            <td className="px-3 py-2">
+                            </Td>
+                            <Td className="py-2 px-3">
                               {p.status === "completed" && canCancel === true && (
-                                <button
+                                <Button
                                   type="button"
+                                  variant="text"
                                   onClick={() => setCancelPaymentId(p.id)}
-                                  className="text-label-sm text-error hover:underline"
+                                  className="rounded-none p-0 text-label-sm text-error underline hover:bg-transparent"
                                 >
                                   Cancelar
-                                </button>
+                                </Button>
                               )}
-                            </td>
-                          </tr>
+                            </Td>
+                          </Tr>
                           {isExpanded && hasItems && (
-                            <tr className="bg-surface-container-low/40">
-                              <td colSpan={7} className="px-3 py-2">
+                            <Tr hoverable={false} className="bg-surface-container-low/40">
+                              <Td colSpan={7} className="py-2 px-3">
                                 <ul className="text-label-sm text-on-surface-variant space-y-0.5">
                                   {p.items!.map((item) => (
                                     <li key={item.saleItemId} className="flex justify-between max-w-xs">
@@ -153,40 +153,40 @@ export function SalePaymentsSection({ saleId, sale, onPaymentMutated }: SalePaym
                                     </li>
                                   ))}
                                 </ul>
-                              </td>
-                            </tr>
+                              </Td>
+                            </Tr>
                           )}
                         </Fragment>
                       );
                     })}
-                  </tbody>
-                </table>
+                  </TBody>
+                </Table>
               </div>
             )}
 
             {lineBalances.length > 0 && (
               <div className="overflow-x-auto pt-2">
                 <p className="text-label-md text-on-surface-variant mb-2">Saldo por producto</p>
-                <table className="w-full text-body-sm">
-                  <thead>
-                    <tr className="border-b border-outline-variant text-label-sm text-on-surface-variant uppercase tracking-wide">
-                      <th className="px-3 py-2 text-left font-medium">Producto</th>
-                      <th className="px-3 py-2 text-right font-medium">Total línea</th>
-                      <th className="px-3 py-2 text-right font-medium">Pagado</th>
-                      <th className="px-3 py-2 text-right font-medium">Pendiente</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <Table>
+                  <THead>
+                    <Tr hoverable={false}>
+                      <Th className="py-2 px-3">Producto</Th>
+                      <Th align="right" className="py-2 px-3">Total línea</Th>
+                      <Th align="right" className="py-2 px-3">Pagado</Th>
+                      <Th align="right" className="py-2 px-3">Pendiente</Th>
+                    </Tr>
+                  </THead>
+                  <TBody>
                     {lineBalances.map((lb) => (
-                      <tr key={lb.saleItemId} className="border-b border-outline-variant/40">
-                        <td className="px-3 py-2 text-on-surface truncate max-w-[200px]">{lb.productNameSnapshot}</td>
-                        <td className="px-3 py-2 text-right tabular-nums">{fmt(lb.lineTotal)}</td>
-                        <td className="px-3 py-2 text-right tabular-nums">{fmt(lb.paidAmount)}</td>
-                        <td className="px-3 py-2 text-right tabular-nums font-medium">{fmt(lb.dueAmount)}</td>
-                      </tr>
+                      <Tr key={lb.saleItemId} hoverable={false} className="border-b border-outline-variant/40">
+                        <Td className="py-2 px-3 text-on-surface truncate max-w-[200px]">{lb.productNameSnapshot}</Td>
+                        <Td align="right" className="py-2 px-3">{fmt(lb.lineTotal)}</Td>
+                        <Td align="right" className="py-2 px-3">{fmt(lb.paidAmount)}</Td>
+                        <Td align="right" className="py-2 px-3 font-medium">{fmt(lb.dueAmount)}</Td>
+                      </Tr>
                     ))}
-                  </tbody>
-                </table>
+                  </TBody>
+                </Table>
               </div>
             )}
           </>

@@ -13,6 +13,7 @@ import { PaymentsHistoryToolbar } from "./PaymentsHistoryToolbar";
 import { GroupedPaymentsTable } from "./GroupedPaymentsTable";
 import { EmptyState } from "../../../_components/molecules/EmptyState/EmptyState";
 import { Spinner } from "../../../_components/atoms/Spinner/Spinner";
+import { Table, THead, TBody, Tr, Th, Td } from "../../../_components/molecules/DataTable/DataTable";
 import { PageShell } from "../../../_components/organisms/PageShell";
 import { SegmentedButton } from "../../../_components/molecules/SegmentedButton/SegmentedButton";
 import { groupPaymentsBySale } from "../_logic/lib/groupPaymentsBySale";
@@ -188,85 +189,85 @@ export function PaymentsHistoryPage() {
                 isLoading={isLoading}
                 columnCount={isBypass === true ? 6 : 5}
                 headerRow={
-                  <tr className="border-b border-outline-variant text-label-sm text-on-surface-variant uppercase tracking-wide">
-                    <th className="px-4 py-3 text-left font-medium">Folio recibo</th>
-                    <th className="px-4 py-3 text-left font-medium">Cobrador</th>
-                    <th className="px-4 py-3 text-left font-medium">Método</th>
-                    {isBypass === true && <th className="px-4 py-3 text-left font-medium">Sucursal</th>}
-                    <th className="px-4 py-3 text-right font-medium">Monto</th>
-                    <th className="px-4 py-3 text-left font-medium">Fecha</th>
-                    <th className="px-4 py-3 text-left font-medium">Estado</th>
-                  </tr>
+                  <Tr hoverable={false}>
+                    <Th>Folio recibo</Th>
+                    <Th>Cobrador</Th>
+                    <Th>Método</Th>
+                    {isBypass === true && <Th>Sucursal</Th>}
+                    <Th align="right">Monto</Th>
+                    <Th>Fecha</Th>
+                    <Th>Estado</Th>
+                  </Tr>
                 }
                 renderPaymentRow={(p) => {
                   const folioLabel = p.folioCode ?? "—";
                   return (
-                    <tr key={p.id} className="border-b border-outline-variant/40 hover:bg-surface-container-low/60 transition-colors">
-                      <td className="px-4 py-3 font-mono text-on-surface-variant">{folioLabel}</td>
-                      <td className="px-4 py-3 max-w-[140px] truncate text-on-surface-variant">{p.userName ?? "—"}</td>
-                      <td className="px-4 py-3 text-on-surface-variant">{p.paymentMethodCode ?? "—"}</td>
+                    <Tr key={p.id} className="border-b border-outline-variant/40 hover:bg-surface-container-low/60">
+                      <Td className="font-mono text-on-surface-variant">{folioLabel}</Td>
+                      <Td className="max-w-[140px] truncate text-on-surface-variant">{p.userName ?? "—"}</Td>
+                      <Td className="text-on-surface-variant">{p.paymentMethodCode ?? "—"}</Td>
                       {isBypass === true && (
-                        <td className="px-4 py-3 text-on-surface-variant">{p.branchName ?? "—"}</td>
+                        <Td className="text-on-surface-variant">{p.branchName ?? "—"}</Td>
                       )}
-                      <td className="px-4 py-3 text-right tabular-nums font-medium">{fmt(Number(p.amount))}</td>
-                      <td className="px-4 py-3 text-on-surface-variant tabular-nums">{fmtDate(p.createdAt)}</td>
-                      <td className="px-4 py-3">
+                      <Td align="right" className="font-medium">{fmt(Number(p.amount))}</Td>
+                      <Td className="text-on-surface-variant tabular-nums">{fmtDate(p.createdAt)}</Td>
+                      <Td>
                         <PaymentStatusBadge status={p.status} salePaymentStatus={p.salePaymentStatus} />
-                      </td>
-                    </tr>
+                      </Td>
+                    </Tr>
                   );
                 }}
               />
             </div>
           ) : (
           <div className="overflow-x-auto rounded-lg border border-outline-variant bg-surface-container-low">
-            <table className="w-full text-body-sm">
-              <thead>
-                <tr className="border-b border-outline-variant text-label-sm text-on-surface-variant uppercase tracking-wide">
-                  <th className="px-4 py-3 text-left font-medium">Folio recibo</th>
-                  <th className="px-4 py-3 text-left font-medium">Folio venta</th>
-                  <th className="px-4 py-3 text-left font-medium">Cliente</th>
-                  <th className="px-4 py-3 text-left font-medium">Cobrador</th>
-                  <th className="px-4 py-3 text-left font-medium">Método</th>
-                  {isBypass === true && <th className="px-4 py-3 text-left font-medium">Sucursal</th>}
-                  <th className="px-4 py-3 text-right font-medium">Monto</th>
-                  <th className="px-4 py-3 text-right font-medium">Monto total</th>
-                  <th className="px-4 py-3 text-right font-medium">Saldo pendiente</th>
-                  <th className="px-4 py-3 text-left font-medium">Fecha</th>
-                  <th className="px-4 py-3 text-left font-medium">Estado</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table>
+              <THead>
+                <Tr hoverable={false}>
+                  <Th>Folio recibo</Th>
+                  <Th>Folio venta</Th>
+                  <Th>Cliente</Th>
+                  <Th>Cobrador</Th>
+                  <Th>Método</Th>
+                  {isBypass === true && <Th>Sucursal</Th>}
+                  <Th align="right">Monto</Th>
+                  <Th align="right">Monto total</Th>
+                  <Th align="right">Saldo pendiente</Th>
+                  <Th>Fecha</Th>
+                  <Th>Estado</Th>
+                </Tr>
+              </THead>
+              <TBody>
                 {report.items.map((p) => {
                   const folioLabel = p.folioCode ?? "—";
                   return (
-                    <tr key={p.id} className="border-b border-outline-variant/40 hover:bg-surface-container-low/60 transition-colors">
-                      <td className="px-4 py-3 font-mono text-on-surface-variant">{folioLabel}</td>
-                      <td className="px-4 py-3">
+                    <Tr key={p.id} className="border-b border-outline-variant/40 hover:bg-surface-container-low/60">
+                      <Td className="font-mono text-on-surface-variant">{folioLabel}</Td>
+                      <Td>
                         {p.saleFolioCode ? (
                           <Link href={`/sales/${p.saleId}`} className="text-primary hover:underline">
                             {p.saleFolioCode}
                           </Link>
                         ) : "—"}
-                      </td>
-                      <td className="px-4 py-3 max-w-[140px] truncate text-on-surface-variant">{p.customerName ?? "—"}</td>
-                      <td className="px-4 py-3 max-w-[140px] truncate text-on-surface-variant">{p.userName ?? "—"}</td>
-                      <td className="px-4 py-3 text-on-surface-variant">{p.paymentMethodCode ?? "—"}</td>
+                      </Td>
+                      <Td className="max-w-[140px] truncate text-on-surface-variant">{p.customerName ?? "—"}</Td>
+                      <Td className="max-w-[140px] truncate text-on-surface-variant">{p.userName ?? "—"}</Td>
+                      <Td className="text-on-surface-variant">{p.paymentMethodCode ?? "—"}</Td>
                       {isBypass === true && (
-                        <td className="px-4 py-3 text-on-surface-variant">{p.branchName ?? "—"}</td>
+                        <Td className="text-on-surface-variant">{p.branchName ?? "—"}</Td>
                       )}
-                      <td className="px-4 py-3 text-right tabular-nums font-medium">{fmt(Number(p.amount))}</td>
-                      <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">{fmt(Number(p.saleTotal))}</td>
-                      <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">{fmt(Number(p.saleDueAmount))}</td>
-                      <td className="px-4 py-3 text-on-surface-variant tabular-nums">{fmtDate(p.createdAt)}</td>
-                      <td className="px-4 py-3">
+                      <Td align="right" className="font-medium">{fmt(Number(p.amount))}</Td>
+                      <Td align="right" className="text-on-surface-variant">{fmt(Number(p.saleTotal))}</Td>
+                      <Td align="right" className="text-on-surface-variant">{fmt(Number(p.saleDueAmount))}</Td>
+                      <Td className="text-on-surface-variant tabular-nums">{fmtDate(p.createdAt)}</Td>
+                      <Td>
                         <PaymentStatusBadge status={p.status} salePaymentStatus={p.salePaymentStatus} />
-                      </td>
-                    </tr>
+                      </Td>
+                    </Tr>
                   );
                 })}
-              </tbody>
-            </table>
+              </TBody>
+            </Table>
           </div>
           )}
             </>

@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ReturnStatusBadge } from "./ReturnStatusBadge";
+import { Button } from "../../../_components/atoms/Button/Button";
 import { Skeleton } from "../../../_components/atoms/Skeleton/Skeleton";
+import { Table, THead, TBody, Tr, Th, Td } from "../../../_components/molecules/DataTable/DataTable";
 import type { Return } from "../_logic/types/domain";
 import { useTableKeyboard } from "../../../_hooks/useTableKeyboard";
 import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
@@ -51,20 +53,20 @@ export function ReturnsTable({ items, isLoading, showBranch, onEnter }: ReturnsT
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-body-sm">
-        <thead>
-          <tr className="border-b border-outline-variant text-label-sm text-on-surface-variant uppercase tracking-wide">
-            <th className="px-4 py-3 text-left font-medium">Folio venta</th>
-            <th className="px-4 py-3 text-left font-medium">Cliente</th>
-            {showBranch && <th className="px-4 py-3 text-left font-medium">Sucursal</th>}
-            <th className="px-4 py-3 text-left font-medium">Devuelto por</th>
-            <th className="px-4 py-3 text-right font-medium">Reembolso</th>
-            <th className="px-4 py-3 text-left font-medium">Fecha</th>
-            <th className="px-4 py-3 text-left font-medium">Estado</th>
-            <th className="px-4 py-3 text-left font-medium">Acción</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table>
+        <THead>
+          <Tr hoverable={false}>
+            <Th>Folio venta</Th>
+            <Th>Cliente</Th>
+            {showBranch && <Th>Sucursal</Th>}
+            <Th>Devuelto por</Th>
+            <Th align="right">Reembolso</Th>
+            <Th>Fecha</Th>
+            <Th>Estado</Th>
+            <Th>Acción</Th>
+          </Tr>
+        </THead>
+        <TBody>
           {items.map((ret, idx) => {
             const folioLabel = ret.salefolioCode
               ? `${ret.salefolioCode}-${ret.salefolioNumber}`
@@ -73,12 +75,12 @@ export function ReturnsTable({ items, isLoading, showBranch, onEnter }: ReturnsT
               : ret.saleId.slice(0, 8);
             const customerName = ret.customerName ?? "—";
             return (
-              <tr
+              <Tr
                 key={ret.id}
                 {...getRowProps(idx)}
-                className="border-b border-outline-variant/40 hover:bg-surface-container-low focus:bg-surface-container focus:outline-none transition-colors cursor-default"
+                className="border-b border-outline-variant/40 focus:bg-surface-container focus:outline-none cursor-default"
               >
-                <td className="px-4 py-3">
+                <Td>
                   <Link
                     href={`/sales/${ret.saleId}`}
                     className="font-mono text-primary hover:text-primary/80 underline"
@@ -86,8 +88,8 @@ export function ReturnsTable({ items, isLoading, showBranch, onEnter }: ReturnsT
                   >
                     {folioLabel}
                   </Link>
-                </td>
-                <td className="px-4 py-3">
+                </Td>
+                <Td>
                   <div className="flex items-center gap-2">
                     <span className="w-7 h-7 rounded-full bg-secondary-container text-on-secondary-container text-label-sm font-semibold flex items-center justify-center flex-shrink-0">
                       {customerName !== "—" ? initials(customerName) : "?"}
@@ -99,38 +101,39 @@ export function ReturnsTable({ items, isLoading, showBranch, onEnter }: ReturnsT
                       )}
                     </div>
                   </div>
-                </td>
+                </Td>
                 {showBranch && (
-                  <td className="px-4 py-3 text-on-surface-variant truncate max-w-[120px]">
+                  <Td className="text-on-surface-variant truncate max-w-[120px]">
                     {ret.branchName ?? "—"}
-                  </td>
+                  </Td>
                 )}
-                <td className="px-4 py-3 text-on-surface-variant truncate max-w-[120px]">
+                <Td className="text-on-surface-variant truncate max-w-[120px]">
                   {ret.creatorName ?? ret.creatorId.slice(0, 8)}
-                </td>
-                <td className="px-4 py-3 text-right tabular-nums font-medium">
+                </Td>
+                <Td align="right" className="font-medium">
                   {fmt(ret.refundTotal)}
-                </td>
-                <td className="px-4 py-3 text-on-surface-variant tabular-nums">
+                </Td>
+                <Td className="text-on-surface-variant tabular-nums">
                   {fmtDate(ret.returnedAt)}
-                </td>
-                <td className="px-4 py-3">
+                </Td>
+                <Td>
                   <ReturnStatusBadge status={ret.status} />
-                </td>
-                <td className="px-4 py-3">
-                  <button
+                </Td>
+                <Td>
+                  <Button
                     type="button"
+                    variant="text"
                     onClick={() => router.push(`/returns/${ret.id}`)}
-                    className="text-label-sm text-primary hover:text-primary/80 font-medium transition-colors"
+                    className="rounded-none p-0 text-label-sm hover:bg-transparent hover:text-primary/80"
                   >
                     Ver
-                  </button>
-                </td>
-              </tr>
+                  </Button>
+                </Td>
+              </Tr>
             );
           })}
-        </tbody>
-      </table>
+        </TBody>
+      </Table>
     </div>
   );
 }

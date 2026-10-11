@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "../../../_components/atoms/Button/Button";
+import { Select } from "../../../_components/atoms/Select/Select";
 import { SearchInput } from "../../../_components/molecules/SearchInput/SearchInput";
 import type { ReturnStatus } from "../_logic/types/api";
 
@@ -63,33 +65,34 @@ export function ReturnsToolbar({
       </div>
 
       {showBranchFilter && (
-        <select
+        <Select
           value={branchId}
           onChange={(e) => onBranchChange(e.target.value)}
-          className="rounded border border-outline px-3 py-2 text-body-sm bg-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+          className="w-auto"
           aria-label="Filtrar por sucursal"
         >
           <option value="">Todas las sucursales</option>
           {branches.map((b) => (
             <option key={b.id} value={b.id}>{b.name}</option>
           ))}
-        </select>
+        </Select>
       )}
 
       <div className="flex gap-1">
         {STATUS_OPTIONS.map((s) => (
-          <button
+          <Button
             key={s.value}
             type="button"
+            variant="filled"
             onClick={() => toggleStatus(s.value)}
-            className={`rounded-full px-3 py-1 text-label-sm font-medium transition-colors ${
+            className={
               statusFilter.includes(s.value)
-                ? "bg-primary text-on-primary"
-                : "bg-surface-container-low text-on-surface hover:bg-surface-container"
-            }`}
+                ? "px-3 py-1 text-label-sm"
+                : "px-3 py-1 text-label-sm bg-surface-container-low text-on-surface hover:bg-surface-container"
+            }
           >
             {s.label}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -112,13 +115,14 @@ export function ReturnsToolbar({
       </div>
 
       {hasFilters && (
-        <button
+        <Button
           type="button"
+          variant="text"
           onClick={onReset}
-          className="text-label-sm text-on-surface-variant hover:text-on-surface transition-colors"
+          className="rounded-none p-0 text-label-sm text-on-surface-variant hover:bg-transparent hover:text-on-surface"
         >
           Limpiar filtros
-        </button>
+        </Button>
       )}
     </div>
   );

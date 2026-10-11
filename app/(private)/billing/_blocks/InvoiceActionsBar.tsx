@@ -1,6 +1,7 @@
 "use client";
 
 import type { Invoice } from "../_logic/types/domain";
+import { Button } from "../../../_components/atoms/Button/Button";
 import { DownloadPdfButton } from "../../../_components/molecules/PdfDownloadButton/PdfDownloadButton";
 
 interface InvoiceActionsBarProps {
@@ -25,30 +26,33 @@ export function InvoiceActionsBar({
   return (
     <div className="flex flex-wrap gap-3 justify-end">
       <DownloadPdfButton onClick={() => onDownload("pdf")} loading={isDownloading} />
-      <button
+      <Button
         type="button"
+        variant="outlined"
         onClick={() => onDownload("xml")}
-        disabled={isDownloading}
-        className="rounded-full border border-outline px-4 py-2 text-label-sm font-medium hover:bg-surface-container transition-colors disabled:opacity-50"
+        loading={isDownloading}
+        className="text-label-sm hover:bg-surface-container"
       >
-        {isDownloading ? "Descargando..." : "Descargar XML"}
-      </button>
-      <button
+        Descargar XML
+      </Button>
+      <Button
         type="button"
+        variant="outlined"
         onClick={onSendEmailClick}
-        className="rounded-full border border-outline px-4 py-2 text-label-sm font-medium hover:bg-surface-container transition-colors"
+        className="text-label-sm hover:bg-surface-container"
       >
         Enviar por correo
-      </button>
+      </Button>
       {inv.status === "stamped" && canCancel === true && (
-        <button
+        <Button
           type="button"
+          variant="outlined"
           onClick={onCancelClick}
-          disabled={isSaving}
-          className="rounded-full border border-error text-error px-4 py-2 text-label-sm font-medium hover:bg-error/5 transition-colors disabled:opacity-50"
+          loading={isSaving}
+          className="border-error text-label-sm text-error hover:bg-error/5"
         >
           Cancelar CFDI
-        </button>
+        </Button>
       )}
     </div>
   );

@@ -1,6 +1,8 @@
 "use client";
 
 import { RefObject } from "react";
+import { Button } from "../../../_components/atoms/Button/Button";
+import { Select } from "../../../_components/atoms/Select/Select";
 import { Spinner } from "../../../_components/atoms/Spinner/Spinner";
 import { CartLinesList } from "./CartLinesList";
 import { CartTotals } from "./CartTotals";
@@ -117,18 +119,14 @@ export function CartPanel({
           {isLoadingOptions ? (
             <Spinner size="sm" />
           ) : (
-            <select
-              value={selectedFolioId}
-              onChange={(e) => onFolioChange(e.target.value)}
-              className="w-full rounded border border-outline px-3 py-2 text-body-sm bg-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-            >
+            <Select value={selectedFolioId} onChange={(e) => onFolioChange(e.target.value)}>
               <option value="">— Selecciona folio —</option>
               {folios.map((f) => (
                 <option key={f.id} value={f.id}>
                   {f.nextFolioCode ?? `${f.prefix ?? ""}${String(f.currentNumber + 1).padStart(6, "0")}`} ({f.name})
                 </option>
               ))}
-            </select>
+            </Select>
           )}
         </div>
 
@@ -138,16 +136,12 @@ export function CartPanel({
             {isLoadingOptions ? (
               <Spinner size="sm" />
             ) : (
-              <select
-                value={selectedPaymentMethodId}
-                onChange={(e) => onPaymentMethodChange(e.target.value)}
-                className="w-full rounded border border-outline px-3 py-2 text-body-sm bg-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-              >
+              <Select value={selectedPaymentMethodId} onChange={(e) => onPaymentMethodChange(e.target.value)}>
                 <option value="">— Selecciona método de pago —</option>
                 {paymentMethods.map((pm) => (
                   <option key={pm.id} value={pm.id}>{pm.name}</option>
                 ))}
-              </select>
+              </Select>
             )}
           </div>
         )}
@@ -197,21 +191,17 @@ export function CartPanel({
 
       <div className="border-t border-outline-variant px-4 py-4 space-y-3 bg-surface">
         <CartTotals totals={totals} />
-        <button
+        <Button
           type="button"
+          variant={isQuoteMode ? "tonal" : "filled"}
           onClick={onSubmit}
           disabled={!canSubmit}
+          loading={isSubmitting}
           aria-keyshortcuts="Control+Enter"
-          className={[
-            "w-full rounded-full py-3 text-body-md font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2",
-            isQuoteMode
-              ? "bg-secondary-container text-on-secondary-container hover:bg-secondary-container/80"
-              : "bg-primary text-on-primary hover:bg-primary/90",
-          ].join(" ")}
+          className="w-full py-3 text-body-md font-semibold"
         >
-          {isSubmitting && <Spinner size="sm" />}
           {isQuoteMode ? "Crear cotización" : "Finalizar venta"}
-        </button>
+        </Button>
       </div>
     </div>
   );

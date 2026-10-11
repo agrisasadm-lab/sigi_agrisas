@@ -3,6 +3,7 @@
 import { useState, Fragment, ReactNode } from "react";
 import { Icon } from "../../../_components/atoms/Icon/Icon";
 import { Skeleton } from "../../../_components/atoms/Skeleton/Skeleton";
+import { Table, THead, TBody, Tr, Td } from "../../../_components/molecules/DataTable/DataTable";
 import type { PaymentGroup, GroupablePayment } from "../_logic/lib/groupPaymentsBySale";
 import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
 
@@ -48,18 +49,18 @@ export function GroupedPaymentsTable<T extends GroupablePayment>({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-body-sm">
-        <thead>{headerRow}</thead>
-        <tbody>
+      <Table>
+        <THead>{headerRow}</THead>
+        <TBody>
           {groups.map((group) => {
             const isOpen = expanded.has(group.saleId);
             return (
               <Fragment key={group.saleId}>
-                <tr
-                  className="border-b border-outline-variant bg-surface-container-low/60 cursor-pointer hover:bg-surface-container-low transition-colors"
+                <Tr
+                  className="border-b border-outline-variant bg-surface-container-low/60 cursor-pointer"
                   onClick={() => toggle(group.saleId)}
                 >
-                  <td colSpan={columnCount} className="px-4 py-3">
+                  <Td colSpan={columnCount}>
                     <div className="flex items-center gap-3">
                       <Icon
                         name="chevron_right"
@@ -78,14 +79,14 @@ export function GroupedPaymentsTable<T extends GroupablePayment>({
                         Saldo: {fmt(group.saleDueAmount)}
                       </span>
                     </div>
-                  </td>
-                </tr>
+                  </Td>
+                </Tr>
                 {isOpen && group.payments.map((payment) => renderPaymentRow(payment))}
               </Fragment>
             );
           })}
-        </tbody>
-      </table>
+        </TBody>
+      </Table>
     </div>
   );
 }

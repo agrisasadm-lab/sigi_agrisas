@@ -12,6 +12,7 @@ import { sendTicketPrintJob } from "../../../_logic/services/sendTicketPrintJob"
 import { PrintableTicket } from "../../../_blocks/PrintableTicket";
 import { SendTicketEmailModal } from "./SendTicketEmailModal";
 import { EmptyState } from "../../../../../_components/molecules/EmptyState/EmptyState";
+import { Button } from "../../../../../_components/atoms/Button/Button";
 import { Spinner } from "../../../../../_components/atoms/Spinner/Spinner";
 import { Icon } from "../../../../../_components/atoms/Icon/Icon";
 import { formatMxCurrency } from "../../../../../_lib/formatMxCurrency";
@@ -263,43 +264,37 @@ export function TicketPreviewPage({ id }: TicketPreviewPageProps) {
 
       {/* Actions */}
       <div className="flex justify-center gap-3">
-        <button
+        <Button
           type="button"
+          variant="filled"
+          icon="print"
           onClick={handlePrintClick}
-          disabled={isPrinting}
-          className="bg-primary hover:opacity-90 text-on-primary text-label-lg py-2 px-6 rounded-full shadow-sm transition-all flex items-center gap-2 disabled:opacity-60"
+          loading={isPrinting}
+          className="px-6 text-label-lg shadow-sm"
         >
-          <Icon name="print" size={18} />
-          {isPrinting ? "Imprimiendo…" : "Imprimir Ticket"}
-        </button>
-        <button
+          Imprimir Ticket
+        </Button>
+        <Button
           type="button"
+          variant="outlined"
+          icon="mail"
           onClick={() => setShowEmailModal(true)}
-          className="border border-outline text-primary hover:bg-surface-container-low text-label-lg py-2 px-6 rounded-full transition-all flex items-center gap-2"
+          className="px-6 text-label-lg text-primary"
         >
-          <Icon name="mail" size={18} />
           Enviar por Correo
-        </button>
+        </Button>
       </div>
 
       {printFailed && (
         <div className="bg-error-container text-on-error-container rounded-md p-4 flex flex-col items-center gap-3 text-center">
           <p className="text-body-sm">No se pudo conectar con la impresora.</p>
           <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => void handlePrintEscPos()}
-              className="bg-primary text-on-primary text-label-md py-1.5 px-4 rounded-full"
-            >
+            <Button type="button" variant="filled" onClick={() => void handlePrintEscPos()} className="px-4 py-1.5 text-label-md">
               Reintentar
-            </button>
-            <button
-              type="button"
-              onClick={handlePrintBrowser}
-              className="border border-outline text-label-md py-1.5 px-4 rounded-full"
-            >
+            </Button>
+            <Button type="button" variant="outlined" onClick={handlePrintBrowser} className="px-4 py-1.5 text-label-md">
               Imprimir desde el navegador
-            </button>
+            </Button>
           </div>
         </div>
       )}

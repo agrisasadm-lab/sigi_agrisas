@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { InvoiceStatusBadge } from "./InvoiceStatusBadge";
 import { Skeleton } from "../../../_components/atoms/Skeleton/Skeleton";
+import { Table, THead, TBody, Tr, Th, Td } from "../../../_components/molecules/DataTable/DataTable";
 import type { Invoice } from "../_logic/types/domain";
 import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
 import { fmtDateShort } from "../../../_lib/formatDate";
@@ -37,57 +38,54 @@ export function InvoicesTable({ items, isLoading, showBranch }: InvoicesTablePro
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-body-sm">
-        <thead>
-          <tr className="border-b border-outline-variant text-label-sm text-on-surface-variant uppercase tracking-wide">
-            <th className="px-4 py-3 text-left font-medium">Folio fiscal</th>
-            <th className="px-4 py-3 text-left font-medium">Receptor</th>
-            {showBranch && <th className="px-4 py-3 text-left font-medium">Sucursal</th>}
-            <th className="px-4 py-3 text-right font-medium">Total</th>
-            <th className="px-4 py-3 text-left font-medium">Fecha</th>
-            <th className="px-4 py-3 text-left font-medium">Estado</th>
-            <th className="px-4 py-3 text-left font-medium">Acción</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table>
+        <THead>
+          <Tr hoverable={false}>
+            <Th>Folio fiscal</Th>
+            <Th>Receptor</Th>
+            {showBranch && <Th>Sucursal</Th>}
+            <Th align="right">Total</Th>
+            <Th>Fecha</Th>
+            <Th>Estado</Th>
+            <Th>Acción</Th>
+          </Tr>
+        </THead>
+        <TBody>
           {items.map((inv) => (
-            <tr
-              key={inv.id}
-              className="border-b border-outline-variant/40 hover:bg-surface-container-low transition-colors"
-            >
-              <td className="px-4 py-3 font-mono text-label-sm text-on-surface-variant truncate max-w-[160px]">
+            <Tr key={inv.id} className="border-b border-outline-variant/40">
+              <Td className="font-mono text-label-sm text-on-surface-variant truncate max-w-[160px]">
                 {inv.uuid ?? "—"}
-              </td>
-              <td className="px-4 py-3">
+              </Td>
+              <Td>
                 <p className="text-on-surface">{inv.receiverName}</p>
                 <p className="text-label-sm text-on-surface-variant">{inv.receiverRfc}</p>
-              </td>
+              </Td>
               {showBranch && (
-                <td className="px-4 py-3 text-on-surface-variant">
+                <Td className="text-on-surface-variant">
                   {inv.branchId.slice(0, 8)}
-                </td>
+                </Td>
               )}
-              <td className="px-4 py-3 text-right tabular-nums font-medium">
+              <Td align="right" className="font-medium">
                 {fmt(inv.total)}
-              </td>
-              <td className="px-4 py-3 text-on-surface-variant tabular-nums">
+              </Td>
+              <Td className="text-on-surface-variant tabular-nums">
                 {fmtDate(inv.createdAt)}
-              </td>
-              <td className="px-4 py-3">
+              </Td>
+              <Td>
                 <InvoiceStatusBadge status={inv.status} />
-              </td>
-              <td className="px-4 py-3">
+              </Td>
+              <Td>
                 <Link
                   href={`/billing/${inv.id}`}
                   className="text-label-sm text-primary hover:text-primary/80 font-medium transition-colors"
                 >
                   Ver
                 </Link>
-              </td>
-            </tr>
+              </Td>
+            </Tr>
           ))}
-        </tbody>
-      </table>
+        </TBody>
+      </Table>
     </div>
   );
 }

@@ -9,6 +9,9 @@ import { CustomerQuickAddModal } from "../../pos/_blocks/CustomerQuickAddModal";
 import { useStampSaleForm } from "../_logic/hooks/useStampSaleForm";
 import { useInvoicePreview } from "../_logic/hooks/useInvoicePreview";
 import { SaleAlreadyInvoicedError, ReceiverFiscalDataIncompleteError, FacturamaStampError } from "../_logic/errors";
+import { Button } from "../../../_components/atoms/Button/Button";
+import { IconButton } from "../../../_components/atoms/IconButton/IconButton";
+import { Select } from "../../../_components/atoms/Select/Select";
 import { SAT_PAYMENT_FORMS, SAT_PAYMENT_METHODS } from "@/shared/domain/catalogs/satPaymentCatalogs";
 
 const PAYMENT_FORMS = SAT_PAYMENT_FORMS.map((e) => ({ value: e.code, label: `${e.code} - ${e.description}` }));
@@ -52,7 +55,7 @@ export function StampSaleForm({ initialSaleId, initialSaleLabel }: StampSaleForm
           <Link href={`/billing/${error.invoiceId}`} className="text-primary underline">
             Ver factura existente
           </Link>
-          <button type="button" onClick={clearError} className="ml-3 text-on-surface-variant hover:text-on-surface">×</button>
+          <IconButton icon="close" iconSize={16} ariaLabel="Cerrar" onClick={clearError} className="ml-3 text-on-surface-variant hover:bg-transparent hover:text-on-surface" />
         </div>
       );
     }
@@ -60,7 +63,7 @@ export function StampSaleForm({ initialSaleId, initialSaleLabel }: StampSaleForm
       return (
         <div className="rounded bg-error-container/30 border border-error/30 px-4 py-3 text-body-sm text-error">
           Datos fiscales del receptor incompletos: <strong>{error.missingFields.join(", ")}</strong>
-          <button type="button" onClick={clearError} className="ml-3 hover:opacity-70">×</button>
+          <IconButton icon="close" iconSize={16} ariaLabel="Cerrar" onClick={clearError} className="ml-3 hover:bg-transparent hover:opacity-70" />
         </div>
       );
     }
@@ -68,14 +71,14 @@ export function StampSaleForm({ initialSaleId, initialSaleLabel }: StampSaleForm
       return (
         <div className="rounded bg-error-container/30 border border-error/30 px-4 py-3 text-body-sm text-error">
           Error Facturama: {error.detail}
-          <button type="button" onClick={clearError} className="ml-3 hover:opacity-70">×</button>
+          <IconButton icon="close" iconSize={16} ariaLabel="Cerrar" onClick={clearError} className="ml-3 hover:bg-transparent hover:opacity-70" />
         </div>
       );
     }
     return (
       <div className="rounded bg-error-container/30 border border-error/30 px-4 py-3 text-body-sm text-error">
         {error.message}
-        <button type="button" onClick={clearError} className="ml-3 hover:opacity-70">×</button>
+        <IconButton icon="close" iconSize={16} ariaLabel="Cerrar" onClick={clearError} className="ml-3 hover:bg-transparent hover:opacity-70" />
       </div>
     );
   }
@@ -112,58 +115,46 @@ export function StampSaleForm({ initialSaleId, initialSaleLabel }: StampSaleForm
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div>
           <label htmlFor="stamp-payment-form" className="block text-label-md text-on-surface mb-1">Forma de pago</label>
-          <select
-            id="stamp-payment-form"
-            value={form.paymentForm}
-            onChange={(e) => setField("paymentForm", e.target.value)}
-            className="w-full rounded border border-outline px-3 py-2 text-body-sm bg-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-          >
+          <Select id="stamp-payment-form" value={form.paymentForm} onChange={(e) => setField("paymentForm", e.target.value)}>
             {PAYMENT_FORMS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-          </select>
+          </Select>
         </div>
         <div>
           <label htmlFor="stamp-payment-method" className="block text-label-md text-on-surface mb-1">Método de pago</label>
-          <select
-            id="stamp-payment-method"
-            value={form.paymentMethod}
-            onChange={(e) => setField("paymentMethod", e.target.value)}
-            className="w-full rounded border border-outline px-3 py-2 text-body-sm bg-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-          >
+          <Select id="stamp-payment-method" value={form.paymentMethod} onChange={(e) => setField("paymentMethod", e.target.value)}>
             {PAYMENT_METHODS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-          </select>
+          </Select>
         </div>
         <div>
           <label htmlFor="stamp-cfdi-use" className="block text-label-md text-on-surface mb-1">Uso CFDI</label>
-          <select
-            id="stamp-cfdi-use"
-            value={form.cfdiUse}
-            onChange={(e) => setField("cfdiUse", e.target.value)}
-            className="w-full rounded border border-outline px-3 py-2 text-body-sm bg-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-          >
+          <Select id="stamp-cfdi-use" value={form.cfdiUse} onChange={(e) => setField("cfdiUse", e.target.value)}>
             {CFDI_USES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-          </select>
+          </Select>
         </div>
       </div>
 
       {renderError()}
 
       <div className="flex justify-end gap-3">
-        <button
+        <Button
           type="button"
+          variant="outlined"
           onClick={handleOpenPreview}
           disabled={!form.saleId || !form.customerId}
-          className="rounded-full border border-outline px-6 py-2.5 text-label-lg font-medium hover:bg-surface-container transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-6 py-2.5 text-label-lg hover:bg-surface-container"
         >
           Vista previa
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="filled"
           onClick={() => submit()}
-          disabled={isSubmitting || !form.saleId || !form.customerId}
-          className="rounded-full bg-primary text-on-primary px-6 py-2.5 text-label-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={!form.saleId || !form.customerId}
+          loading={isSubmitting}
+          className="px-6 py-2.5 text-label-lg"
         >
-          {isSubmitting ? "Timbrando…" : "Emitir factura"}
-        </button>
+          Emitir factura
+        </Button>
       </div>
 
       <InvoicePreviewModal

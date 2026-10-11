@@ -12,6 +12,10 @@ import { usePartialInvoiceForm } from "../_logic/hooks/usePartialInvoiceForm";
 import { useEmitterFiscalSettings } from "../_logic/hooks/useEmitterFiscalSettings";
 import { buildInvoicePreview } from "../_logic/lib/buildInvoicePreview";
 import { ReceiverFiscalDataIncompleteError, FacturamaStampError } from "../_logic/errors";
+import { Button } from "../../../_components/atoms/Button/Button";
+import { IconButton } from "../../../_components/atoms/IconButton/IconButton";
+import { Select } from "../../../_components/atoms/Select/Select";
+import { Table, THead, TBody, Tr, Th } from "../../../_components/molecules/DataTable/DataTable";
 import { SAT_PAYMENT_FORMS, SAT_PAYMENT_METHODS } from "@/shared/domain/catalogs/satPaymentCatalogs";
 import type { CustomerDto } from "../../pos/_logic/types/api";
 import type { ProductDto, ProductPriceDto } from "../../pos/_logic/types/api";
@@ -161,7 +165,7 @@ export function PartialInvoiceForm({ branchId }: PartialInvoiceFormProps) {
     return (
       <div className="rounded bg-error-container/30 border border-error/30 px-4 py-3 text-body-sm text-error flex items-start justify-between gap-2">
         <span>{msg}</span>
-        <button type="button" onClick={clearError} className="flex-shrink-0 hover:opacity-70">×</button>
+        <IconButton icon="close" iconSize={16} ariaLabel="Cerrar" onClick={clearError} className="flex-shrink-0 hover:bg-transparent hover:opacity-70" />
       </div>
     );
   }
@@ -207,20 +211,12 @@ export function PartialInvoiceForm({ branchId }: PartialInvoiceFormProps) {
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-label-md font-semibold text-on-surface">Conceptos <span className="text-error">*</span></h3>
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setShowCatalog((v) => !v)}
-              className="rounded-full border border-outline px-3 py-1 text-label-sm hover:bg-surface-container transition-colors"
-            >
+            <Button type="button" variant="outlined" onClick={() => setShowCatalog((v) => !v)} className="px-3 py-1 text-label-sm hover:bg-surface-container">
               + Catálogo
-            </button>
-            <button
-              type="button"
-              onClick={handleAddFreeLine}
-              className="rounded-full border border-outline px-3 py-1 text-label-sm hover:bg-surface-container transition-colors"
-            >
+            </Button>
+            <Button type="button" variant="outlined" onClick={handleAddFreeLine} className="px-3 py-1 text-label-sm hover:bg-surface-container">
               + Línea libre
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -232,20 +228,20 @@ export function PartialInvoiceForm({ branchId }: PartialInvoiceFormProps) {
 
         {lines.length > 0 ? (
           <div className="overflow-x-auto border border-outline-variant rounded-md">
-            <table className="w-full text-body-sm" style={{ tableLayout: "fixed" }}>
-              <thead>
-                <tr className="border-b border-outline-variant text-label-sm text-on-surface-variant uppercase tracking-wide">
-                  <th className="px-2 py-2 text-left font-medium">Descripción</th>
-                  <th className="px-2 py-2 text-right font-medium w-20">Cant.</th>
-                  <th className="px-2 py-2 text-right font-medium w-28">Precio</th>
-                  <th className="px-2 py-2 text-right font-medium w-20">Desc.%</th>
-                  <th className="px-2 py-2 text-right font-medium w-20">IVA%</th>
-                  <th className="px-2 py-2 text-right font-medium w-20">IEPS%</th>
-                  <th className="px-2 py-2 text-right font-medium">Total</th>
-                  <th className="px-2 py-2" />
-                </tr>
-              </thead>
-              <tbody>
+            <Table style={{ tableLayout: "fixed" }}>
+              <THead>
+                <Tr hoverable={false}>
+                  <Th className="px-2 py-2">Descripción</Th>
+                  <Th align="right" className="px-2 py-2 w-20">Cant.</Th>
+                  <Th align="right" className="px-2 py-2 w-28">Precio</Th>
+                  <Th align="right" className="px-2 py-2 w-20">Desc.%</Th>
+                  <Th align="right" className="px-2 py-2 w-20">IVA%</Th>
+                  <Th align="right" className="px-2 py-2 w-20">IEPS%</Th>
+                  <Th align="right" className="px-2 py-2">Total</Th>
+                  <Th className="px-2 py-2" />
+                </Tr>
+              </THead>
+              <TBody>
                 {lines.map((line, idx) => (
                   <PartialInvoiceLineRow
                     key={line._key}
@@ -256,8 +252,8 @@ export function PartialInvoiceForm({ branchId }: PartialInvoiceFormProps) {
                     onChangePriceTier={line.productId ? () => handleChangeTier(line._key) : undefined}
                   />
                 ))}
-              </tbody>
-            </table>
+              </TBody>
+            </Table>
           </div>
         ) : (
           <p className="text-body-sm text-on-surface-variant py-4 text-center border border-outline-variant border-dashed rounded-md">
@@ -270,25 +266,15 @@ export function PartialInvoiceForm({ branchId }: PartialInvoiceFormProps) {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label htmlFor="partial-payment-form" className="block text-label-md text-on-surface mb-1">Forma de pago</label>
-          <select
-            id="partial-payment-form"
-            value={paymentForm}
-            onChange={(e) => setPaymentForm(e.target.value)}
-            className="w-full rounded border border-outline px-3 py-2 text-body-sm bg-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-          >
+          <Select id="partial-payment-form" value={paymentForm} onChange={(e) => setPaymentForm(e.target.value)}>
             {PAYMENT_FORMS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-          </select>
+          </Select>
         </div>
         <div>
           <label htmlFor="partial-payment-method" className="block text-label-md text-on-surface mb-1">Método de pago</label>
-          <select
-            id="partial-payment-method"
-            value={paymentMethod}
-            onChange={(e) => setPaymentMethod(e.target.value)}
-            className="w-full rounded border border-outline px-3 py-2 text-body-sm bg-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-          >
+          <Select id="partial-payment-method" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
             {PAYMENT_METHODS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-          </select>
+          </Select>
         </div>
       </div>
 
@@ -311,22 +297,25 @@ export function PartialInvoiceForm({ branchId }: PartialInvoiceFormProps) {
           </div>
         </div>
         <div className="flex gap-3">
-          <button
+          <Button
             type="button"
+            variant="outlined"
             onClick={() => setShowPreview(true)}
             disabled={!canPreview}
-            className="rounded-full border border-outline px-6 py-2.5 text-label-lg font-medium hover:bg-surface-container transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-2.5 text-label-lg hover:bg-surface-container"
           >
             Vista previa
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="filled"
             onClick={() => submit(effectiveBranchId)}
-            disabled={isSubmitting || lines.length === 0 || !customer || fiscalMissingFields.length > 0}
-            className="rounded-full bg-secondary text-on-secondary px-6 py-2.5 text-label-lg font-medium hover:bg-secondary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={lines.length === 0 || !customer || fiscalMissingFields.length > 0}
+            loading={isSubmitting}
+            className="bg-secondary px-6 py-2.5 text-label-lg text-on-secondary hover:bg-secondary/90"
           >
-            {isSubmitting ? "Timbrando…" : "Emitir factura parcial"}
-          </button>
+            Emitir factura parcial
+          </Button>
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Spinner } from "../../../_components/atoms/Spinner/Spinner";
+import { Button } from "../../../_components/atoms/Button/Button";
 import { fullReturnSale } from "../_logic/services/fullReturnSale";
 import { SaleAlreadyFullyReturnedError } from "../_logic/errors";
 
@@ -93,23 +93,19 @@ export function FullReturnModal({ saleId, onSuccess, onClose }: FullReturnModalP
         )}
 
         <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isSaving}
-            className="flex-1 rounded-full border border-outline py-2 text-body-sm font-medium text-on-surface hover:bg-surface-container-low transition-colors disabled:opacity-50"
-          >
+          <Button type="button" variant="outlined" onClick={onClose} disabled={isSaving} className="flex-1">
             Cancelar
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="destructive"
             onClick={handleConfirm}
-            disabled={isSaving || reason.trim().length < 3}
-            className="flex-1 rounded-full bg-error py-2 text-body-sm font-medium text-on-error hover:bg-error/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            disabled={reason.trim().length < 3}
+            loading={isSaving}
+            className="flex-1"
           >
-            {isSaving && <Spinner size="sm" />}
             Confirmar devolución total
-          </button>
+          </Button>
         </div>
       </div>
     </div>

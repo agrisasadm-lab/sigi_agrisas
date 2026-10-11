@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { Button } from "../../../_components/atoms/Button/Button";
+import { Select } from "../../../_components/atoms/Select/Select";
 import { useInvoiceMutations } from "../_logic/hooks/useInvoiceMutations";
 import { InvoiceAlreadyCancelledError, FacturamaCancelError } from "../_logic/errors";
 import type { CancellationMotive } from "../_logic/types/domain";
@@ -89,17 +91,12 @@ export function CancelInvoiceModal({ invoiceId, open, onClose, onSuccess }: Canc
         <label htmlFor="cancel-motive" className="block text-label-md text-on-surface mb-1">
           Motivo de cancelación <span className="text-error">*</span>
         </label>
-        <select
-          id="cancel-motive"
-          value={motive}
-          onChange={(e) => setMotive(e.target.value as CancellationMotive | "")}
-          className="w-full rounded border border-outline px-3 py-2 text-body-sm bg-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-        >
+        <Select id="cancel-motive" value={motive} onChange={(e) => setMotive(e.target.value as CancellationMotive | "")}>
           <option value="">Seleccionar motivo…</option>
           {MOTIVES.map((m) => (
             <option key={m.value} value={m.value}>{m.label}</option>
           ))}
-        </select>
+        </Select>
       </div>
 
       {selectedMotive?.requiresReplacement && (
@@ -119,22 +116,18 @@ export function CancelInvoiceModal({ invoiceId, open, onClose, onSuccess }: Canc
       )}
 
       <div className="flex justify-end gap-3">
-        <button
+        <Button
           type="button"
+          variant="text"
           onClick={onClose}
           disabled={isSaving}
-          className="px-4 py-2 rounded text-label-lg text-on-surface hover:bg-surface-container-highest transition-colors"
+          className="rounded px-4 py-2 text-on-surface hover:bg-surface-container-highest"
         >
           Volver
-        </button>
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={isSaving || !motive}
-          className="px-4 py-2 rounded text-label-lg bg-error-container text-on-error-container hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isSaving ? "Cancelando…" : "Cancelar CFDI"}
-        </button>
+        </Button>
+        <Button type="button" variant="destructive" onClick={handleSubmit} disabled={!motive} loading={isSaving}>
+          Cancelar CFDI
+        </Button>
       </div>
     </dialog>
   );
