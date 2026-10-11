@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Spinner } from "../../../_components/atoms/Spinner/Spinner";
+import { Button } from "../../../_components/atoms/Button/Button";
 import { QuoteAlreadyCancelledError, QuoteAlreadyConvertedError } from "../_logic/errors";
 import type { CancelQuoteBody } from "../_logic/types/api";
 import type { QuoteDetail } from "../_logic/types/domain";
@@ -50,13 +50,9 @@ export function CancelQuoteModal({
             Esta cotización ya fue convertida a una venta. Para cancelarla, debes cancelar la venta generada.
           </p>
           <div className="flex gap-3 justify-end">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-full border border-outline px-4 py-2 text-label-lg text-on-surface-variant hover:bg-surface-container-low transition-colors"
-            >
+            <Button type="button" variant="outlined" onClick={onClose} className="text-on-surface-variant">
               Cerrar
-            </button>
+            </Button>
             <Link
               href={`/sales/${convertedSaleId}`}
               className="rounded-full bg-primary text-on-primary px-4 py-2 text-label-lg font-medium hover:bg-primary/90 transition-colors"
@@ -91,23 +87,12 @@ export function CancelQuoteModal({
         </div>
 
         <div className="flex gap-3 justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isSaving}
-            className="rounded-full border border-outline px-4 py-2 text-label-lg text-on-surface-variant hover:bg-surface-container-low transition-colors disabled:opacity-50"
-          >
+          <Button type="button" variant="outlined" onClick={onClose} disabled={isSaving} className="text-on-surface-variant">
             Volver
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={isSaving}
-            className="rounded-full bg-error text-on-error px-4 py-2 text-label-lg font-medium hover:bg-error/90 transition-colors disabled:opacity-50 flex items-center gap-2"
-          >
-            {isSaving && <Spinner size="sm" />}
+          </Button>
+          <Button type="button" variant="destructive" onClick={handleSubmit} loading={isSaving}>
             Cancelar cotización
-          </button>
+          </Button>
         </div>
       </div>
     </div>

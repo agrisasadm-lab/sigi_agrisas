@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { Button } from "../../../_components/atoms/Button/Button";
 import { Icon } from "../../../_components/atoms/Icon/Icon";
+import { IconButton } from "../../../_components/atoms/IconButton/IconButton";
 import { Spinner } from "../../../_components/atoms/Spinner/Spinner";
 import { formatMxCurrency } from "../_logic/lib/formatMxCurrency";
 import type { ProductDto, ProductPriceDto, DosificationOptionDto } from "../_logic/types/api";
@@ -97,9 +99,7 @@ export function PriceTierPicker({
           <h2 className="text-title-md font-semibold text-on-surface">{product.name}</h2>
           <p className="text-label-sm text-on-surface-variant font-mono">{product.code}</p>
         </div>
-        <button type="button" onClick={onClose} className="text-on-surface-variant hover:text-on-surface">
-          <Icon name="close" size={18} />
-        </button>
+        <IconButton icon="close" iconSize={18} ariaLabel="Cerrar" onClick={onClose} />
       </div>
 
       {isLoading ? (
@@ -117,13 +117,14 @@ export function PriceTierPicker({
               <p className="text-label-md text-on-surface-variant mb-2">Selecciona un precio</p>
               <div className="space-y-2 mb-4">
                 {prices.map((price) => (
-                  <button
+                  <Button
                     key={price.id}
                     type="button"
+                    variant="outlined"
                     onClick={() => setSelection({ kind: "price", id: price.id })}
-                    className={`w-full flex items-center justify-between rounded border px-4 py-3 text-left transition-colors ${
+                    className={`w-full justify-between rounded px-4 py-3 text-left font-normal ${
                       selection?.kind === "price" && selection.id === price.id
-                        ? "border-primary bg-primary-container text-on-primary-container"
+                        ? "border-primary bg-primary-container text-on-primary-container hover:bg-primary-container"
                         : "border-outline-variant bg-surface-container-low hover:bg-surface-container"
                     }`}
                   >
@@ -136,7 +137,7 @@ export function PriceTierPicker({
                     <span className="text-body-md font-semibold tabular-nums">
                       {formatMxCurrency(price.price)}
                     </span>
-                  </button>
+                  </Button>
                 ))}
               </div>
             </>
@@ -150,16 +151,17 @@ export function PriceTierPicker({
                   const disabled = dosification.requiresDefaultPrice || dosification.computedUnitPrice === null;
                   const isSelected = selection?.kind === "dosification" && selection.id === dosification.id;
                   return (
-                    <button
+                    <Button
                       key={dosification.id}
                       type="button"
+                      variant="outlined"
                       disabled={disabled}
                       onClick={() => setSelection({ kind: "dosification", id: dosification.id })}
-                      className={`w-full flex items-center justify-between rounded border px-4 py-3 text-left transition-colors ${
+                      className={`w-full justify-between rounded px-4 py-3 text-left font-normal ${
                         disabled
-                          ? "border-outline-variant bg-surface-container-low opacity-50 cursor-not-allowed"
+                          ? "border-outline-variant bg-surface-container-low hover:bg-surface-container-low"
                           : isSelected
-                          ? "border-primary bg-primary-container text-on-primary-container"
+                          ? "border-primary bg-primary-container text-on-primary-container hover:bg-primary-container"
                           : "border-outline-variant bg-surface-container-low hover:bg-surface-container"
                       }`}
                     >
@@ -174,7 +176,7 @@ export function PriceTierPicker({
                           {formatMxCurrency(dosification.computedUnitPrice)}
                         </span>
                       )}
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
@@ -225,21 +227,18 @@ export function PriceTierPicker({
           </div>
 
           <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 rounded-full border border-outline py-2 text-body-sm font-medium text-on-surface hover:bg-surface-container-low transition-colors"
-            >
+            <Button type="button" variant="outlined" onClick={onClose} className="flex-1">
               Cancelar
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="filled"
               onClick={handleConfirm}
               disabled={(!selectedPrice && !selectedDosification) || quantity <= 0}
-              className="flex-1 rounded-full bg-primary py-2 text-body-sm font-medium text-on-primary hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1"
             >
               Añadir al carrito
-            </button>
+            </Button>
           </div>
         </>
       )}

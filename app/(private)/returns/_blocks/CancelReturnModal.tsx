@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { Button } from "../../../_components/atoms/Button/Button";
 import { useReturnMutations } from "../_logic/hooks/useReturnMutations";
 import { ReturnAlreadyCancelledError, ReturnCancelForbiddenError } from "../_logic/errors";
 import type { ReturnDetail } from "../_logic/types/domain";
@@ -94,22 +95,18 @@ export function CancelReturnModal({ returnId, open, onClose, onSuccess }: Cancel
         </div>
 
         <div className="flex justify-end gap-3">
-          <button
+          <Button
             type="button"
+            variant="text"
             onClick={onClose}
             disabled={isSaving}
-            className="px-4 py-2 rounded text-label-lg text-on-surface hover:bg-surface-container-highest transition-colors"
+            className="rounded px-4 py-2 text-on-surface hover:bg-surface-container-highest"
           >
             Volver
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={isSaving}
-            className="px-4 py-2 rounded text-label-lg bg-error-container text-on-error-container hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSaving ? "Cancelando..." : "Cancelar devolución"}
-          </button>
+          </Button>
+          <Button type="button" variant="destructive" onClick={handleSubmit} loading={isSaving}>
+            Cancelar devolución
+          </Button>
         </div>
       </dialog>
 

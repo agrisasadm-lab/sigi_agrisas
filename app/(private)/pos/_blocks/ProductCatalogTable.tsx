@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { IconButton } from "../../../_components/atoms/IconButton/IconButton";
 import { Spinner } from "../../../_components/atoms/Spinner/Spinner";
 import { Icon } from "../../../_components/atoms/Icon/Icon";
+import { Table, THead, TBody, Tr, Th, Td } from "../../../_components/molecules/DataTable/DataTable";
 import { useTableKeyboard } from "../../../_hooks/useTableKeyboard";
 import type { ProductDto } from "../_logic/types/api";
 
@@ -92,46 +94,47 @@ export function ProductCatalogTable({
   return (
     <div className="flex flex-col">
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-body-md">
-          <thead>
-            <tr className="border-b border-outline-variant text-label-lg text-on-surface-variant">
-              <th className="px-4 py-2 font-medium">Código</th>
-              <th className="px-4 py-2 font-medium">Nombre</th>
-              <th className="px-4 py-2 font-medium hidden md:table-cell">Departamento</th>
-              <th className="px-4 py-2 font-medium text-right">Existencias</th>
-              <th className="px-4 py-2 font-medium text-right">Acción</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table className="text-left text-body-md">
+          <THead>
+            <Tr hoverable={false}>
+              <Th className="py-2 text-label-lg font-medium normal-case tracking-normal text-on-surface-variant">Código</Th>
+              <Th className="py-2 text-label-lg font-medium normal-case tracking-normal text-on-surface-variant">Nombre</Th>
+              <Th className="py-2 text-label-lg font-medium normal-case tracking-normal text-on-surface-variant hidden md:table-cell">Departamento</Th>
+              <Th align="right" className="py-2 text-label-lg font-medium normal-case tracking-normal text-on-surface-variant">Existencias</Th>
+              <Th align="right" className="py-2 text-label-lg font-medium normal-case tracking-normal text-on-surface-variant">Acción</Th>
+            </Tr>
+          </THead>
+          <TBody>
             {items.map((product, idx) => (
-              <tr
+              <Tr
                 key={product.id}
                 {...getRowProps(idx)}
                 onClick={() => onAddProduct(product)}
-                className="border-b border-outline-variant hover:bg-surface-container-low focus:bg-surface-container focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary transition-colors cursor-pointer"
+                className="focus:bg-surface-container focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary cursor-pointer"
               >
-                <td className="px-4 py-2 font-mono text-label-lg text-on-surface-variant">{product.code}</td>
-                <td className="px-4 py-2 text-body-sm font-medium">{product.name}</td>
-                <td className="px-4 py-2 text-body-sm text-on-surface-variant hidden md:table-cell">
+                <Td className="py-2 font-mono text-label-lg text-on-surface-variant">{product.code}</Td>
+                <Td className="py-2 text-body-sm font-medium">{product.name}</Td>
+                <Td className="py-2 text-body-sm text-on-surface-variant hidden md:table-cell">
                   {product.departmentName ?? "—"}
-                </td>
-                <td
-                  className={`px-4 py-2 text-right text-body-sm tabular-nums ${
+                </Td>
+                <Td
+                  align="right"
+                  className={`py-2 text-body-sm ${
                     product.stock !== null && product.stock <= 0 ? "text-error font-medium" : "text-on-surface-variant"
                   }`}
                 >
                   {product.stock ?? "—"}
-                </td>
-                <td className="px-4 py-2 text-right">
+                </Td>
+                <Td align="right" className="py-2">
                   <span className="inline-flex items-center gap-1 text-label-sm text-primary font-medium">
                     <Icon name="add" size={14} />
                     Añadir
                   </span>
-                </td>
-              </tr>
+                </Td>
+              </Tr>
             ))}
-          </tbody>
-        </table>
+          </TBody>
+        </Table>
       </div>
 
       {totalPages > 1 && (
@@ -140,23 +143,23 @@ export function ProductCatalogTable({
             {total} productos
           </span>
           <div className="flex items-center gap-1">
-            <button
-              type="button"
+            <IconButton
+              icon="chevron_left"
+              iconSize={18}
+              ariaLabel="Página anterior"
               disabled={page <= 1}
               onClick={() => onPageChange(page - 1)}
-              className="p-1 rounded-sm disabled:opacity-40 hover:bg-surface-container transition-colors"
-            >
-              <Icon name="chevron_left" size={18} />
-            </button>
+              className="rounded-sm p-1 disabled:opacity-40 hover:bg-surface-container"
+            />
             <span className="text-label-sm tabular-nums">{page} / {totalPages}</span>
-            <button
-              type="button"
+            <IconButton
+              icon="chevron_right"
+              iconSize={18}
+              ariaLabel="Página siguiente"
               disabled={page >= totalPages}
               onClick={() => onPageChange(page + 1)}
-              className="p-1 rounded-sm disabled:opacity-40 hover:bg-surface-container transition-colors"
-            >
-              <Icon name="chevron_right" size={18} />
-            </button>
+              className="rounded-sm p-1 disabled:opacity-40 hover:bg-surface-container"
+            />
           </div>
         </div>
       )}

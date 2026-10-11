@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useCurrentUser } from "../../../_hooks/useCurrentUser";
-import { Spinner } from "../../../_components/atoms/Spinner/Spinner";
+import { Button } from "../../../_components/atoms/Button/Button";
+import { Select } from "../../../_components/atoms/Select/Select";
 import { Combobox } from "../../../_components/molecules/Combobox/Combobox";
 import { DownloadPdfButton } from "../../../_components/molecules/PdfDownloadButton/PdfDownloadButton";
 import { useDebounce } from "../../../_hooks/useDebounce";
@@ -86,16 +87,12 @@ export function PaymentsHistoryToolbar({
     <div className="flex flex-wrap items-end gap-3">
       <div className="flex flex-col gap-1">
         <label className="text-label-sm text-on-surface-variant">Cobrador</label>
-        <select
-          value={userId}
-          onChange={(e) => onUserIdChange(e.target.value)}
-          className="rounded-md border border-outline bg-surface px-3 py-2 text-body-sm text-on-surface focus:outline-none focus:border-primary w-44"
-        >
+        <Select value={userId} onChange={(e) => onUserIdChange(e.target.value)} className="w-44">
           <option value="">Todos</option>
           {cashiers.map((c) => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
-        </select>
+        </Select>
       </div>
 
       <div className="flex flex-col gap-1">
@@ -128,29 +125,21 @@ export function PaymentsHistoryToolbar({
 
       <div className="flex flex-col gap-1">
         <label className="text-label-sm text-on-surface-variant">Método de pago</label>
-        <select
-          value={paymentMethodId}
-          onChange={(e) => onPaymentMethodIdChange(e.target.value)}
-          className="rounded-md border border-outline bg-surface px-3 py-2 text-body-sm text-on-surface focus:outline-none focus:border-primary w-44"
-        >
+        <Select value={paymentMethodId} onChange={(e) => onPaymentMethodIdChange(e.target.value)} className="w-44">
           <option value="">Todos</option>
           {paymentMethods.map((m) => (
             <option key={m.id} value={m.id}>{m.name}</option>
           ))}
-        </select>
+        </Select>
       </div>
 
       <div className="flex flex-col gap-1">
         <label className="text-label-sm text-on-surface-variant">Estado</label>
-        <select
-          value={status}
-          onChange={(e) => onStatusChange(e.target.value as PaymentStatus | "")}
-          className="rounded-md border border-outline bg-surface px-3 py-2 text-body-sm text-on-surface focus:outline-none focus:border-primary"
-        >
+        <Select value={status} onChange={(e) => onStatusChange(e.target.value as PaymentStatus | "")} className="w-auto">
           <option value="">Todos</option>
           <option value="completed">Completado</option>
           <option value="cancelled">Cancelado</option>
-        </select>
+        </Select>
       </div>
 
       <div className="flex items-end gap-2">
@@ -178,37 +167,29 @@ export function PaymentsHistoryToolbar({
       {(isBypass === true) && (
         <div className="flex flex-col gap-1">
           <label className="text-label-sm text-on-surface-variant">Sucursal</label>
-          <select
-            value={branchId}
-            onChange={(e) => onBranchIdChange(e.target.value)}
-            className="rounded-md border border-outline bg-surface px-3 py-2 text-body-sm text-on-surface focus:outline-none focus:border-primary"
-          >
+          <Select value={branchId} onChange={(e) => onBranchIdChange(e.target.value)} className="w-auto">
             <option value="">Todas</option>
             {branches.map((b) => (
               <option key={b.id} value={b.id}>{b.name}</option>
             ))}
-          </select>
+          </Select>
         </div>
       )}
 
       <div className="flex items-end gap-2">
-        <button
-          type="button"
-          onClick={onReset}
-          className="rounded-md border border-outline px-4 py-2 text-body-sm text-on-surface hover:bg-surface-container-low transition-colors"
-        >
+        <Button type="button" variant="outlined" onClick={onReset} className="rounded-md text-body-sm">
           Limpiar
-        </button>
+        </Button>
         <DownloadPdfButton onClick={onExportPdf} loading={isExporting} />
-        <button
+        <Button
           type="button"
+          variant="filled"
           onClick={onExportXlsx}
-          disabled={isExporting}
-          className="rounded-md bg-secondary text-on-secondary px-4 py-2 text-body-sm font-medium hover:bg-secondary/90 transition-colors disabled:opacity-60 flex items-center gap-2"
+          loading={isExporting}
+          className="rounded-md bg-secondary text-on-secondary text-body-sm hover:bg-secondary/90"
         >
-          {isExporting && <Spinner size="sm" />}
           Exportar Excel
-        </button>
+        </Button>
       </div>
     </div>
   );

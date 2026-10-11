@@ -17,6 +17,18 @@ jest.mock("../../../../../../app/(private)/payments/_logic/hooks/usePaymentsHist
 jest.mock("../../../../../../app/_hooks/useBranchesOptions", () => ({
   useBranchesOptions: () => ({ options: [] }),
 }));
+jest.mock("../../../../../../app/_hooks/usePaymentMethodsOptions", () => ({
+  usePaymentMethodsOptions: () => ({ options: [], isLoading: false, refresh: jest.fn() }),
+}));
+jest.mock("../../../../../../app/(private)/payments/_logic/hooks/useCashiersOptions", () => ({
+  useCashiersOptions: () => ({ options: [], isLoading: false, refresh: jest.fn() }),
+}));
+jest.mock("../../../../../../app/(private)/payments/_logic/hooks/useCustomerSearch", () => ({
+  useCustomerSearch: () => ({ items: [], total: 0, isLoading: false, error: null, refresh: jest.fn() }),
+}));
+jest.mock("../../../../../../app/(private)/payments/_logic/hooks/useProductSearch", () => ({
+  useProductSearch: () => ({ items: [], total: 0, isLoading: false, error: null, refresh: jest.fn() }),
+}));
 jest.mock("../../../../../../app/(private)/catalogs/_blocks/CatalogPagination", () => ({
   CatalogPagination: () => <div data-testid="pagination" />,
 }));

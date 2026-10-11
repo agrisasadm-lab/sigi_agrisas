@@ -13,7 +13,9 @@ import { PaymentsEmpty } from "./PaymentsEmpty";
 import { GroupedPaymentsTable } from "./GroupedPaymentsTable";
 import { PaymentStatusBadge } from "./PaymentStatusBadge";
 import { EmptyState } from "../../../_components/molecules/EmptyState/EmptyState";
+import { Button } from "../../../_components/atoms/Button/Button";
 import { Spinner } from "../../../_components/atoms/Spinner/Spinner";
+import { Tr, Th, Td } from "../../../_components/molecules/DataTable/DataTable";
 import { SegmentedButton } from "../../../_components/molecules/SegmentedButton/SegmentedButton";
 import { groupPaymentsBySale } from "../_logic/lib/groupPaymentsBySale";
 import type { PaymentStatus, Payment } from "../_logic/types/domain";
@@ -141,38 +143,39 @@ export function PaymentsListPage() {
               isLoading={isLoading}
               columnCount={7}
               headerRow={
-                <tr className="border-b border-outline-variant text-label-sm text-on-surface-variant uppercase tracking-wide">
-                  <th className="px-4 py-3 text-left font-medium">Folio recibo</th>
-                  <th className="px-4 py-3 text-left font-medium">Cobrador</th>
-                  <th className="px-4 py-3 text-left font-medium">Método</th>
-                  <th className="px-4 py-3 text-right font-medium">Monto</th>
-                  <th className="px-4 py-3 text-left font-medium">Fecha</th>
-                  <th className="px-4 py-3 text-left font-medium">Estado</th>
-                  <th className="px-4 py-3 text-left font-medium">Acción</th>
-                </tr>
+                <Tr hoverable={false}>
+                  <Th>Folio recibo</Th>
+                  <Th>Cobrador</Th>
+                  <Th>Método</Th>
+                  <Th align="right">Monto</Th>
+                  <Th>Fecha</Th>
+                  <Th>Estado</Th>
+                  <Th>Acción</Th>
+                </Tr>
               }
               renderPaymentRow={(p) => {
                 const folioLabel = p.folioPrefix ? `${p.folioPrefix}${p.folioNumber}` : String(p.folioNumber);
                 return (
-                  <tr key={p.id} className="border-b border-outline-variant/40 hover:bg-surface-container-low transition-colors">
-                    <td className="px-4 py-3 font-mono text-on-surface-variant">{folioLabel}</td>
-                    <td className="px-4 py-3 max-w-[140px] truncate text-on-surface-variant">{p.userName ?? "—"}</td>
-                    <td className="px-4 py-3 text-on-surface-variant">{p.paymentMethodName ?? "—"}</td>
-                    <td className="px-4 py-3 text-right tabular-nums font-medium">{fmt(p.amount)}</td>
-                    <td className="px-4 py-3 text-on-surface-variant tabular-nums">{fmtDate(p.createdAt)}</td>
-                    <td className="px-4 py-3">
+                  <Tr key={p.id} className="border-b border-outline-variant/40">
+                    <Td className="font-mono text-on-surface-variant">{folioLabel}</Td>
+                    <Td className="max-w-[140px] truncate text-on-surface-variant">{p.userName ?? "—"}</Td>
+                    <Td className="text-on-surface-variant">{p.paymentMethodName ?? "—"}</Td>
+                    <Td align="right" className="font-medium">{fmt(p.amount)}</Td>
+                    <Td className="text-on-surface-variant tabular-nums">{fmtDate(p.createdAt)}</Td>
+                    <Td>
                       <PaymentStatusBadge status={p.status} salePaymentStatus={p.salePaymentStatus} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <button
+                    </Td>
+                    <Td>
+                      <Button
                         type="button"
+                        variant="text"
                         onClick={() => router.push(`/payments/${p.id}`)}
-                        className="text-label-sm text-primary hover:underline"
+                        className="rounded-none p-0 text-label-sm underline hover:bg-transparent"
                       >
                         Ver
-                      </button>
-                    </td>
-                  </tr>
+                      </Button>
+                    </Td>
+                  </Tr>
                 );
               }}
             />

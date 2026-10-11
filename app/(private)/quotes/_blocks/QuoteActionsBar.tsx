@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Button } from "../../../_components/atoms/Button/Button";
 import { Spinner } from "../../../_components/atoms/Spinner/Spinner";
 import { DownloadPdfButton } from "../../../_components/molecules/PdfDownloadButton/PdfDownloadButton";
 import type { QuoteDetail } from "../_logic/types/domain";
@@ -61,16 +62,16 @@ export function QuoteActionsBar({
     statusContent = (
       <>
         {status === "draft" && canAuthorize === true && (
-          <button
+          <Button
             type="button"
+            variant="filled"
             onClick={onAuthorize}
-            disabled={isSaving || isExpired}
+            disabled={isExpired}
+            loading={isSaving}
             title={isExpired ? "Extiende la fecha de vencimiento primero" : undefined}
-            className="rounded-full bg-primary text-on-primary px-4 py-2 text-label-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            {isSaving && <Spinner size="sm" />}
             Autorizar
-          </button>
+          </Button>
         )}
 
         {status === "draft" && canWrite === true && (
@@ -83,28 +84,28 @@ export function QuoteActionsBar({
         )}
 
         {status === "authorized" && canConvert === true && (
-          <button
+          <Button
             type="button"
+            variant="filled"
             onClick={onConvert}
-            disabled={isSaving || isExpired}
+            disabled={isExpired}
+            loading={isSaving}
             title={isExpired ? "Cotización vencida — cancela y crea otra" : undefined}
-            className="rounded-full bg-primary text-on-primary px-4 py-2 text-label-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            {isSaving && <Spinner size="sm" />}
             Convertir a venta
-          </button>
+          </Button>
         )}
 
         {(status === "draft" || status === "authorized") && canCancel === true && (
-          <button
+          <Button
             type="button"
+            variant="outlined"
             onClick={onCancel}
-            disabled={isSaving}
-            className="rounded-full border border-error text-error px-4 py-2 text-label-lg font-medium hover:bg-error-container/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            loading={isSaving}
+            className="border-error text-error hover:bg-error-container/20"
           >
-            {isSaving && <Spinner size="sm" />}
             Cancelar
-          </button>
+          </Button>
         )}
       </>
     );

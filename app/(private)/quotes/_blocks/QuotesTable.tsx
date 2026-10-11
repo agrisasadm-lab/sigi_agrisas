@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { QuoteStatusBadge } from "./QuoteStatusBadge";
 import { Skeleton } from "../../../_components/atoms/Skeleton/Skeleton";
+import { Table, THead, TBody, Tr, Th, Td } from "../../../_components/molecules/DataTable/DataTable";
 import { cn } from "../../../_lib/cn";
 import type { Quote } from "../_logic/types/domain";
 import { useTableKeyboard } from "../../../_hooks/useTableKeyboard";
@@ -45,42 +46,42 @@ export function QuotesTable({ items, isLoading, showBranch, onEnter }: QuotesTab
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-body-sm">
-        <thead>
-          <tr className="border-b border-outline-variant text-label-sm text-on-surface-variant uppercase tracking-wide">
-            <th className="px-4 py-3 text-left font-medium">Folio</th>
-            <th className="px-4 py-3 text-left font-medium">Estado</th>
-            <th className="px-4 py-3 text-left font-medium">Cliente</th>
-            <th className="px-4 py-3 text-left font-medium">Vendedor</th>
-            {showBranch && <th className="px-4 py-3 text-left font-medium">Sucursal</th>}
-            <th className="px-4 py-3 text-right font-medium">Total</th>
-            <th className="px-4 py-3 text-left font-medium">Vencimiento</th>
-            <th className="px-4 py-3 text-left font-medium">Fecha</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table>
+        <THead>
+          <Tr hoverable={false}>
+            <Th>Folio</Th>
+            <Th>Estado</Th>
+            <Th>Cliente</Th>
+            <Th>Vendedor</Th>
+            {showBranch && <Th>Sucursal</Th>}
+            <Th align="right">Total</Th>
+            <Th>Vencimiento</Th>
+            <Th>Fecha</Th>
+          </Tr>
+        </THead>
+        <TBody>
           {items.map((q, idx) => {
             const folioLabel = q.folioPrefix
               ? `${q.folioPrefix}-${q.folioNumber}`
               : String(q.folioNumber);
             return (
-              <tr
+              <Tr
                 key={q.id}
                 {...getRowProps(idx)}
                 className={cn(
-                  "border-b border-outline-variant/40 hover:bg-surface-container-low focus:bg-surface-container focus:outline-none transition-colors cursor-default",
+                  "border-b border-outline-variant/40 focus:bg-surface-container focus:outline-none cursor-default",
                   q.isExpired && "bg-error-container/10",
                 )}
               >
-                <td className="px-4 py-3">
+                <Td>
                   <Link
                     href={`/quotes/${q.id}`}
                     className="font-mono text-primary hover:text-primary/80 underline"
                   >
                     {folioLabel}
                   </Link>
-                </td>
-                <td className="px-4 py-3">
+                </Td>
+                <Td>
                   <div className="flex flex-col gap-1">
                     <QuoteStatusBadge status={q.status as "draft" | "authorized" | "converted" | "cancelled"} isExpired={q.isExpired} />
                     {q.status === "converted" && q.convertedSaleId && (
@@ -92,36 +93,36 @@ export function QuotesTable({ items, isLoading, showBranch, onEnter }: QuotesTab
                       </Link>
                     )}
                   </div>
-                </td>
-                <td className="px-4 py-3 max-w-[160px] truncate text-on-surface-variant">
+                </Td>
+                <Td className="max-w-[160px] truncate text-on-surface-variant">
                   {q.customerName ?? "—"}
-                </td>
-                <td className="px-4 py-3 max-w-[140px] truncate text-on-surface-variant">
+                </Td>
+                <Td className="max-w-[140px] truncate text-on-surface-variant">
                   {q.creatorName ?? q.creatorId?.slice(0, 8) ?? "—"}
-                </td>
+                </Td>
                 {showBranch && (
-                  <td className="px-4 py-3 max-w-[140px] truncate text-on-surface-variant">
+                  <Td className="max-w-[140px] truncate text-on-surface-variant">
                     {q.branchName ?? "—"}
-                  </td>
+                  </Td>
                 )}
-                <td className="px-4 py-3 text-right tabular-nums font-medium">
+                <Td align="right" className="font-medium">
                   {fmt(q.total)}
-                </td>
-                <td className="px-4 py-3 text-on-surface-variant tabular-nums">
+                </Td>
+                <Td className="text-on-surface-variant tabular-nums">
                   {q.isExpired ? (
                     <span className="text-error font-medium">{fmtDate(q.expiresAt)}</span>
                   ) : (
                     fmtDate(q.expiresAt)
                   )}
-                </td>
-                <td className="px-4 py-3 text-on-surface-variant tabular-nums">
+                </Td>
+                <Td className="text-on-surface-variant tabular-nums">
                   {fmtDate(q.createdAt)}
-                </td>
-              </tr>
+                </Td>
+              </Tr>
             );
           })}
-        </tbody>
-      </table>
+        </TBody>
+      </Table>
     </div>
   );
 }

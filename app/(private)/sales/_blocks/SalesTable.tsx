@@ -4,6 +4,7 @@ import Link from "next/link";
 import { SaleStatusBadge } from "./SaleStatusBadge";
 import { SalePaymentStatusBadge } from "./SalePaymentStatusBadge";
 import { Skeleton } from "../../../_components/atoms/Skeleton/Skeleton";
+import { Table, THead, TBody, Tr, Th, Td } from "../../../_components/molecules/DataTable/DataTable";
 import type { SaleSummary } from "../_logic/types/domain";
 import { useTableKeyboard } from "../../../_hooks/useTableKeyboard";
 import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
@@ -45,64 +46,64 @@ export function SalesTable({ items, isLoading, onEnter }: SalesTableProps) {
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-body-sm">
-        <thead>
-          <tr className="border-b border-outline-variant text-label-sm text-on-surface-variant uppercase tracking-wide">
-            <th className="px-4 py-3 text-left font-medium">Folio</th>
-            <th className="px-4 py-3 text-left font-medium">Estado</th>
-            <th className="px-4 py-3 text-left font-medium">Cobro</th>
-            <th className="px-4 py-3 text-left font-medium">Cliente</th>
-            <th className="px-4 py-3 text-left font-medium">Cajero</th>
-            <th className="px-4 py-3 text-left font-medium">Sucursal</th>
-            <th className="px-4 py-3 text-right font-medium">Total</th>
-            <th className="px-4 py-3 text-left font-medium">Fecha</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table>
+        <THead>
+          <Tr hoverable={false}>
+            <Th>Folio</Th>
+            <Th>Estado</Th>
+            <Th>Cobro</Th>
+            <Th>Cliente</Th>
+            <Th>Cajero</Th>
+            <Th>Sucursal</Th>
+            <Th align="right">Total</Th>
+            <Th>Fecha</Th>
+          </Tr>
+        </THead>
+        <TBody>
           {items.map((sale, idx) => {
             const folioLabel = sale.folioPrefix
               ? `${sale.folioPrefix}-${sale.folioNumber}`
               : String(sale.folioNumber);
             return (
-              <tr
+              <Tr
                 key={sale.id}
                 {...getRowProps(idx)}
-                className="border-b border-outline-variant/40 hover:bg-surface-container-low focus:bg-surface-container focus:outline-none transition-colors cursor-default"
+                className="border-b border-outline-variant/40 focus:bg-surface-container focus:outline-none cursor-default"
               >
-                <td className="px-4 py-3">
+                <Td>
                   <Link
                     href={`/sales/${sale.id}`}
                     className="font-mono text-primary hover:text-primary/80 underline"
                   >
                     {folioLabel}
                   </Link>
-                </td>
-                <td className="px-4 py-3">
+                </Td>
+                <Td>
                   <SaleStatusBadge status={sale.status} />
-                </td>
-                <td className="px-4 py-3">
+                </Td>
+                <Td>
                   <SalePaymentStatusBadge status={sale.paymentStatus} isCredit={sale.isCredit} />
-                </td>
-                <td className="px-4 py-3 max-w-[160px] truncate text-on-surface-variant">
+                </Td>
+                <Td className="max-w-[160px] truncate text-on-surface-variant">
                   {sale.customerName ?? "—"}
-                </td>
-                <td className="px-4 py-3 max-w-[140px] truncate text-on-surface-variant">
+                </Td>
+                <Td className="max-w-[140px] truncate text-on-surface-variant">
                   {sale.cashierName ?? sale.cashierId.slice(0, 8)}
-                </td>
-                <td className="px-4 py-3 max-w-[140px] truncate text-on-surface-variant">
+                </Td>
+                <Td className="max-w-[140px] truncate text-on-surface-variant">
                   {sale.branchName ?? "—"}
-                </td>
-                <td className="px-4 py-3 text-right tabular-nums font-medium">
+                </Td>
+                <Td align="right" className="font-medium">
                   {fmt(sale.total)}
-                </td>
-                <td className="px-4 py-3 text-on-surface-variant tabular-nums">
+                </Td>
+                <Td className="text-on-surface-variant tabular-nums">
                   {fmtDate(sale.createdAt)}
-                </td>
-              </tr>
+                </Td>
+              </Tr>
             );
           })}
-        </tbody>
-      </table>
+        </TBody>
+      </Table>
     </div>
   );
 }

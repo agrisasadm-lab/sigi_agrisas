@@ -2,6 +2,7 @@
 
 import type { InvoiceItem } from "../_logic/types/domain";
 import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
+import { Table, THead, TBody, Tr, Th, Td } from "../../../_components/molecules/DataTable/DataTable";
 
 function fmt(n: number) { return formatMxCurrency(n); }
 function pct(n: number | null) { return n != null ? `${(n * 100).toFixed(0)}%` : "—"; }
@@ -16,57 +17,57 @@ interface InvoiceItemsTableProps {
 export function InvoiceItemsTable({ items, subtotal, taxTotal, total }: InvoiceItemsTableProps) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-body-sm">
-        <thead>
-          <tr className="border-b border-outline-variant text-label-sm text-on-surface-variant uppercase tracking-wide">
-            <th className="px-4 py-3 text-left font-medium">Producto</th>
-            <th className="px-4 py-3 text-right font-medium">Cant.</th>
-            <th className="px-4 py-3 text-right font-medium">Precio</th>
-            <th className="px-4 py-3 text-right font-medium">Desc.</th>
-            <th className="px-4 py-3 text-right font-medium">IVA</th>
-            <th className="px-4 py-3 text-right font-medium">IEPS</th>
-            <th className="px-4 py-3 text-right font-medium">Subtotal</th>
-            <th className="px-4 py-3 text-right font-medium">Total línea</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table>
+        <THead>
+          <Tr hoverable={false}>
+            <Th>Producto</Th>
+            <Th align="right">Cant.</Th>
+            <Th align="right">Precio</Th>
+            <Th align="right">Desc.</Th>
+            <Th align="right">IVA</Th>
+            <Th align="right">IEPS</Th>
+            <Th align="right">Subtotal</Th>
+            <Th align="right">Total línea</Th>
+          </Tr>
+        </THead>
+        <TBody>
           {items.map((item) => (
-            <tr key={item.id} className="border-b border-outline-variant/40">
-              <td className="px-4 py-3">
+            <Tr key={item.id} hoverable={false} className="border-b border-outline-variant/40">
+              <Td>
                 <p className="text-on-surface font-medium">{item.productNameSnapshot}</p>
                 <p className="text-label-sm text-on-surface-variant font-mono">{item.productCodeSnapshot}</p>
                 {(item.satProductCodeLabel || item.satProductCode) && (
                   <p className="text-label-sm text-on-surface-variant">SAT: {item.satProductCodeLabel || item.satProductCode}</p>
                 )}
-              </td>
-              <td className="px-4 py-3 text-right tabular-nums">{item.quantity}</td>
-              <td className="px-4 py-3 text-right tabular-nums">{fmt(item.unitPrice)}</td>
-              <td className="px-4 py-3 text-right tabular-nums">{pct(item.discountPct)}</td>
-              <td className="px-4 py-3 text-right tabular-nums">{pct(item.ivaRate)}</td>
-              <td className="px-4 py-3 text-right tabular-nums">{pct(item.iepsRate)}</td>
-              <td className="px-4 py-3 text-right tabular-nums">{fmt(item.lineSubtotal)}</td>
-              <td className="px-4 py-3 text-right tabular-nums font-medium">{fmt(item.lineTotal)}</td>
-            </tr>
+              </Td>
+              <Td align="right">{item.quantity}</Td>
+              <Td align="right">{fmt(item.unitPrice)}</Td>
+              <Td align="right">{pct(item.discountPct)}</Td>
+              <Td align="right">{pct(item.ivaRate)}</Td>
+              <Td align="right">{pct(item.iepsRate)}</Td>
+              <Td align="right">{fmt(item.lineSubtotal)}</Td>
+              <Td align="right" className="font-medium">{fmt(item.lineTotal)}</Td>
+            </Tr>
           ))}
-        </tbody>
+        </TBody>
         <tfoot>
-          <tr className="border-t border-outline-variant">
-            <td colSpan={6} />
-            <td className="px-4 py-2 text-right text-label-sm text-on-surface-variant">Subtotal</td>
-            <td className="px-4 py-2 text-right tabular-nums">{fmt(subtotal)}</td>
-          </tr>
-          <tr>
-            <td colSpan={6} />
-            <td className="px-4 py-2 text-right text-label-sm text-on-surface-variant">Impuestos</td>
-            <td className="px-4 py-2 text-right tabular-nums">{fmt(taxTotal)}</td>
-          </tr>
-          <tr className="border-t border-outline-variant font-semibold">
-            <td colSpan={6} />
-            <td className="px-4 py-2 text-right text-label-sm">Total</td>
-            <td className="px-4 py-2 text-right tabular-nums text-on-surface">{fmt(total)}</td>
-          </tr>
+          <Tr hoverable={false} className="border-t border-outline-variant">
+            <Td colSpan={6} />
+            <Td align="right" className="py-2 text-label-sm text-on-surface-variant">Subtotal</Td>
+            <Td align="right" className="py-2">{fmt(subtotal)}</Td>
+          </Tr>
+          <Tr hoverable={false}>
+            <Td colSpan={6} />
+            <Td align="right" className="py-2 text-label-sm text-on-surface-variant">Impuestos</Td>
+            <Td align="right" className="py-2">{fmt(taxTotal)}</Td>
+          </Tr>
+          <Tr hoverable={false} className="border-t border-outline-variant font-semibold">
+            <Td colSpan={6} />
+            <Td align="right" className="py-2 text-label-sm">Total</Td>
+            <Td align="right" className="py-2 text-on-surface">{fmt(total)}</Td>
+          </Tr>
         </tfoot>
-      </table>
+      </Table>
     </div>
   );
 }

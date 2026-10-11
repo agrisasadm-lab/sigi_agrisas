@@ -21,6 +21,8 @@ import { SalePaymentsSection } from "./SalePaymentsSection";
 import { SaleInvoicesSection } from "../../billing/_blocks/SaleInvoicesSection";
 import { EmptyState } from "../../../_components/molecules/EmptyState/EmptyState";
 import { TaxBreakdownRows } from "../../../_components/molecules/TaxBreakdownRows/TaxBreakdownRows";
+import { Button } from "../../../_components/atoms/Button/Button";
+import { IconButton } from "../../../_components/atoms/IconButton/IconButton";
 import { Spinner } from "../../../_components/atoms/Spinner/Spinner";
 import { Icon } from "../../../_components/atoms/Icon/Icon";
 import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
@@ -109,14 +111,13 @@ export function SaleDetailPage({ id }: SaleDetailPageProps) {
       {showCreditLimitBanner && (
         <div className="flex items-center justify-between gap-3 rounded-md bg-error/10 text-error px-4 py-2 text-body-sm">
           <span>Se ha excedido el límite de crédito establecido para este cliente.</span>
-          <button
-            type="button"
+          <IconButton
+            icon="close"
+            iconSize={18}
+            ariaLabel="Cerrar aviso"
             onClick={() => setShowCreditLimitBanner(false)}
-            className="text-error hover:opacity-70"
-            aria-label="Cerrar aviso"
-          >
-            <Icon name="close" size={18} />
-          </button>
+            className="text-error hover:bg-transparent hover:opacity-70"
+          />
         </div>
       )}
 
@@ -146,22 +147,24 @@ export function SaleDetailPage({ id }: SaleDetailPageProps) {
             Ver Ticket
           </Link>
           {canReturn === true && sale.status === "completed" && hasRemainingItems(sale) && (
-            <button
+            <Button
               type="button"
+              variant="outlined"
               onClick={() => setShowFullReturn(true)}
-              className="rounded-full border border-error text-error px-4 py-2 text-body-sm font-medium hover:bg-error/5 transition-colors"
+              className="border-error text-error hover:bg-error/5"
             >
               Devolución Total
-            </button>
+            </Button>
           )}
           {canCancel === true && sale.status !== "cancelled" && sale.status !== "returned_total" && (
-            <button
+            <Button
               type="button"
+              variant="outlined"
               onClick={() => setShowCancel(true)}
-              className="rounded-full border border-error text-error px-4 py-2 text-body-sm font-medium hover:bg-error/5 transition-colors"
+              className="border-error text-error hover:bg-error/5"
             >
               Cancelar venta
-            </button>
+            </Button>
           )}
           {SALE_EDIT_UI_ENABLED && canEdit && sale.status !== "cancelled" && sale.status !== "returned_total" && (
             <Link

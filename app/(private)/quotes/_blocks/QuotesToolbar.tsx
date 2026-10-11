@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "../../../_components/atoms/Button/Button";
+import { Select } from "../../../_components/atoms/Select/Select";
 import { SearchInput } from "../../../_components/molecules/SearchInput/SearchInput";
 import { CreateButton } from "../../../_components/molecules/CreateButton/CreateButton";
 
@@ -55,30 +57,22 @@ export function QuotesToolbar({
           </p>
         </div>
 
-        <select
-          value={status}
-          onChange={(e) => onStatusChange(e.target.value)}
-          className="rounded border border-outline px-3 py-2 text-body-sm bg-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-        >
+        <Select value={status} onChange={(e) => onStatusChange(e.target.value)} className="w-auto">
           <option value="">Todos los estados</option>
           <option value="draft">Borrador</option>
           <option value="authorized">Autorizada</option>
           <option value="converted">Convertida</option>
           <option value="cancelled">Cancelada</option>
           <option value="expired">Vencida</option>
-        </select>
+        </Select>
 
         {showBranchFilter && (
-          <select
-            value={branchId}
-            onChange={(e) => onBranchChange(e.target.value)}
-            className="rounded border border-outline px-3 py-2 text-body-sm bg-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-          >
+          <Select value={branchId} onChange={(e) => onBranchChange(e.target.value)} className="w-auto">
             <option value="">Todas las sucursales</option>
             {branches.map((b) => (
               <option key={b.id} value={b.id}>{b.name}</option>
             ))}
-          </select>
+          </Select>
         )}
 
         <input
@@ -96,13 +90,14 @@ export function QuotesToolbar({
           className="rounded border border-outline px-3 py-2 text-body-sm bg-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
         />
 
-        <button
+        <Button
           type="button"
+          variant="outlined"
           onClick={onReset}
-          className="rounded border border-outline px-3 py-2 text-body-sm text-on-surface-variant hover:bg-surface-container-low transition-colors"
+          className="rounded px-3 py-2 text-body-sm text-on-surface-variant"
         >
           Limpiar
-        </button>
+        </Button>
 
         {canCreate && <CreateButton label="Nueva cotización" href="/quotes/new" />}
       </div>

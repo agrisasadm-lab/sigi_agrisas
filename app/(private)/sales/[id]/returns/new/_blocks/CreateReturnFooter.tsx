@@ -1,4 +1,5 @@
 "use client";
+import { Button } from "../../../../../../_components/atoms/Button/Button";
 import { formatMxCurrency } from "../../../../../../_lib/formatMxCurrency";
 
 interface CreateReturnFooterProps {
@@ -107,14 +108,16 @@ export function CreateReturnFooter({
       </div>
 
       <div className="flex flex-col items-end gap-2">
-        <button
+        <Button
           type="button"
+          variant="filled"
           onClick={onSubmit}
-          disabled={!!validationError || isSubmitting}
-          className="rounded-full bg-primary text-on-primary px-6 py-2 text-label-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={!!validationError}
+          loading={isSubmitting}
+          className="px-6"
         >
-          {isSubmitting ? "Registrando..." : "Registrar devolución"}
-        </button>
+          Registrar devolución
+        </Button>
         {validationError && (
           <p className="text-label-sm text-error">{validationError}</p>
         )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "../../../_components/atoms/Button/Button";
 import { useSaleSearch } from "../_logic/hooks/useSaleSearch";
 import type { SaleOption } from "../_logic/services/searchSales";
 import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
@@ -38,15 +39,18 @@ export function SalePickerField({ value, label, onSelect }: SalePickerFieldProps
       {open && results.length > 0 && (
         <div className="absolute z-50 w-full mt-1 bg-surface border border-outline rounded-md shadow-lg max-h-60 overflow-y-auto">
           {results.map((opt) => (
-            <button
+            <Button
               key={opt.id}
               type="button"
+              variant="text"
               onClick={() => handleSelect(opt)}
-              className="w-full px-4 py-3 text-left hover:bg-surface-container-low transition-colors border-b border-outline-variant/40 last:border-0"
+              className="w-full justify-start rounded-none border-b border-outline-variant/40 px-4 py-3 text-left last:border-0 hover:bg-surface-container-low"
             >
-              <p className="text-body-sm font-medium text-on-surface font-mono">{opt.folioLabel}</p>
-              <p className="text-label-sm text-on-surface-variant">{opt.customerName ?? "Sin cliente"} · {formatMxCurrency(opt.total)}</p>
-            </button>
+              <span className="flex flex-col">
+                <span className="text-body-sm font-medium text-on-surface font-mono">{opt.folioLabel}</span>
+                <span className="text-label-sm text-on-surface-variant">{opt.customerName ?? "Sin cliente"} · {formatMxCurrency(opt.total)}</span>
+              </span>
+            </Button>
           ))}
         </div>
       )}

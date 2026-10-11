@@ -5,6 +5,7 @@ import { useCurrentUser } from "../../../_hooks/useCurrentUser";
 import { useSaleInvoices } from "../_logic/hooks/useSaleInvoices";
 import { InvoiceStatusBadge } from "./InvoiceStatusBadge";
 import { useInvoiceMutations } from "../_logic/hooks/useInvoiceMutations";
+import { Button } from "../../../_components/atoms/Button/Button";
 import { Spinner } from "../../../_components/atoms/Spinner/Spinner";
 import { DownloadPdfButton } from "../../../_components/molecules/PdfDownloadButton/PdfDownloadButton";
 import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
@@ -61,14 +62,15 @@ export function SaleInvoicesSection({ saleId, saleStatus, saleFolioLabel }: Sale
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <DownloadPdfButton onClick={() => download(inv.id, "pdf")} loading={isDownloading} size="sm" />
-                <button
+                <Button
                   type="button"
+                  variant="text"
                   onClick={() => download(inv.id, "xml")}
-                  disabled={isDownloading}
-                  className="text-label-sm text-on-surface-variant hover:text-on-surface transition-colors disabled:opacity-50"
+                  loading={isDownloading}
+                  className="rounded-none p-0 text-label-sm text-on-surface-variant hover:bg-transparent hover:text-on-surface"
                 >
                   XML
-                </button>
+                </Button>
                 <Link href={`/billing/${inv.id}`} className="text-label-sm text-primary hover:text-primary/80 transition-colors">
                   Ver
                 </Link>

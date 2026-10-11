@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react";
 import type { PartialLine } from "../_logic/types/domain";
+import { Button } from "../../../_components/atoms/Button/Button";
+import { IconButton } from "../../../_components/atoms/IconButton/IconButton";
+import { Tr, Td } from "../../../_components/molecules/DataTable/DataTable";
 import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
 
 const NUM_DRAFT_PATTERN = /^\d*\.?\d*$/;
@@ -54,8 +57,8 @@ export function PartialInvoiceLineRow({ line, lineTotal, onUpdate, onRemove, onC
   const satProductCodeInvalid = !line.productId && !!line.satProductCode && !SAT_PRODUCT_CODE_PATTERN.test(line.satProductCode);
 
   return (
-    <tr className="border-b border-outline-variant/40 align-top">
-      <td className="px-2 py-2">
+    <Tr hoverable={false} className="border-b border-outline-variant/40 align-top">
+      <Td className="px-2 py-2">
         <div className="space-y-1">
           <input
             type="text"
@@ -81,47 +84,48 @@ export function PartialInvoiceLineRow({ line, lineTotal, onUpdate, onRemove, onC
           )}
           <p className="text-label-sm text-on-surface-variant font-mono">{line.productCode}</p>
         </div>
-      </td>
-      <td className="px-2 py-2 w-20">
+      </Td>
+      <Td className="px-2 py-2 w-20">
         <NumField value={line.quantity} onChange={(v) => onUpdate({ quantity: v })} min={0.001} step="0.001" placeholder="1" />
-      </td>
-      <td className="px-2 py-2 w-28">
+      </Td>
+      <Td className="px-2 py-2 w-28">
         <div className="space-y-1">
           {onChangePriceTier && (
-            <button
+            <Button
               type="button"
+              variant="text"
               onClick={onChangePriceTier}
-              className="w-full text-left text-label-sm text-primary hover:underline truncate"
               title="Cambiar lista de precios"
+              className="w-full justify-start truncate rounded-none p-0 text-label-sm hover:bg-transparent"
             >
               {line.priceName ?? "Elegir precio"}
-            </button>
+            </Button>
           )}
           <NumField value={line.unitPrice} onChange={(v) => onUpdate({ unitPrice: v })} step="0.01" placeholder="0.00" />
         </div>
-      </td>
-      <td className="px-2 py-2 w-20">
+      </Td>
+      <Td className="px-2 py-2 w-20">
         <NumField value={line.discountPct} onChange={(v) => onUpdate({ discountPct: Math.min(100, Math.max(0, v)) })} min={0} step="0.01" placeholder="0" />
-      </td>
-      <td className="px-2 py-2 w-20">
+      </Td>
+      <Td className="px-2 py-2 w-20">
         <NumField value={line.ivaRate * 100} onChange={(v) => onUpdate({ ivaRate: Math.min(1, v / 100) })} min={0} step="1" placeholder="16" />
-      </td>
-      <td className="px-2 py-2 w-20">
+      </Td>
+      <Td className="px-2 py-2 w-20">
         <NumField value={line.iepsRate * 100} onChange={(v) => onUpdate({ iepsRate: Math.min(1, v / 100) })} min={0} step="1" placeholder="0" />
-      </td>
-      <td className="px-2 py-2 text-right tabular-nums text-body-sm font-medium">
+      </Td>
+      <Td align="right" className="px-2 py-2 text-body-sm font-medium">
         {formatMxCurrency(lineTotal)}
-      </td>
-      <td className="px-2 py-2">
-        <button
-          type="button"
+      </Td>
+      <Td className="px-2 py-2">
+        <IconButton
+          icon="close"
+          iconSize={16}
+          ariaLabel="Quitar línea"
           onClick={onRemove}
           title="Quitar línea"
-          className="text-error hover:text-error/70 text-label-sm transition-colors"
-        >
-          ×
-        </button>
-      </td>
-    </tr>
+          className="text-error hover:bg-transparent hover:text-error/70"
+        />
+      </Td>
+    </Tr>
   );
 }

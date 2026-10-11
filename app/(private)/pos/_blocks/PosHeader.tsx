@@ -129,14 +129,16 @@ export function PosHeader({
       </div>
 
       <div className="relative shrink-0">
-        <button
+        <Button
           type="button"
+          variant="text"
           onClick={() => setShowQueue((v) => !v)}
           aria-expanded={showQueue}
           aria-label="Cola de sincronización offline"
+          className="shrink-0 rounded-full p-0 hover:bg-transparent"
         >
           <SyncStatusBadge isOnline={isOnline} syncing={syncing} pendingCount={pendingCount} />
-        </button>
+        </Button>
         {showQueue && (
           <div className="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-y-auto rounded-md border border-outline-variant bg-surface p-3 shadow-lg z-20">
             <SyncQueuePanel />
@@ -145,24 +147,26 @@ export function PosHeader({
       </div>
 
       {cartHasItems && (
-        <button
+        <Button
           type="button"
+          variant="text"
           onClick={() => setShowConfirm(true)}
-          className="shrink-0 text-label-sm text-error hover:text-error/80 transition-colors"
+          className="shrink-0 rounded-none px-0 py-0 text-label-sm text-error hover:bg-transparent hover:text-error/80"
         >
           Limpiar carrito
-        </button>
+        </Button>
       )}
 
-      <button
+      <Button
         type="button"
+        variant="text"
         onClick={onShowShortcuts}
         title="Atajos de teclado (?)"
-        className="shrink-0 text-label-sm text-on-surface-variant hover:text-on-surface transition-colors px-2 py-1 rounded-sm"
+        className="shrink-0 rounded-sm px-2 py-1 text-label-sm text-on-surface-variant hover:bg-transparent hover:text-on-surface"
         aria-label="Mostrar atajos de teclado"
       >
         ?
-      </button>
+      </Button>
 
       <ConfirmDialog
         open={showConfirm}

@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Button } from "../../../_components/atoms/Button/Button";
 import { Icon } from "../../../_components/atoms/Icon/Icon";
+import { IconButton } from "../../../_components/atoms/IconButton/IconButton";
 import { formatMxCurrency } from "../_logic/lib/formatMxCurrency";
 import type { CartLine as CartLineType } from "../_logic/types/domain";
 
@@ -60,24 +62,24 @@ export function CartLine({
           <p className="text-body-sm font-medium text-on-surface truncate">{line.productName}</p>
           <p className="text-label-sm text-on-surface-variant font-mono">{line.productCode}</p>
         </div>
-        <button
-          type="button"
+        <IconButton
+          icon="close"
+          iconSize={18}
+          ariaLabel="Quitar del carrito"
           onClick={() => onRemove(line.id)}
-          className="shrink-0 text-error hover:text-error/80 transition-colors"
-          aria-label="Quitar del carrito"
-        >
-          <Icon name="close" size={18} />
-        </button>
+          className="shrink-0 text-error hover:bg-transparent hover:text-error/80"
+        />
       </div>
 
       <div className="flex items-center gap-2">
-        <button
+        <Button
           type="button"
+          variant="text"
           onClick={() => onChangeTier(line.id)}
-          className="text-label-sm text-primary hover:text-primary/80 underline"
+          className="rounded-none px-0 py-0 text-label-sm underline hover:bg-transparent hover:text-primary/80"
         >
           {line.priceName}
-        </button>
+        </Button>
         <span className="text-label-sm text-on-surface-variant">
           {formatMxCurrency(line.unitPrice)} c/u
         </span>
@@ -131,32 +133,34 @@ export function CartLine({
         ) : (
           <div className="flex items-center gap-1">
             <div className="flex rounded-sm border border-outline overflow-hidden" role="group" aria-label="Tipo de descuento">
-              <button
+              <Button
                 type="button"
+                variant="text"
                 onClick={() => onUpdateDiscount(line.id, line.discountPct)}
                 aria-pressed={line.discountType === "pct"}
                 className={[
-                  "px-2 py-1 text-label-sm font-medium",
+                  "rounded-none px-2 py-1 text-label-sm",
                   line.discountType === "pct"
-                    ? "bg-primary text-on-primary"
+                    ? "bg-primary text-on-primary hover:bg-primary"
                     : "bg-surface text-on-surface-variant hover:bg-surface-variant",
                 ].join(" ")}
               >
                 %
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="text"
                 onClick={() => onUpdateDiscountAmount(line.id, line.discountAmount)}
                 aria-pressed={line.discountType === "amount"}
                 className={[
-                  "px-2 py-1 text-label-sm font-medium border-l border-outline",
+                  "rounded-none border-l border-outline px-2 py-1 text-label-sm",
                   line.discountType === "amount"
-                    ? "bg-primary text-on-primary"
+                    ? "bg-primary text-on-primary hover:bg-primary"
                     : "bg-surface text-on-surface-variant hover:bg-surface-variant",
                 ].join(" ")}
               >
                 $
-              </button>
+              </Button>
             </div>
             <input
               type="number"

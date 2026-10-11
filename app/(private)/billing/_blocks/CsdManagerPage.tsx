@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useCurrentUser } from "../../../_hooks/useCurrentUser";
 import { useCsdManager } from "../_logic/hooks/useCsdManager";
 import { EmptyState } from "../../../_components/molecules/EmptyState/EmptyState";
+import { Button } from "../../../_components/atoms/Button/Button";
+import { IconButton } from "../../../_components/atoms/IconButton/IconButton";
 import { Spinner } from "../../../_components/atoms/Spinner/Spinner";
 
 export function CsdManagerPage() {
@@ -104,7 +106,7 @@ export function CsdManagerPage() {
         {uploadError && (
           <div className="mb-4 rounded bg-error-container/30 border border-error/30 px-4 py-3 text-body-sm text-error flex items-start justify-between gap-2">
             <span>{uploadError.message}</span>
-            <button type="button" onClick={clearUploadError} className="flex-shrink-0 hover:opacity-70">×</button>
+            <IconButton icon="close" iconSize={16} ariaLabel="Cerrar" onClick={clearUploadError} className="flex-shrink-0 hover:bg-transparent hover:opacity-70" />
           </div>
         )}
 
@@ -206,14 +208,16 @@ export function CsdManagerPage() {
         </div>
 
         <div className="flex justify-end mt-6">
-          <button
+          <Button
             type="button"
+            variant="filled"
             onClick={handleSubmit}
-            disabled={isUploading || !rfc || !password}
-            className="rounded-full bg-primary text-on-primary px-6 py-2.5 text-label-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!rfc || !password}
+            loading={isUploading}
+            className="px-6 py-2.5 text-label-lg"
           >
-            {isUploading ? "Cargando…" : "Cargar CSD"}
-          </button>
+            Cargar CSD
+          </Button>
         </div>
       </div>
     </div>

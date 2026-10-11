@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCurrentUser } from "../../../_hooks/useCurrentUser";
 import { useSaleReturns } from "../../returns/_logic/hooks/useSaleReturns";
 import { ReturnStatusBadge } from "../../returns/_blocks/ReturnStatusBadge";
+import { Button } from "../../../_components/atoms/Button/Button";
 import { Skeleton } from "../../../_components/atoms/Skeleton/Skeleton";
 import type { SaleItem } from "../_logic/types/domain";
 import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
@@ -51,13 +52,14 @@ export function SaleReturnsSection({
           Devoluciones {!isLoading && returns.length > 0 ? `(${returns.length})` : ""}
         </h2>
         {showCta && (
-          <button
+          <Button
             type="button"
+            variant="filled"
             onClick={() => router.push(`/sales/${saleId}/returns/new`)}
-            className="rounded-full bg-primary text-on-primary px-4 py-1.5 text-label-md font-medium hover:bg-primary/90 transition-colors"
+            className="px-4 py-1.5 text-label-md"
           >
             + Registrar devolución
-          </button>
+          </Button>
         )}
       </div>
 

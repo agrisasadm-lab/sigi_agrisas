@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "../../../_components/atoms/Button/Button";
 import { Icon } from "../../../_components/atoms/Icon/Icon";
 import { formatMxCurrency } from "../_logic/lib/formatMxCurrency";
 import type { SaleDetailDto } from "../_logic/types/api";
@@ -18,7 +19,6 @@ interface SaleConfirmedModalProps {
 export function SaleConfirmedModal({ sale, queued, onNewSale }: SaleConfirmedModalProps) {
   const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const newSaleBtnRef = useRef<HTMLButtonElement>(null);
 
   const isQueued = !sale && Boolean(queued);
   const folioLabel = isQueued
@@ -33,7 +33,7 @@ export function SaleConfirmedModal({ sale, queued, onNewSale }: SaleConfirmedMod
 
   useEffect(() => {
     dialogRef.current?.showModal();
-    newSaleBtnRef.current?.focus();
+    dialogRef.current?.querySelector<HTMLButtonElement>("[data-autofocus]")?.focus();
   }, []);
 
   useEffect(() => {
@@ -112,22 +112,13 @@ export function SaleConfirmedModal({ sale, queued, onNewSale }: SaleConfirmedMod
       </p>
 
       <div className="flex gap-3">
-        <button
-          ref={newSaleBtnRef}
-          type="button"
-          onClick={onNewSale}
-          className="flex-1 rounded-full border border-outline py-2 text-body-sm font-medium text-on-surface hover:bg-surface-container-low transition-colors"
-        >
+        <Button data-autofocus type="button" variant="outlined" onClick={onNewSale} className="flex-1">
           Nueva venta
-        </button>
+        </Button>
         {!isQueued && sale && (
-          <button
-            type="button"
-            onClick={() => router.push(`/sales/${sale.id}`)}
-            className="flex-1 rounded-full bg-primary py-2 text-body-sm font-medium text-on-primary hover:bg-primary/90 transition-colors"
-          >
+          <Button type="button" variant="filled" onClick={() => router.push(`/sales/${sale.id}`)} className="flex-1">
             Ver ticket
-          </button>
+          </Button>
         )}
       </div>
     </dialog>

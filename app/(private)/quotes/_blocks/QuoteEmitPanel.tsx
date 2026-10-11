@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "../../../_components/atoms/Button/Button";
+import { Select } from "../../../_components/atoms/Select/Select";
 import { Spinner } from "../../../_components/atoms/Spinner/Spinner";
 import { CartLinesList } from "../../pos/_blocks/CartLinesList";
 import { CartTotals } from "../../pos/_blocks/CartTotals";
@@ -99,17 +101,12 @@ export function QuoteEmitPanel({
           {isLoadingOptions ? (
             <Spinner size="sm" />
           ) : (
-            <select
-              value={selectedBranchId}
-              onChange={(e) => onBranchChange(e.target.value)}
-              disabled={isEdit}
-              className="w-full rounded border border-outline px-3 py-2 text-body-sm bg-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed"
-            >
+            <Select value={selectedBranchId} onChange={(e) => onBranchChange(e.target.value)} disabled={isEdit}>
               <option value="">— Selecciona sucursal —</option>
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>{b.name}</option>
               ))}
-            </select>
+            </Select>
           )}
         </div>
 
@@ -118,19 +115,14 @@ export function QuoteEmitPanel({
           {isLoadingOptions ? (
             <Spinner size="sm" />
           ) : (
-            <select
-              value={selectedFolioId}
-              onChange={(e) => onFolioChange(e.target.value)}
-              disabled={isEdit}
-              className="w-full rounded border border-outline px-3 py-2 text-body-sm bg-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed"
-            >
+            <Select value={selectedFolioId} onChange={(e) => onFolioChange(e.target.value)} disabled={isEdit}>
               <option value="">— Selecciona folio —</option>
               {folios.map((f) => (
                 <option key={f.id} value={f.id}>
                   {f.nextFolioCode ?? `${f.prefix ? `${f.prefix}-` : ""}${f.currentNumber + 1}`} ({f.name})
                 </option>
               ))}
-            </select>
+            </Select>
           )}
         </div>
 
@@ -184,15 +176,16 @@ export function QuoteEmitPanel({
 
       <div className="border-t border-outline-variant px-4 py-4 space-y-3 bg-surface">
         <CartTotals totals={totals} />
-        <button
+        <Button
           type="button"
+          variant="tonal"
           onClick={onSubmit}
           disabled={!canSubmit}
-          className="w-full rounded-full bg-secondary-container py-3 text-body-md font-semibold text-on-secondary-container hover:bg-secondary-container/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          loading={isSubmitting}
+          className="w-full py-3 text-body-md font-semibold"
         >
-          {isSubmitting && <Spinner size="sm" />}
           {isEdit ? "Guardar cambios" : "Crear cotización"}
-        </button>
+        </Button>
       </div>
     </div>
   );

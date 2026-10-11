@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useCurrentUser } from "../../../_hooks/useCurrentUser";
+import { Button } from "../../../_components/atoms/Button/Button";
+import { Select } from "../../../_components/atoms/Select/Select";
 import type { PaymentStatus } from "../_logic/types/domain";
 
 interface PaymentsToolbarProps {
@@ -57,29 +59,29 @@ export function PaymentsToolbar({
         )}
       </div>
 
-      <select
+      <Select
         value={status}
         onChange={(e) => onStatusChange(e.target.value as PaymentStatus | "")}
-        className="rounded-md border border-outline px-3 py-2 text-body-sm bg-surface focus:outline-none focus:border-primary"
+        className="w-auto"
         aria-label="Estado"
       >
         <option value="">Todos</option>
         <option value="completed">Completados</option>
         <option value="cancelled">Cancelados</option>
-      </select>
+      </Select>
 
       {showBranchFilter && (
-        <select
+        <Select
           value={branchId}
           onChange={(e) => onBranchChange(e.target.value)}
-          className="rounded-md border border-outline px-3 py-2 text-body-sm bg-surface focus:outline-none focus:border-primary"
+          className="w-auto"
           aria-label="Sucursal"
         >
           <option value="">Todas las sucursales</option>
           {branches.map((b) => (
             <option key={b.id} value={b.id}>{b.name}</option>
           ))}
-        </select>
+        </Select>
       )}
 
       <div className="flex items-center gap-2">
@@ -101,13 +103,14 @@ export function PaymentsToolbar({
       </div>
 
       {hasFilters && (
-        <button
+        <Button
           type="button"
+          variant="text"
           onClick={onReset}
-          className="text-label-sm text-on-surface-variant hover:text-on-surface transition-colors"
+          className="rounded-none p-0 text-label-sm text-on-surface-variant hover:bg-transparent hover:text-on-surface"
         >
           Limpiar
-        </button>
+        </Button>
       )}
 
       {(canReport === true || canReport === "loading") && (

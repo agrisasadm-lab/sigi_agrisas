@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Icon } from "../../../_components/atoms/Icon/Icon";
+import { IconButton } from "../../../_components/atoms/IconButton/IconButton";
 
 interface PosShortcutsOverlayProps {
   canToggleMode: boolean;
@@ -55,9 +55,7 @@ export function PosShortcutsOverlay({ canToggleMode, onClose }: PosShortcutsOver
     >
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-title-md font-semibold text-on-surface">Atajos de teclado</h2>
-        <button type="button" onClick={onClose} className="text-on-surface-variant hover:text-on-surface">
-          <Icon name="close" size={18} />
-        </button>
+        <IconButton icon="close" iconSize={18} ariaLabel="Cerrar" onClick={onClose} />
       </div>
 
       <table className="w-full text-left text-body-sm">

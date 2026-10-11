@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { Button } from "../../../_components/atoms/Button/Button";
 import { useInvoiceMutations } from "../_logic/hooks/useInvoiceMutations";
 import { InvoiceNoEmailError, InvoiceNotStampedError, InvoiceEmailSendFailedError } from "../_logic/errors";
 
@@ -92,22 +93,18 @@ export function SendInvoiceEmailModal({ invoiceId, open, onClose }: SendInvoiceE
       </div>
 
       <div className="flex justify-end gap-3">
-        <button
+        <Button
           type="button"
+          variant="text"
           onClick={onClose}
           disabled={isSendingEmail}
-          className="px-4 py-2 rounded text-label-lg text-on-surface hover:bg-surface-container-highest transition-colors"
+          className="rounded px-4 py-2 text-on-surface hover:bg-surface-container-highest"
         >
           Cerrar
-        </button>
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={isSendingEmail}
-          className="px-4 py-2 rounded text-label-lg bg-primary text-on-primary hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isSendingEmail ? "Enviando…" : "Enviar"}
-        </button>
+        </Button>
+        <Button type="button" variant="filled" onClick={handleSubmit} loading={isSendingEmail}>
+          Enviar
+        </Button>
       </div>
     </dialog>
   );
