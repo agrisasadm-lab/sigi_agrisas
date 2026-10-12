@@ -1,4 +1,5 @@
-import { Icon } from "../../../_components/atoms/Icon/Icon";
+import { IconButton } from "../../../_components/atoms/IconButton/IconButton";
+import { Select } from "../../../_components/atoms/Select/Select";
 
 interface UsersPaginationProps {
   page: number;
@@ -35,39 +36,39 @@ export function UsersPagination({
           <label className="text-label-lg text-on-surface-variant" htmlFor="page-size-select">
             Por página:
           </label>
-          <select
+          <Select
             id="page-size-select"
             value={pageSize}
             onChange={(e) => onPageSizeChange(Number(e.target.value))}
-            className="rounded border border-outline-variant bg-surface-container-lowest px-2 py-1 text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-auto py-1"
           >
             {PAGE_SIZE_OPTIONS.map((s) => (
               <option key={s} value={s}>
                 {s}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div className="flex items-center gap-1">
-          <button
-            type="button"
+          <IconButton
+            icon="chevron_left"
+            iconSize={20}
+            ariaLabel="Página anterior"
+            variant="ghost"
             onClick={() => onPageChange(page - 1)}
             disabled={!hasPrev}
-            aria-label="Página anterior"
-            className="p-1.5 rounded text-on-surface-variant hover:bg-surface-container-high transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-          >
-            <Icon name="chevron_left" size={20} />
-          </button>
-          <button
-            type="button"
+            className="rounded p-1.5 disabled:opacity-30 disabled:cursor-not-allowed"
+          />
+          <IconButton
+            icon="chevron_right"
+            iconSize={20}
+            ariaLabel="Página siguiente"
+            variant="ghost"
             onClick={() => onPageChange(page + 1)}
             disabled={!hasNext}
-            aria-label="Página siguiente"
-            className="p-1.5 rounded text-on-surface-variant hover:bg-surface-container-high transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-          >
-            <Icon name="chevron_right" size={20} />
-          </button>
+            className="rounded p-1.5 disabled:opacity-30 disabled:cursor-not-allowed"
+          />
         </div>
       </div>
     </div>

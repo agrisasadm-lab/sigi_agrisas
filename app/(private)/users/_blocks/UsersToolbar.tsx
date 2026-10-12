@@ -1,5 +1,6 @@
 import { cn } from "../../../_lib/cn";
 import { Icon } from "../../../_components/atoms/Icon/Icon";
+import { Button } from "../../../_components/atoms/Button/Button";
 import { CreateButton } from "../../../_components/molecules/CreateButton/CreateButton";
 
 interface UsersToolbarProps {
@@ -41,32 +42,34 @@ export function UsersToolbar({
         {canCreate && <CreateButton label="Nuevo usuario" onClick={onCreateClick} />}
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <button
+        <Button
           type="button"
+          variant="text"
           onClick={onClearFilters}
           className={cn(
-            "px-3 py-1 rounded-full text-label-lg transition-colors",
+            "rounded-full px-3 py-1 text-label-lg",
             activeRoles.length === 0
-              ? "bg-primary text-on-primary"
+              ? "bg-primary text-on-primary hover:bg-primary/90"
               : "bg-surface-container text-on-surface hover:bg-surface-container-high"
           )}
         >
           Todos
-        </button>
+        </Button>
         {availableRoles.map((role) => (
-          <button
+          <Button
             key={role}
             type="button"
+            variant="text"
             onClick={() => onToggleRole(role)}
             className={cn(
-              "px-3 py-1 rounded-full text-label-lg transition-colors",
+              "rounded-full px-3 py-1 text-label-lg",
               activeRoles.includes(role)
-                ? "bg-primary text-on-primary"
+                ? "bg-primary text-on-primary hover:bg-primary/90"
                 : "bg-surface-container text-on-surface hover:bg-surface-container-high"
             )}
           >
             {role}
-          </button>
+          </Button>
         ))}
       </div>
     </div>
