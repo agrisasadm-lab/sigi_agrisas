@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { Button } from "../../../_components/atoms/Button/Button";
 import { useWaybillMutations } from "../_logic/hooks/useWaybillMutations";
 import { cancelWaybillSchema } from "../_logic/schemas/cancelWaybill";
 import { WaybillAlreadyCancelledError, WaybillCancelForbiddenError } from "../_logic/errors";
@@ -113,22 +114,24 @@ export function CancelWaybillModal({ waybillId, type, open, onClose, onSuccess }
         </div>
 
         <div className="flex justify-end gap-3">
-          <button
+          <Button
             type="button"
+            variant="text"
             onClick={onClose}
             disabled={isSaving}
-            className="px-4 py-2 rounded text-label-lg text-on-surface hover:bg-surface-container-highest transition-colors"
+            className="rounded px-4 py-2 text-label-lg text-on-surface hover:bg-surface-container-highest"
           >
             Volver
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="destructive"
             onClick={handleSubmit}
-            disabled={isSaving}
-            className="px-4 py-2 rounded text-label-lg bg-error-container text-on-error-container hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+            loading={isSaving}
+            className="text-label-lg"
           >
-            {isSaving ? "Cancelando..." : "Cancelar traspaso"}
-          </button>
+            Cancelar traspaso
+          </Button>
         </div>
       </dialog>
 

@@ -1,6 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { Button } from "../../../_components/atoms/Button/Button";
+import { Table, THead, TBody, Tr, Th, Td } from "../../../_components/molecules/DataTable/DataTable";
 import { PurchaseStatusBadge } from "./PurchaseStatusBadge";
 import { Skeleton } from "../../../_components/atoms/Skeleton/Skeleton";
 import type { Purchase } from "../_logic/types/domain";
@@ -43,51 +45,52 @@ export function PurchasesTable({ items, isLoading, showBranch, onEnter }: Purcha
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-body-sm">
-        <thead>
-          <tr className="border-b border-outline-variant text-label-sm text-on-surface-variant uppercase tracking-wide">
-            <th className="px-4 py-3 text-left font-medium">Folio</th>
-            <th className="px-4 py-3 text-left font-medium">Proveedor</th>
-            {showBranch && <th className="px-4 py-3 text-left font-medium">Sucursal</th>}
-            <th className="px-4 py-3 text-right font-medium">Total</th>
-            <th className="px-4 py-3 text-left font-medium">Forma de pago</th>
-            <th className="px-4 py-3 text-left font-medium">Fecha</th>
-            <th className="px-4 py-3 text-left font-medium">Estado</th>
-            <th className="px-4 py-3 text-left font-medium">Acción</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table>
+        <THead>
+          <Tr hoverable={false}>
+            <Th>Folio</Th>
+            <Th>Proveedor</Th>
+            {showBranch && <Th>Sucursal</Th>}
+            <Th align="right">Total</Th>
+            <Th>Forma de pago</Th>
+            <Th>Fecha</Th>
+            <Th>Estado</Th>
+            <Th>Acción</Th>
+          </Tr>
+        </THead>
+        <TBody>
           {items.map((p, idx) => (
-            <tr
+            <Tr
               key={p.id}
               {...getRowProps(idx)}
-              className="border-b border-outline-variant/40 hover:bg-surface-container-low focus:bg-surface-container focus:outline-none transition-colors cursor-default"
+              className="border-b border-outline-variant/40 focus:bg-surface-container focus:outline-none cursor-default"
             >
-              <td className="px-4 py-3 font-mono text-on-surface">{p.folioCode}</td>
-              <td className="px-4 py-3">
+              <Td className="font-mono text-on-surface">{p.folioCode}</Td>
+              <Td>
                 <p className="text-on-surface truncate max-w-[160px]">{p.providerName ?? "—"}</p>
                 {p.providerRfc && <p className="text-label-sm text-on-surface-variant truncate">{p.providerRfc}</p>}
-              </td>
+              </Td>
               {showBranch && (
-                <td className="px-4 py-3 text-on-surface-variant truncate max-w-[120px]">{p.branchName ?? "—"}</td>
+                <Td className="text-on-surface-variant truncate max-w-[120px]">{p.branchName ?? "—"}</Td>
               )}
-              <td className="px-4 py-3 text-right tabular-nums font-medium">{fmt(p.total)}</td>
-              <td className="px-4 py-3 text-on-surface-variant">{p.paymentMethodCode ?? "—"}</td>
-              <td className="px-4 py-3 text-on-surface-variant tabular-nums">{fmtDate(p.purchasedAt)}</td>
-              <td className="px-4 py-3"><PurchaseStatusBadge status={p.status} /></td>
-              <td className="px-4 py-3">
-                <button
+              <Td align="right" className="font-medium">{fmt(p.total)}</Td>
+              <Td className="text-on-surface-variant">{p.paymentMethodCode ?? "—"}</Td>
+              <Td className="text-on-surface-variant tabular-nums">{fmtDate(p.purchasedAt)}</Td>
+              <Td><PurchaseStatusBadge status={p.status} /></Td>
+              <Td>
+                <Button
                   type="button"
+                  variant="text"
                   onClick={() => router.push(`/purchases/${p.id}`)}
-                  className="text-label-sm text-primary hover:text-primary/80 font-medium transition-colors"
+                  className="px-0 py-0 text-label-sm text-primary hover:bg-transparent hover:text-primary/80"
                 >
                   Ver
-                </button>
-              </td>
-            </tr>
+                </Button>
+              </Td>
+            </Tr>
           ))}
-        </tbody>
-      </table>
+        </TBody>
+      </Table>
     </div>
   );
 }

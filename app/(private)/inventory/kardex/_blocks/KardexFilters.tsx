@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "../../../../_components/atoms/Button/Button";
+import { Select } from "../../../../_components/atoms/Select/Select";
 import { Combobox } from "../../../../_components/molecules/Combobox/Combobox";
 import { Icon } from "../../../../_components/atoms/Icon/Icon";
 import { useDebounce } from "../../../../_hooks/useDebounce";
@@ -71,12 +73,12 @@ export function KardexFilters({
 
       <label className="flex flex-col gap-1">
         <span className="text-label-sm text-on-surface-variant">Almacén</span>
-        <select value={branchId} onChange={(e) => onBranchIdChange(e.target.value)} className={inputCls}>
+        <Select value={branchId} onChange={(e) => onBranchIdChange(e.target.value)} className="w-auto">
           {showAllBranchesOption && <option value="">Todos</option>}
           {branches.map((b) => (
             <option key={b.id} value={b.id}>{b.name}</option>
           ))}
-        </select>
+        </Select>
       </label>
 
       <label className="flex flex-col gap-1">
@@ -89,15 +91,16 @@ export function KardexFilters({
         <input type="date" value={to} onChange={(e) => onToChange(e.target.value)} className={inputCls} />
       </label>
 
-      <button
+      <Button
         type="button"
+        variant="filled"
         onClick={onSubmit}
         disabled={isSubmitDisabled}
-        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-primary text-on-primary text-label-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+        className="gap-1.5 rounded-md text-label-lg hover:opacity-90"
       >
         <Icon name="search" size={18} />
         Mostrar información
-      </button>
+      </Button>
     </div>
   );
 }

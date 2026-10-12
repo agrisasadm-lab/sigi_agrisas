@@ -1,5 +1,7 @@
 "use client";
 
+import { IconButton } from "../../../_components/atoms/IconButton/IconButton";
+import { Tr, Td } from "../../../_components/molecules/DataTable/DataTable";
 import { cn } from "../../../_lib/cn";
 import type { WaybillLineState } from "../_logic/hooks/useCreateWaybillForm";
 import type { WaybillType } from "../_logic/types/api";
@@ -42,8 +44,8 @@ export function WaybillLineRow({ type, line, onUpdate, onRemove, lockProductAndQ
   const isSimple = type === "simple";
 
   return (
-    <tr className={cn("border-b border-outline-variant/40 align-top", line.error && "bg-error-container/20")}>
-      <td className="px-2 py-2">
+    <Tr hoverable={false} className={cn("border-b border-outline-variant/40 align-top", line.error && "bg-error-container/20")}>
+      <Td className="px-2 py-2">
         <div className="space-y-1">
           <input
             type="text"
@@ -55,9 +57,9 @@ export function WaybillLineRow({ type, line, onUpdate, onRemove, lockProductAndQ
           />
           {line.error && <p className="text-label-sm text-error">{line.error}</p>}
         </div>
-      </td>
+      </Td>
       {!isSimple && (
-        <td className="px-2 py-2 w-32">
+        <Td className="px-2 py-2 w-32">
           <input
             type="text"
             value={line.satBienesTranspCode}
@@ -65,10 +67,10 @@ export function WaybillLineRow({ type, line, onUpdate, onRemove, lockProductAndQ
             placeholder="Clave SAT"
             className="w-full rounded-sm border border-outline px-2 py-1 text-body-sm bg-surface focus:outline-none focus:border-primary font-mono"
           />
-        </td>
+        </Td>
       )}
       {!isSimple && (
-        <td className="px-2 py-2 w-24">
+        <Td className="px-2 py-2 w-24">
           <input
             type="text"
             value={line.satUnitCode}
@@ -76,22 +78,22 @@ export function WaybillLineRow({ type, line, onUpdate, onRemove, lockProductAndQ
             placeholder="Unidad"
             className="w-full rounded-sm border border-outline px-2 py-1 text-body-sm bg-surface focus:outline-none focus:border-primary font-mono"
           />
-        </td>
+        </Td>
       )}
-      <td className="px-2 py-2 w-20">
+      <Td className="px-2 py-2 w-20">
         {lockProductAndQuantity ? (
           <span className="text-body-sm text-on-surface tabular-nums">{line.quantity}</span>
         ) : (
           <NumField value={line.quantity} onChange={(v) => onUpdate({ quantity: v })} min={0.001} step="0.001" placeholder="1" />
         )}
-      </td>
+      </Td>
       {!isSimple && (
-        <td className="px-2 py-2 w-24">
+        <Td className="px-2 py-2 w-24">
           <NumField value={line.weightKg} onChange={(v) => onUpdate({ weightKg: v })} min={0.001} step="0.001" placeholder="0" />
-        </td>
+        </Td>
       )}
       {!isSimple && (
-        <td className="px-2 py-2 w-24">
+        <Td className="px-2 py-2 w-24">
           <label className="flex items-center gap-1 text-label-sm text-on-surface-variant">
             <input
               type="checkbox"
@@ -109,20 +111,20 @@ export function WaybillLineRow({ type, line, onUpdate, onRemove, lockProductAndQ
               className="w-full mt-1 rounded-sm border border-outline px-2 py-1 text-body-sm bg-surface focus:outline-none focus:border-primary font-mono"
             />
           )}
-        </td>
+        </Td>
       )}
-      <td className="px-2 py-2">
+      <Td className="px-2 py-2">
         {!lockProductAndQuantity && (
-          <button
-            type="button"
+          <IconButton
+            icon="close"
+            iconSize={16}
+            ariaLabel="Quitar línea"
             onClick={onRemove}
             title="Quitar línea"
-            className="text-error hover:text-error/70 text-label-sm transition-colors"
-          >
-            ×
-          </button>
+            className="text-error hover:bg-transparent hover:text-error/70"
+          />
         )}
-      </td>
-    </tr>
+      </Td>
+    </Tr>
   );
 }

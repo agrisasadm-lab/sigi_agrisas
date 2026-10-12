@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "../../../_components/atoms/Button/Button";
+import { Select } from "../../../_components/atoms/Select/Select";
 import type { WaybillStatus, WaybillType } from "../_logic/types/api";
 
 interface WaybillsToolbarProps {
@@ -58,10 +60,10 @@ export function WaybillsToolbar({
   return (
     <div className="flex flex-wrap items-center gap-3">
       {showBranchFilter && (
-        <select
+        <Select
           value={branchId}
           onChange={(e) => onBranchChange(e.target.value)}
-          className="rounded border border-outline px-3 py-2 text-body-sm bg-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+          className="w-auto"
           aria-label="Filtrar por sucursal"
         >
           <option value="">Todas las sucursales</option>
@@ -70,40 +72,42 @@ export function WaybillsToolbar({
               {b.name}
             </option>
           ))}
-        </select>
+        </Select>
       )}
 
       <div className="flex gap-1">
         {TYPE_OPTIONS.map((t) => (
-          <button
+          <Button
             key={t.value}
             type="button"
+            variant="filled"
             onClick={() => toggleType(t.value)}
-            className={`rounded-full px-3 py-1 text-label-sm font-medium transition-colors ${
+            className={
               typeFilter.includes(t.value)
-                ? "bg-secondary text-on-secondary"
-                : "bg-surface-container-low text-on-surface hover:bg-surface-container"
-            }`}
+                ? "px-3 py-1 text-label-sm bg-secondary text-on-secondary hover:bg-secondary/90"
+                : "px-3 py-1 text-label-sm bg-surface-container-low text-on-surface hover:bg-surface-container"
+            }
           >
             {t.label}
-          </button>
+          </Button>
         ))}
       </div>
 
       <div className="flex gap-1">
         {STATUS_OPTIONS.map((s) => (
-          <button
+          <Button
             key={s.value}
             type="button"
+            variant="filled"
             onClick={() => toggleStatus(s.value)}
-            className={`rounded-full px-3 py-1 text-label-sm font-medium transition-colors ${
+            className={
               statusFilter.includes(s.value)
-                ? "bg-primary text-on-primary"
-                : "bg-surface-container-low text-on-surface hover:bg-surface-container"
-            }`}
+                ? "px-3 py-1 text-label-sm"
+                : "px-3 py-1 text-label-sm bg-surface-container-low text-on-surface hover:bg-surface-container"
+            }
           >
             {s.label}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -126,13 +130,14 @@ export function WaybillsToolbar({
       </div>
 
       {hasFilters && (
-        <button
+        <Button
           type="button"
+          variant="text"
           onClick={onReset}
-          className="text-label-sm text-on-surface-variant hover:text-on-surface transition-colors"
+          className="rounded-none p-0 text-label-sm text-on-surface-variant hover:bg-transparent hover:text-on-surface"
         >
           Limpiar filtros
-        </button>
+        </Button>
       )}
     </div>
   );

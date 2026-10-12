@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { Icon } from "../../../_components/atoms/Icon/Icon";
+import { Button } from "../../../_components/atoms/Button/Button";
+import { IconButton } from "../../../_components/atoms/IconButton/IconButton";
+import { Table, THead, TBody, Tr, Th, Td } from "../../../_components/molecules/DataTable/DataTable";
 import type { InventoryItem } from "../_logic/types/domain";
 import { useTableKeyboard } from "../../../_hooks/useTableKeyboard";
 import { ExpiryStatusBadge } from "./ExpiryStatusBadge";
@@ -24,41 +27,42 @@ export function InventoryTable({ items, canWrite, canViewKardex = false, onAdjus
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-left text-body-md">
-        <thead>
-          <tr className="border-b border-outline-variant text-label-lg text-on-surface-variant">
-            <th className="px-4 py-3 font-medium">Código</th>
-            <th className="px-4 py-3 font-medium">Producto</th>
-            <th className="px-4 py-3 font-medium text-right">Cantidad</th>
-            <th className="px-4 py-3 font-medium text-right">Reservado</th>
-            <th className="px-4 py-3 font-medium text-right">Disponible</th>
-            <th className="px-4 py-3 font-medium text-right">P. reorden</th>
-            <th className="px-4 py-3 font-medium">Caducidad</th>
-            {showActions && <th className="px-4 py-3 font-medium">Acciones</th>}
-          </tr>
-        </thead>
-        <tbody>
+      <Table className="text-left text-body-md">
+        <THead>
+          <Tr hoverable={false} className="text-label-lg text-on-surface-variant normal-case tracking-normal">
+            <Th className="font-medium normal-case tracking-normal">Código</Th>
+            <Th className="font-medium normal-case tracking-normal">Producto</Th>
+            <Th align="right" className="font-medium normal-case tracking-normal">Cantidad</Th>
+            <Th align="right" className="font-medium normal-case tracking-normal">Reservado</Th>
+            <Th align="right" className="font-medium normal-case tracking-normal">Disponible</Th>
+            <Th align="right" className="font-medium normal-case tracking-normal">P. reorden</Th>
+            <Th className="font-medium normal-case tracking-normal">Caducidad</Th>
+            {showActions && <Th className="font-medium normal-case tracking-normal">Acciones</Th>}
+          </Tr>
+        </THead>
+        <TBody>
           {items.map((item, idx) => {
             const available = item.quantity - item.reservedQuantity;
             const isLow = item.quantity < item.reorderPoint;
             return (
-              <tr
+              <Tr
                 key={item.id}
                 {...getRowProps(idx)}
-                className={`border-b border-outline-variant focus:outline-none transition-colors cursor-default ${isLow ? "bg-error-container/20 hover:bg-error-container/30 focus:bg-error-container/30" : "hover:bg-surface-container-low focus:bg-surface-container"}`}
+                hoverable={false}
+                className={`border-b border-outline-variant focus:outline-none cursor-default ${isLow ? "bg-error-container/20 hover:bg-error-container/30 focus:bg-error-container/30" : "hover:bg-surface-container-low focus:bg-surface-container"}`}
               >
-                <td className="px-4 py-3 font-mono text-label-lg">
+                <Td className="font-mono text-label-lg">
                   <div className="flex items-center gap-2">
                     {isLow && <Icon name="warning" size={14} className="text-error flex-shrink-0" />}
                     {item.productCode}
                   </div>
-                </td>
-                <td className="px-4 py-3">{item.productName}</td>
-                <td className="px-4 py-3 text-right font-medium">{item.quantity}</td>
-                <td className="px-4 py-3 text-right text-on-surface-variant">{item.reservedQuantity}</td>
-                <td className={`px-4 py-3 text-right font-medium ${available <= 0 ? "text-error" : ""}`}>{available}</td>
-                <td className="px-4 py-3 text-right text-on-surface-variant">{item.reorderPoint}</td>
-                <td className="px-4 py-3">
+                </Td>
+                <Td>{item.productName}</Td>
+                <Td align="right" className="font-medium">{item.quantity}</Td>
+                <Td align="right" className="text-on-surface-variant">{item.reservedQuantity}</Td>
+                <Td align="right" className={`font-medium ${available <= 0 ? "text-error" : ""}`}>{available}</Td>
+                <Td align="right" className="text-on-surface-variant">{item.reorderPoint}</Td>
+                <Td>
                   {item.expiryStatus && (
                     <div className="flex flex-col gap-0.5">
                       <ExpiryStatusBadge status={item.expiryStatus} />
@@ -69,21 +73,17 @@ export function InventoryTable({ items, canWrite, canViewKardex = false, onAdjus
                       )}
                     </div>
                   )}
-                </td>
+                </Td>
                 {showActions && (
-                  <td className="px-4 py-3">
+                  <Td>
                     <div className="flex items-center gap-2">
                       {canWrite && (
                         <>
-                          <button type="button" onClick={() => onAdjust(item)} className="inline-flex items-center gap-1 px-2 py-1 rounded text-label-sm text-primary hover:bg-primary/10 transition-colors" title="Ajustar stock">
+                          <Button type="button" variant="text" onClick={() => onAdjust(item)} title="Ajustar stock" className="gap-1 rounded px-2 py-1 text-label-sm hover:bg-primary/10">
                             <Icon name="tune" size={14} />Ajustar
-                          </button>
-                          <button type="button" onClick={() => onEdit(item)} className="p-1 rounded hover:bg-surface-container text-on-surface-variant" title="Editar registro">
-                            <Icon name="edit" size={14} />
-                          </button>
-                          <button type="button" onClick={() => onRemove(item)} className="p-1 rounded hover:bg-error/10 text-error" title="Quitar de sucursal">
-                            <Icon name="remove_circle" size={14} />
-                          </button>
+                          </Button>
+                          <IconButton icon="edit" iconSize={14} ariaLabel="Editar registro" onClick={() => onEdit(item)} title="Editar registro" className="rounded p-1 text-on-surface-variant hover:bg-surface-container" />
+                          <IconButton icon="remove_circle" iconSize={14} ariaLabel="Quitar de sucursal" onClick={() => onRemove(item)} title="Quitar de sucursal" className="rounded p-1 text-error hover:bg-error/10" />
                         </>
                       )}
                       {canViewKardex && (
@@ -96,13 +96,13 @@ export function InventoryTable({ items, canWrite, canViewKardex = false, onAdjus
                         </Link>
                       )}
                     </div>
-                  </td>
+                  </Td>
                 )}
-              </tr>
+              </Tr>
             );
           })}
-        </tbody>
-      </table>
+        </TBody>
+      </Table>
     </div>
   );
 }

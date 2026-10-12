@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Icon } from "../../../_components/atoms/Icon/Icon";
+import { IconButton } from "../../../_components/atoms/IconButton/IconButton";
 import type { PurchaseFormLine } from "../_logic/hooks/useCreatePurchaseForm";
 import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
 
@@ -51,14 +51,13 @@ export function PurchaseLineRow({
           <p className="text-body-sm font-medium text-on-surface truncate">{line.productName}</p>
           <p className="text-label-sm text-on-surface-variant font-mono">{line.productCode}</p>
         </div>
-        <button
-          type="button"
+        <IconButton
+          icon="close"
+          iconSize={18}
+          ariaLabel="Quitar de la compra"
           onClick={() => onRemove(line.id)}
-          className="shrink-0 text-error hover:text-error/80 transition-colors"
-          aria-label="Quitar de la compra"
-        >
-          <Icon name="close" size={18} />
-        </button>
+          className="shrink-0 text-error hover:bg-transparent hover:text-error/80"
+        />
       </div>
 
       <div className="flex items-center gap-3 flex-wrap">

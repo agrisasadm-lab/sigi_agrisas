@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "../../../_components/atoms/Select/Select";
+
 interface BranchOption {
   id: string;
   name: string;
@@ -29,11 +31,10 @@ export function BranchPairSelector({
         <label htmlFor="waybill-origin" className="block text-label-md text-on-surface mb-1">
           Sucursal de origen <span className="text-error">*</span>
         </label>
-        <select
+        <Select
           id="waybill-origin"
           value={originBranchId}
           onChange={(e) => onOriginChange(e.target.value)}
-          className="w-full rounded border border-outline px-3 py-2 text-body-sm bg-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
         >
           <option value="">Selecciona sucursal de origen</option>
           {originOptions.map((b) => (
@@ -41,17 +42,16 @@ export function BranchPairSelector({
               {b.name}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
       <div>
         <label htmlFor="waybill-destination" className="block text-label-md text-on-surface mb-1">
           Sucursal de destino <span className="text-error">*</span>
         </label>
-        <select
+        <Select
           id="waybill-destination"
           value={destinationBranchId}
           onChange={(e) => onDestinationChange(e.target.value)}
-          className="w-full rounded border border-outline px-3 py-2 text-body-sm bg-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
         >
           <option value="">Selecciona sucursal de destino</option>
           {destinationOptions.map((b) => (
@@ -59,7 +59,7 @@ export function BranchPairSelector({
               {b.name}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
     </div>
   );

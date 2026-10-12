@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { WaybillStatusBadge } from "./WaybillStatusBadge";
 import { WaybillTypeBadge } from "./WaybillTypeBadge";
+import { Button } from "../../../_components/atoms/Button/Button";
+import { Table, THead, TBody, Tr, Th, Td } from "../../../_components/molecules/DataTable/DataTable";
 import { Skeleton } from "../../../_components/atoms/Skeleton/Skeleton";
 import type { WaybillSummary } from "../_logic/types/domain";
 import { useTableKeyboard } from "../../../_hooks/useTableKeyboard";
@@ -44,56 +46,57 @@ export function WaybillsTable({ items, isLoading, branchNameById, onEnter }: Way
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-body-sm">
-        <thead>
-          <tr className="border-b border-outline-variant text-label-sm text-on-surface-variant uppercase tracking-wide">
-            <th className="px-4 py-3 text-left font-medium">Folio</th>
-            <th className="px-4 py-3 text-left font-medium">Tipo</th>
-            <th className="px-4 py-3 text-left font-medium">Origen</th>
-            <th className="px-4 py-3 text-left font-medium">Destino</th>
-            <th className="px-4 py-3 text-left font-medium">Estado</th>
-            <th className="px-4 py-3 text-left font-medium">Fecha</th>
-            <th className="px-4 py-3 text-left font-medium">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table>
+        <THead>
+          <Tr hoverable={false}>
+            <Th>Folio</Th>
+            <Th>Tipo</Th>
+            <Th>Origen</Th>
+            <Th>Destino</Th>
+            <Th>Estado</Th>
+            <Th>Fecha</Th>
+            <Th>Acciones</Th>
+          </Tr>
+        </THead>
+        <TBody>
           {items.map((w, idx) => (
-            <tr
+            <Tr
               key={w.id}
               {...getRowProps(idx)}
-              className="border-b border-outline-variant/40 hover:bg-surface-container-low focus:bg-surface-container focus:outline-none transition-colors cursor-default"
+              className="border-b border-outline-variant/40 focus:bg-surface-container focus:outline-none cursor-default"
             >
-              <td className="px-4 py-3 font-mono text-on-surface">{w.folioCode}</td>
-              <td className="px-4 py-3">
+              <Td className="font-mono text-on-surface">{w.folioCode}</Td>
+              <Td>
                 <WaybillTypeBadge type={w.type} />
-              </td>
-              <td className="px-4 py-3 text-on-surface-variant truncate max-w-[140px]">
+              </Td>
+              <Td className="text-on-surface-variant truncate max-w-[140px]">
                 {branchNameById[w.originBranchId] ?? w.originBranchId.slice(0, 8)}
-              </td>
-              <td className="px-4 py-3 text-on-surface-variant truncate max-w-[140px]">
+              </Td>
+              <Td className="text-on-surface-variant truncate max-w-[140px]">
                 {w.type === "carta_porte"
                   ? w.destinationCustomerName ?? "Cliente"
                   : w.destinationBranchId
                     ? branchNameById[w.destinationBranchId] ?? w.destinationBranchId.slice(0, 8)
                     : "—"}
-              </td>
-              <td className="px-4 py-3">
+              </Td>
+              <Td>
                 <WaybillStatusBadge status={w.status} />
-              </td>
-              <td className="px-4 py-3 text-on-surface-variant tabular-nums">{fmtDate(w.createdAt)}</td>
-              <td className="px-4 py-3">
-                <button
+              </Td>
+              <Td className="text-on-surface-variant tabular-nums">{fmtDate(w.createdAt)}</Td>
+              <Td>
+                <Button
                   type="button"
+                  variant="text"
                   onClick={() => router.push(`/waybills/${w.id}`)}
-                  className="text-label-sm text-primary hover:text-primary/80 font-medium transition-colors"
+                  className="px-0 py-0 text-label-sm text-primary hover:bg-transparent hover:text-primary/80"
                 >
                   Ver
-                </button>
-              </td>
-            </tr>
+                </Button>
+              </Td>
+            </Tr>
           ))}
-        </tbody>
-      </table>
+        </TBody>
+      </Table>
     </div>
   );
 }

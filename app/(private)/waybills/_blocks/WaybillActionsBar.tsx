@@ -1,6 +1,7 @@
 "use client";
 
 import type { WaybillDetail } from "../_logic/types/domain";
+import { Button } from "../../../_components/atoms/Button/Button";
 import { DownloadPdfButton } from "../../../_components/molecules/PdfDownloadButton/PdfDownloadButton";
 
 interface WaybillActionsBarProps {
@@ -27,25 +28,27 @@ export function WaybillActionsBar({
       {canDownload && (
         <>
           <DownloadPdfButton onClick={() => onDownload("pdf")} loading={isDownloading} />
-          <button
+          <Button
             type="button"
+            variant="outlined"
             onClick={() => onDownload("xml")}
-            disabled={isDownloading}
-            className="rounded-full border border-outline px-4 py-2 text-label-sm font-medium hover:bg-surface-container transition-colors disabled:opacity-50"
+            loading={isDownloading}
+            className="text-label-sm"
           >
-            {isDownloading ? "Descargando..." : "Descargar XML"}
-          </button>
+            Descargar XML
+          </Button>
         </>
       )}
       {wb.status === "completed" && canCancel === true && (
-        <button
+        <Button
           type="button"
+          variant="outlined"
           onClick={onCancelClick}
-          disabled={isSaving}
-          className="rounded-full border border-error text-error px-4 py-2 text-label-sm font-medium hover:bg-error/5 transition-colors disabled:opacity-50"
+          loading={isSaving}
+          className="border-error text-error hover:bg-error-container/20"
         >
           Cancelar traspaso
-        </button>
+        </Button>
       )}
     </div>
   );

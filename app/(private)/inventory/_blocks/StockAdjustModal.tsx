@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { Button } from "../../../_components/atoms/Button/Button";
 import type { InventoryItem } from "../_logic/types/domain";
 
 interface StockAdjustModalProps {
@@ -82,8 +83,8 @@ export function StockAdjustModal({ open, item, isSaving, adjustError, onAdjust, 
           </div>
         </div>
         <div className="px-6 pb-6 pt-2 flex justify-end gap-3 border-t border-outline-variant">
-          <button type="button" onClick={onClose} disabled={isSaving} className="px-4 py-2 rounded-md text-label-lg text-on-surface-variant hover:bg-surface-container transition-colors">Cancelar</button>
-          <button type="submit" disabled={isSaving || !isValidDelta} className="px-4 py-2 rounded-md bg-primary text-on-primary text-label-lg font-medium hover:opacity-90 disabled:opacity-50">{isSaving ? "Ajustando…" : "Aplicar ajuste"}</button>
+          <Button type="button" variant="text" onClick={onClose} disabled={isSaving} className="rounded-md px-4 py-2 text-label-lg text-on-surface-variant hover:bg-surface-container">Cancelar</Button>
+          <Button type="submit" variant="filled" disabled={!isValidDelta} loading={isSaving} className="rounded-md px-4 py-2 text-label-lg hover:opacity-90">Aplicar ajuste</Button>
         </div>
       </form>
     </dialog>

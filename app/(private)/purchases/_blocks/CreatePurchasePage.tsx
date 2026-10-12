@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "../../../_components/atoms/Button/Button";
+import { Select } from "../../../_components/atoms/Select/Select";
 import { Icon } from "../../../_components/atoms/Icon/Icon";
 import { useCurrentUser } from "../../../_hooks/useCurrentUser";
 import { useDebounce } from "../../../_hooks/useDebounce";
@@ -125,18 +127,19 @@ export function CreatePurchasePage() {
               <Icon name="verified" className="text-primary shrink-0" />
               <span className="text-body-sm font-medium text-on-surface truncate">Factura {form.satMetadata.xmlFileName}</span>
             </div>
-            <button
+            <Button
               type="button"
+              variant="text"
               onClick={() => {
                 form.clearSat();
                 setSatWarnings([]);
                 setSatUnmatched([]);
                 setSatApplied(false);
               }}
-              className="text-label-sm text-primary hover:underline shrink-0"
+              className="shrink-0 rounded-none p-0 text-label-sm hover:bg-transparent hover:underline"
             >
               Quitar
-            </button>
+            </Button>
           </div>
           {form.satMetadata.satUuid && (
             <p className="text-label-sm text-on-surface-variant">UUID: {form.satMetadata.satUuid}</p>
@@ -189,32 +192,30 @@ export function CreatePurchasePage() {
         {isBypass === true && (
           <div>
             <label className="text-label-sm text-on-surface-variant mb-1 block">Sucursal</label>
-            <select
+            <Select
               value={selectedBranchId}
               onChange={(e) => setSelectedBranchId(e.target.value)}
-              className="w-full rounded border border-outline px-3 py-2 text-body-sm bg-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
             >
               <option value="">Selecciona una sucursal</option>
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>{b.name}</option>
               ))}
-            </select>
+            </Select>
           </div>
         )}
 
         <div>
           <label className="text-label-sm text-on-surface-variant mb-1 block">Forma de pago</label>
-          <select
+          <Select
             value={form.paymentMethodId}
             onChange={(e) => form.setPaymentMethodId(e.target.value)}
             disabled={pmLoading}
-            className="w-full rounded border border-outline px-3 py-2 text-body-sm bg-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
           >
             <option value="">Selecciona una forma de pago</option>
             {paymentMethods.map((pm) => (
               <option key={pm.id} value={pm.id}>{pm.name}{pm.isCredit ? " (crédito)" : ""}</option>
             ))}
-          </select>
+          </Select>
           {form.isCredit && (
             <p className="mt-1 text-label-sm text-tertiary">
               Compra a crédito: quedará pendiente de pago; podrás registrar abonos desde el detalle.
@@ -339,15 +340,16 @@ export function CreatePurchasePage() {
           </p>
         )}
 
-        <button
+        <Button
           type="button"
+          variant="filled"
           onClick={() => form.submit()}
           disabled={!form.canSubmit}
-          className="w-full rounded-full bg-primary py-3 text-body-md font-medium text-on-primary hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          loading={form.isSubmitting}
+          className="w-full py-3 text-body-md"
         >
-          {form.isSubmitting && <Spinner size="sm" />}
           Registrar compra
-        </button>
+        </Button>
       </div>
 
       {showProviderQuickAdd && (

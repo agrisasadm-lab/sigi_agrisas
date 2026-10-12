@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "../../../_components/atoms/Button/Button";
+import { Table, THead, TBody, Tr, Th } from "../../../_components/molecules/DataTable/DataTable";
 import { ProductCatalogPanel } from "../../pos/_blocks/ProductCatalogPanel";
 import { WaybillLineRow } from "./WaybillLineRow";
 import type { WaybillLineState } from "../_logic/hooks/useCreateWaybillForm";
@@ -62,21 +64,13 @@ export function WaybillItemsForm({
         </h3>
         {!lockProductAndQuantity && (
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setShowCatalog((v) => !v)}
-              className="rounded-full border border-outline px-3 py-1 text-label-sm hover:bg-surface-container transition-colors"
-            >
+            <Button type="button" variant="outlined" onClick={() => setShowCatalog((v) => !v)} className="px-3 py-1 text-label-sm hover:bg-surface-container">
               + Catálogo
-            </button>
+            </Button>
             {!isSimple && (
-              <button
-                type="button"
-                onClick={handleAddFreeLine}
-                className="rounded-full border border-outline px-3 py-1 text-label-sm hover:bg-surface-container transition-colors"
-              >
+              <Button type="button" variant="outlined" onClick={handleAddFreeLine} className="px-3 py-1 text-label-sm hover:bg-surface-container">
                 + Línea libre
-              </button>
+              </Button>
             )}
           </div>
         )}
@@ -90,19 +84,19 @@ export function WaybillItemsForm({
 
       {lines.length > 0 ? (
         <div className="overflow-x-auto border border-outline-variant rounded-md">
-          <table className="w-full text-body-sm">
-            <thead>
-              <tr className="border-b border-outline-variant text-label-sm text-on-surface-variant uppercase tracking-wide">
-                <th className="px-2 py-2 text-left font-medium">Descripción</th>
-                {!isSimple && <th className="px-2 py-2 text-left font-medium w-32">Clave SAT</th>}
-                {!isSimple && <th className="px-2 py-2 text-left font-medium w-24">Unidad</th>}
-                <th className="px-2 py-2 text-right font-medium w-20">Cant.</th>
-                {!isSimple && <th className="px-2 py-2 text-right font-medium w-24">Peso (kg)</th>}
-                {!isSimple && <th className="px-2 py-2 text-left font-medium w-24">Peligroso</th>}
-                <th className="px-2 py-2" />
-              </tr>
-            </thead>
-            <tbody>
+          <Table>
+            <THead>
+              <Tr hoverable={false}>
+                <Th className="px-2 py-2">Descripción</Th>
+                {!isSimple && <Th className="px-2 py-2 w-32">Clave SAT</Th>}
+                {!isSimple && <Th className="px-2 py-2 w-24">Unidad</Th>}
+                <Th align="right" className="px-2 py-2 w-20">Cant.</Th>
+                {!isSimple && <Th align="right" className="px-2 py-2 w-24">Peso (kg)</Th>}
+                {!isSimple && <Th className="px-2 py-2 w-24">Peligroso</Th>}
+                <Th className="px-2 py-2" />
+              </Tr>
+            </THead>
+            <TBody>
               {lines.map((line) => (
                 <WaybillLineRow
                   key={line._key}
@@ -113,8 +107,8 @@ export function WaybillItemsForm({
                   lockProductAndQuantity={lockProductAndQuantity}
                 />
               ))}
-            </tbody>
-          </table>
+            </TBody>
+          </Table>
         </div>
       ) : (
         <p className="text-body-sm text-on-surface-variant py-4 text-center border border-outline-variant border-dashed rounded-md">
