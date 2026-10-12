@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "../../../../_components/atoms/Button/Button";
 import { Icon } from "../../../../_components/atoms/Icon/Icon";
 import { ConfirmDialog } from "../../../../_components/molecules/ConfirmDialog/ConfirmDialog";
 
@@ -20,15 +21,17 @@ export function RebuildArticleButton({ disabled, isRebuilding, onRebuild }: Rebu
 
   return (
     <>
-      <button
+      <Button
         type="button"
+        variant="outlined"
         onClick={() => setConfirmOpen(true)}
-        disabled={disabled || isRebuilding}
-        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-outline text-on-surface text-label-lg font-medium hover:bg-surface-container transition-colors disabled:opacity-50"
+        disabled={disabled}
+        loading={isRebuilding}
+        className="gap-1.5 rounded-md text-label-lg hover:bg-surface-container"
       >
         <Icon name="restore" size={18} />
-        {isRebuilding ? "Reconstruyendo…" : "Reconstruir Artículo"}
-      </button>
+        Reconstruir Artículo
+      </Button>
 
       <ConfirmDialog
         open={confirmOpen}

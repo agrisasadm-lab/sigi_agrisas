@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { Button } from "../../../_components/atoms/Button/Button";
+import { IconButton } from "../../../_components/atoms/IconButton/IconButton";
 import { Icon } from "../../../_components/atoms/Icon/Icon";
-import { Spinner } from "../../../_components/atoms/Spinner/Spinner";
 import { providerQuickAddSchema } from "../_logic/schemas/providerQuickAdd.schema";
 import { createProvider } from "../_logic/services/createProvider";
 import { ProviderCodeAlreadyInUseError, ProviderRfcAlreadyInUseError } from "../_logic/errors";
@@ -117,9 +118,7 @@ export function ProviderQuickAddModal({ onCreated, onClose }: ProviderQuickAddMo
     >
       <div className="flex items-center justify-between mb-5">
         <h2 className="text-title-md font-semibold text-on-surface">Nuevo proveedor</h2>
-        <button type="button" onClick={onClose} className="text-on-surface-variant hover:text-on-surface">
-          <Icon name="close" size={18} />
-        </button>
+        <IconButton icon="close" iconSize={18} ariaLabel="Cerrar" onClick={onClose} />
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -158,14 +157,15 @@ export function ProviderQuickAddModal({ onCreated, onClose }: ProviderQuickAddMo
           {errors.name && <p className="text-label-sm text-error mt-1">{errors.name}</p>}
         </div>
 
-        <button
+        <Button
           type="button"
+          variant="text"
           onClick={() => setShowFiscal((v) => !v)}
-          className="flex items-center gap-1 text-label-sm text-primary hover:text-primary/80"
+          className="justify-start gap-1 rounded-none px-0 py-0 text-label-sm hover:bg-transparent hover:text-primary/80"
         >
           <Icon name={showFiscal ? "chevron_left" : "chevron_right"} size={16} />
           Datos fiscales (opcionales)
-        </button>
+        </Button>
 
         {showFiscal && (
           <div className="grid grid-cols-2 gap-3">
@@ -201,15 +201,12 @@ export function ProviderQuickAddModal({ onCreated, onClose }: ProviderQuickAddMo
         )}
 
         <div className="flex gap-3 pt-2">
-          <button type="button" onClick={onClose}
-            className="flex-1 rounded-full border border-outline py-2 text-body-sm font-medium text-on-surface hover:bg-surface-container-low transition-colors">
+          <Button type="button" variant="outlined" onClick={onClose} className="flex-1">
             Cancelar
-          </button>
-          <button type="submit" disabled={isSubmitting}
-            className="flex-1 rounded-full bg-primary py-2 text-body-sm font-medium text-on-primary hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-            {isSubmitting && <Spinner size="sm" />}
+          </Button>
+          <Button type="submit" variant="filled" loading={isSubmitting} className="flex-1">
             Crear proveedor
-          </button>
+          </Button>
         </div>
       </form>
     </dialog>

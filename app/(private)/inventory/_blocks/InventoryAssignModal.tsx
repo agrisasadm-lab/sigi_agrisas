@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { Button } from "../../../_components/atoms/Button/Button";
 import { useProductSearch } from "../_logic/hooks/useProductSearch";
 
 interface InventoryAssignModalProps {
@@ -69,9 +70,14 @@ export function InventoryAssignModal({ open, branchId, isSaving, assignError, on
               <ul className="mt-1 border border-outline-variant rounded-md bg-surface shadow-lg max-h-40 overflow-y-auto">
                 {productOptions.map((p) => (
                   <li key={p.id}>
-                    <button type="button" onClick={() => { setSelectedProductId(p.id); setSearch(`${p.code} - ${p.name}`); setProductOptions([]); }} className="w-full text-left px-3 py-2 hover:bg-surface-container-low text-body-md">
+                    <Button
+                      type="button"
+                      variant="text"
+                      onClick={() => { setSelectedProductId(p.id); setSearch(`${p.code} - ${p.name}`); setProductOptions([]); }}
+                      className="w-full justify-start rounded-none px-3 py-2 text-body-md hover:bg-surface-container-low"
+                    >
                       <span className="font-mono text-label-lg">{p.code}</span> — {p.name}
-                    </button>
+                    </Button>
                   </li>
                 ))}
               </ul>
@@ -93,8 +99,8 @@ export function InventoryAssignModal({ open, branchId, isSaving, assignError, on
           </div>
         </div>
         <div className="px-6 pb-6 pt-2 flex justify-end gap-3 border-t border-outline-variant">
-          <button type="button" onClick={onClose} disabled={isSaving} className="px-4 py-2 rounded-md text-label-lg text-on-surface-variant hover:bg-surface-container transition-colors">Cancelar</button>
-          <button type="submit" disabled={isSaving} className="px-4 py-2 rounded-md bg-primary text-on-primary text-label-lg font-medium hover:opacity-90 disabled:opacity-50">{isSaving ? "Asignando…" : "Asignar"}</button>
+          <Button type="button" variant="text" onClick={onClose} disabled={isSaving} className="rounded-md px-4 py-2 text-label-lg text-on-surface-variant hover:bg-surface-container">Cancelar</Button>
+          <Button type="submit" variant="filled" loading={isSaving} className="rounded-md px-4 py-2 text-label-lg hover:opacity-90">Asignar</Button>
         </div>
       </form>
     </dialog>

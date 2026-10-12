@@ -2,6 +2,8 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { Button } from "../../../_components/atoms/Button/Button";
+import { IconButton } from "../../../_components/atoms/IconButton/IconButton";
 import { useCurrentUser } from "../../../_hooks/useCurrentUser";
 import { useCreateWaybillForm } from "../_logic/hooks/useCreateWaybillForm";
 import { useBranchesOptions } from "../../../_hooks/useBranchesOptions";
@@ -76,9 +78,13 @@ export function NewWaybillPage() {
     return (
       <div className="rounded bg-error-container/30 border border-error/30 px-4 py-3 text-body-sm text-error flex items-start justify-between gap-2">
         <span>{content}</span>
-        <button type="button" onClick={clearError} className="flex-shrink-0 hover:opacity-70">
-          ×
-        </button>
+        <IconButton
+          icon="close"
+          iconSize={16}
+          ariaLabel="Cerrar"
+          onClick={clearError}
+          className="flex-shrink-0 hover:bg-transparent hover:opacity-70"
+        />
       </div>
     );
   }
@@ -113,14 +119,15 @@ export function NewWaybillPage() {
         {renderError()}
 
         <div className="border-t border-outline-variant pt-4 flex justify-end">
-          <button
+          <Button
             type="button"
+            variant="filled"
             onClick={() => submit()}
-            disabled={isSubmitting}
-            className="rounded-full bg-secondary text-on-secondary px-6 py-2.5 text-label-lg font-medium hover:bg-secondary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            loading={isSubmitting}
+            className="px-6 py-2.5 text-label-lg bg-secondary text-on-secondary hover:bg-secondary/90"
           >
-            {isSubmitting ? "Guardando…" : "Crear traspaso"}
-          </button>
+            Crear traspaso
+          </Button>
         </div>
       </div>
     </div>

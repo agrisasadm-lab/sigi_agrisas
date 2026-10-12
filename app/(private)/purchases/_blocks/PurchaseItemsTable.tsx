@@ -1,3 +1,4 @@
+import { Table, THead, TBody, Tr, Th, Td } from "../../../_components/molecules/DataTable/DataTable";
 import type { PurchaseItem } from "../_logic/types/domain";
 import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
 
@@ -11,36 +12,36 @@ interface PurchaseItemsTableProps {
 export function PurchaseItemsTable({ items }: PurchaseItemsTableProps) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-body-sm">
-        <thead>
-          <tr className="border-b border-outline-variant text-label-sm text-on-surface-variant uppercase tracking-wide">
-            <th className="px-4 py-3 text-left font-medium">Código</th>
-            <th className="px-4 py-3 text-left font-medium">Producto</th>
-            <th className="px-4 py-3 text-right font-medium">Cant.</th>
-            <th className="px-4 py-3 text-right font-medium">Costo unit.</th>
-            <th className="px-4 py-3 text-right font-medium">Desc.</th>
-            <th className="px-4 py-3 text-right font-medium">IVA</th>
-            <th className="px-4 py-3 text-right font-medium">IEPS</th>
-            <th className="px-4 py-3 text-right font-medium">Subtotal</th>
-            <th className="px-4 py-3 text-right font-medium">Total</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table>
+        <THead>
+          <Tr hoverable={false}>
+            <Th>Código</Th>
+            <Th>Producto</Th>
+            <Th align="right">Cant.</Th>
+            <Th align="right">Costo unit.</Th>
+            <Th align="right">Desc.</Th>
+            <Th align="right">IVA</Th>
+            <Th align="right">IEPS</Th>
+            <Th align="right">Subtotal</Th>
+            <Th align="right">Total</Th>
+          </Tr>
+        </THead>
+        <TBody>
           {items.map((item) => (
-            <tr key={item.id} className="border-b border-outline-variant/40 hover:bg-surface-container-low/50 transition-colors">
-              <td className="px-4 py-3 font-mono text-label-sm text-on-surface-variant">{item.productCodeSnapshot}</td>
-              <td className="px-4 py-3 text-on-surface">{item.productNameSnapshot}</td>
-              <td className="px-4 py-3 text-right tabular-nums">{item.quantity}</td>
-              <td className="px-4 py-3 text-right tabular-nums">{fmt(item.unitCost)}</td>
-              <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">{fmtPct(item.discountPct)}</td>
-              <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">{fmtPct(item.ivaRate)}</td>
-              <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">{fmtPct(item.iepsRate)}</td>
-              <td className="px-4 py-3 text-right tabular-nums">{fmt(item.lineSubtotal)}</td>
-              <td className="px-4 py-3 text-right tabular-nums font-medium">{fmt(item.lineTotal)}</td>
-            </tr>
+            <Tr key={item.id} className="border-b border-outline-variant/40 hover:bg-surface-container-low/50 transition-colors">
+              <Td className="font-mono text-label-sm text-on-surface-variant">{item.productCodeSnapshot}</Td>
+              <Td className="text-on-surface">{item.productNameSnapshot}</Td>
+              <Td align="right">{item.quantity}</Td>
+              <Td align="right">{fmt(item.unitCost)}</Td>
+              <Td align="right" className="text-on-surface-variant">{fmtPct(item.discountPct)}</Td>
+              <Td align="right" className="text-on-surface-variant">{fmtPct(item.ivaRate)}</Td>
+              <Td align="right" className="text-on-surface-variant">{fmtPct(item.iepsRate)}</Td>
+              <Td align="right">{fmt(item.lineSubtotal)}</Td>
+              <Td align="right" className="font-medium">{fmt(item.lineTotal)}</Td>
+            </Tr>
           ))}
-        </tbody>
-      </table>
+        </TBody>
+      </Table>
     </div>
   );
 }

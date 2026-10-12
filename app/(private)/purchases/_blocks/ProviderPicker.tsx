@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "../../../_components/atoms/Button/Button";
 import { Combobox } from "../../../_components/molecules/Combobox/Combobox";
 import { Icon } from "../../../_components/atoms/Icon/Icon";
 import { useCurrentUser } from "../../../_hooks/useCurrentUser";
@@ -40,14 +41,15 @@ export function ProviderPicker({ value, onChange, onOpenQuickAdd }: ProviderPick
 
   const footerSlot =
     canWrite === true ? (
-      <button
+      <Button
         type="button"
+        variant="text"
         onMouseDown={(e) => { e.preventDefault(); onOpenQuickAdd(); }}
-        className="w-full px-3 py-2 text-left text-label-sm text-primary hover:bg-primary/5 flex items-center gap-2 transition-colors"
+        className="w-full justify-start gap-2 rounded-none px-3 py-2 text-label-sm hover:bg-primary/5"
       >
         <Icon name="add" size={14} />
         Nuevo proveedor
-      </button>
+      </Button>
     ) : null;
 
   function handleChange(id: string) {

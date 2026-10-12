@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { Button } from "../../../_components/atoms/Button/Button";
 import { usePurchaseMutations } from "../_logic/hooks/usePurchaseMutations";
 import { ProviderPaymentExceedsDueAmountError, PurchasePayForbiddenError } from "../_logic/errors";
 import { formatMxCurrency } from "../../../_lib/formatMxCurrency";
@@ -106,22 +107,24 @@ export function RegisterProviderPaymentModal({ purchaseId, dueAmount, open, onCl
         </div>
 
         <div className="flex justify-end gap-3">
-          <button
+          <Button
             type="button"
+            variant="text"
             onClick={onClose}
             disabled={isSaving}
-            className="px-4 py-2 rounded text-label-lg text-on-surface hover:bg-surface-container-highest transition-colors"
+            className="rounded px-4 py-2 text-label-lg text-on-surface hover:bg-surface-container-highest"
           >
             Cancelar
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="filled"
             onClick={handleSubmit}
-            disabled={isSaving}
-            className="px-4 py-2 rounded text-label-lg bg-primary text-on-primary hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            loading={isSaving}
+            className="text-label-lg"
           >
-            {isSaving ? "Registrando..." : "Registrar abono"}
-          </button>
+            Registrar abono
+          </Button>
         </div>
       </dialog>
 

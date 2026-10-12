@@ -1,4 +1,5 @@
 import { Icon } from "../../../../_components/atoms/Icon/Icon";
+import { Button } from "../../../../_components/atoms/Button/Button";
 import { DownloadPdfButton } from "../../../../_components/molecules/PdfDownloadButton/PdfDownloadButton";
 
 interface ExportButtonsProps {
@@ -11,15 +12,17 @@ interface ExportButtonsProps {
 export function ExportButtons({ disabled, isExporting, onExportXlsx, onExportPdf }: ExportButtonsProps) {
   return (
     <div className="flex items-center gap-2">
-      <button
+      <Button
         type="button"
+        variant="outlined"
         onClick={onExportXlsx}
-        disabled={disabled || isExporting}
-        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-outline text-on-surface text-label-lg font-medium hover:bg-surface-container transition-colors disabled:opacity-50"
+        disabled={disabled}
+        loading={isExporting}
+        className="gap-1.5 rounded-md text-label-lg hover:bg-surface-container"
       >
         <Icon name="summarize" size={18} />
         Exportar Excel
-      </button>
+      </Button>
       <DownloadPdfButton onClick={onExportPdf} loading={isExporting} disabled={disabled} />
     </div>
   );

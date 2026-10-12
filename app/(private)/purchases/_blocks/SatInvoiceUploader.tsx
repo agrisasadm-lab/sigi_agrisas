@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Button } from "../../../_components/atoms/Button/Button";
 import { Icon } from "../../../_components/atoms/Icon/Icon";
 import { Spinner } from "../../../_components/atoms/Spinner/Spinner";
 import { parseSatInvoice, SatXmlParseError, ParsedSatInvoice } from "../_logic/lib/satXmlParser";
@@ -48,11 +49,12 @@ export function SatInvoiceUploader({ onParsed, disabled }: SatInvoiceUploaderPro
           if (file) void handleFile(file);
         }}
       />
-      <button
+      <Button
         type="button"
+        variant="text"
         onClick={() => inputRef.current?.click()}
         disabled={disabled || isReading}
-        className="flex w-full flex-col items-center gap-1 rounded py-3 text-center transition-colors hover:bg-surface-container-high disabled:opacity-50"
+        className="flex w-full flex-col gap-1 rounded py-3 text-center hover:bg-surface-container-high"
       >
         {isReading ? (
           <Spinner size="sm" />
@@ -65,7 +67,7 @@ export function SatInvoiceUploader({ onParsed, disabled }: SatInvoiceUploaderPro
         <span className="text-label-sm text-on-surface-variant">
           Prellena proveedor, productos, impuestos y UUID automáticamente
         </span>
-      </button>
+      </Button>
       {error && <p className="mt-2 text-center text-label-sm text-error">{error}</p>}
     </div>
   );
