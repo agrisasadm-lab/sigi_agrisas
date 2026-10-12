@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Avatar } from "../../../_components/atoms/Avatar/Avatar";
-import { Icon } from "../../../_components/atoms/Icon/Icon";
+import { IconButton } from "../../../_components/atoms/IconButton/IconButton";
+import { Button } from "../../../_components/atoms/Button/Button";
+import { Select } from "../../../_components/atoms/Select/Select";
 import { Skeleton } from "../../../_components/atoms/Skeleton/Skeleton";
 import { ConfirmDialog } from "../../../_components/molecules/ConfirmDialog";
 import { useBranchesOptions } from "../../../_hooks/useBranchesOptions";
@@ -202,13 +204,13 @@ export function UserEditModal({
         <h2 className="text-title-md font-semibold text-on-surface">
           {mode === "create" ? "Crear usuario" : "Editar Usuario"}
         </h2>
-        <button
-          type="button"
+        <IconButton
+          icon="close"
+          iconSize={20}
+          ariaLabel="Cerrar"
           onClick={onClose}
-          className="p-1.5 rounded text-on-surface-variant hover:bg-surface-container-high"
-        >
-          <Icon name="close" size={20} />
-        </button>
+          className="rounded p-1.5"
+        />
       </div>
 
       <div className="px-6 py-5 space-y-5 max-h-[65vh] overflow-y-auto">
@@ -233,13 +235,14 @@ export function UserEditModal({
               <p className="text-label-sm text-error mt-1">{validationErrors.avatarUrl}</p>
             )}
             {mode === "edit" && (
-              <button
+              <Button
                 type="button"
+                variant="text"
                 onClick={() => { setAvatarUrlInput(""); setAvatarReset(true); }}
-                className="mt-1.5 text-label-sm text-primary underline underline-offset-2"
+                className="mt-1.5 p-0 text-label-sm underline underline-offset-2 hover:bg-transparent"
               >
                 Resetear a Gravatar
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -289,21 +292,16 @@ export function UserEditModal({
         {mode === "edit" && user && (
           <div>
             <p className="block text-label-lg text-on-surface-variant mb-1">Contraseña</p>
-            <button
+            <Button
               type="button"
+              variant="outlined"
+              loading={isSendingSetPasswordEmail}
               onClick={() => setConfirmResendOpen(true)}
               disabled={isSendingSetPasswordEmail}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-outline text-label-lg text-on-surface font-medium hover:bg-surface-container-high transition-colors disabled:opacity-40"
+              className="rounded-md"
             >
-              {isSendingSetPasswordEmail ? (
-                <>
-                  <Icon name="progress_activity" size={16} className="animate-spin" />
-                  Enviando...
-                </>
-              ) : (
-                "Enviar correo para establecer/restablecer contraseña"
-              )}
-            </button>
+              {isSendingSetPasswordEmail ? "Enviando..." : "Enviar correo para establecer/restablecer contraseña"}
+            </Button>
             {setPasswordEmailSuccess && (
               <p className="text-label-sm text-primary mt-1">{setPasswordEmailSuccess}</p>
             )}
@@ -318,17 +316,16 @@ export function UserEditModal({
           <label className="block text-label-lg text-on-surface-variant mb-1" htmlFor="branch-select">
             Sucursal
           </label>
-          <select
+          <Select
             id="branch-select"
             value={branchId ?? ""}
             onChange={(e) => setBranchId(e.target.value === "" ? null : e.target.value)}
-            className="w-full px-3 py-2 rounded-md border border-outline-variant bg-surface-container-lowest text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="">Sin sucursal</option>
             {branchOptions.map((b) => (
               <option key={b.id} value={b.id}>{b.name}</option>
             ))}
-          </select>
+          </Select>
         </div>
 
         {/* Roles */}
@@ -366,31 +363,27 @@ export function UserEditModal({
       </div>
 
       <div className="flex justify-end gap-3 px-6 py-4 border-t border-outline-variant bg-surface-container-lowest">
-        <button
+        <Button
           type="button"
+          variant="outlined"
           onClick={onClose}
           disabled={isBusy}
-          className="px-5 py-2.5 rounded-md border border-outline text-label-lg text-on-surface font-medium hover:bg-surface-container-high transition-colors disabled:opacity-40"
+          className="rounded-md"
         >
           Cancelar
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="filled"
+          loading={isBusy}
           onClick={handleSave}
           disabled={isSubmitDisabled}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-primary text-on-primary text-label-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+          className="rounded-md"
         >
-          {isBusy ? (
-            <>
-              <Icon name="progress_activity" size={16} className="animate-spin" />
-              {mode === "create" ? "Creando..." : "Guardando..."}
-            </>
-          ) : mode === "create" ? (
-            "Crear usuario"
-          ) : (
-            "Guardar Cambios"
-          )}
-        </button>
+          {isBusy
+            ? (mode === "create" ? "Creando..." : "Guardando...")
+            : (mode === "create" ? "Crear usuario" : "Guardar Cambios")}
+        </Button>
       </div>
     </dialog>
     {mode === "edit" && user && (

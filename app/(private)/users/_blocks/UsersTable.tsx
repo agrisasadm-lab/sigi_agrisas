@@ -2,8 +2,9 @@
 
 import { Avatar } from "../../../_components/atoms/Avatar/Avatar";
 import { Badge } from "../../../_components/atoms/Badge/Badge";
-import { Icon } from "../../../_components/atoms/Icon/Icon";
+import { IconButton } from "../../../_components/atoms/IconButton/IconButton";
 import { Skeleton } from "../../../_components/atoms/Skeleton/Skeleton";
+import { Table, THead, TBody, Tr, Th, Td } from "../../../_components/molecules/DataTable/DataTable";
 import type { User } from "../_logic/types/domain";
 import { useTableKeyboard } from "../../../_hooks/useTableKeyboard";
 
@@ -54,35 +55,33 @@ export function UsersTable({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-body-md">
-        <thead>
-          <tr className="border-b border-outline-variant bg-surface-container">
-            <th className="text-left px-4 py-3 text-label-lg text-on-surface-variant font-medium">Usuario</th>
-            <th className="text-left px-4 py-3 text-label-lg text-on-surface-variant font-medium">Email</th>
-            <th className="text-left px-4 py-3 text-label-lg text-on-surface-variant font-medium">Roles</th>
-            <th className="text-left px-4 py-3 text-label-lg text-on-surface-variant font-medium">Creado</th>
-            {canWrite && (
-              <th className="text-right px-4 py-3 text-label-lg text-on-surface-variant font-medium">Acciones</th>
-            )}
-          </tr>
-        </thead>
-        <tbody>
+      <Table className="text-body-md">
+        <THead>
+          <Tr hoverable={false}>
+            <Th>Usuario</Th>
+            <Th>Email</Th>
+            <Th>Roles</Th>
+            <Th>Creado</Th>
+            {canWrite && <Th align="right">Acciones</Th>}
+          </Tr>
+        </THead>
+        <TBody>
           {users.map((user, idx) => {
             const isSelf = user.id === currentUserId;
             return (
-              <tr
+              <Tr
                 key={user.id}
                 {...getRowProps(idx)}
-                className="border-b border-outline-variant last:border-0 hover:bg-surface-container-low focus:bg-surface-container focus:outline-none transition-colors cursor-default"
+                className="border-b border-outline-variant last:border-0 focus:bg-surface-container focus:outline-none cursor-default"
               >
-                <td className="px-4 py-3">
+                <Td>
                   <div className="flex items-center gap-3">
                     <Avatar src={user.avatarUrl} alt={user.name ?? user.email} size="sm" fallbackInitials={(user.name ?? user.email)[0].toUpperCase()} />
                     <span className="text-on-surface font-medium">{user.name ?? <span className="text-on-surface-variant">—</span>}</span>
                   </div>
-                </td>
-                <td className="px-4 py-3 text-on-surface-variant">{user.email}</td>
-                <td className="px-4 py-3">
+                </Td>
+                <Td className="text-on-surface-variant">{user.email}</Td>
+                <Td>
                   <div className="flex flex-wrap gap-1">
                     {user.roles.length === 0 ? (
                       <span className="text-on-surface-variant">—</span>
@@ -92,41 +91,41 @@ export function UsersTable({
                       ))
                     )}
                   </div>
-                </td>
-                <td className="px-4 py-3">
+                </Td>
+                <Td>
                   <span title={user.createdAt.toISOString()} className="text-on-surface-variant text-label-lg cursor-help">
                     {formatRelativeDate(user.createdAt)}
                   </span>
-                </td>
+                </Td>
                 {canWrite && (
-                  <td className="px-4 py-3">
+                  <Td>
                     <div className="flex items-center justify-end gap-1">
-                      <button
-                        type="button"
+                      <IconButton
+                        icon="edit"
+                        iconSize={18}
+                        ariaLabel={isSelf ? "No puedes editar tu propia cuenta" : "Editar usuario"}
                         onClick={() => onEdit(user)}
                         disabled={isSelf}
                         title={isSelf ? "No puedes editar tu propia cuenta" : "Editar usuario"}
-                        className="p-2 rounded text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                      >
-                        <Icon name="edit" size={18} />
-                      </button>
-                      <button
-                        type="button"
+                        className="rounded p-2 hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
+                      />
+                      <IconButton
+                        icon="delete"
+                        iconSize={18}
+                        ariaLabel={isSelf ? "No puedes eliminar tu propia cuenta" : "Eliminar usuario"}
                         onClick={() => onDelete(user)}
                         disabled={isSelf}
                         title={isSelf ? "No puedes eliminar tu propia cuenta" : "Eliminar usuario"}
-                        className="p-2 rounded text-on-surface-variant hover:bg-error-container hover:text-error transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                      >
-                        <Icon name="delete" size={18} />
-                      </button>
+                        className="rounded p-2 hover:bg-error-container hover:text-error disabled:opacity-30 disabled:cursor-not-allowed"
+                      />
                     </div>
-                  </td>
+                  </Td>
                 )}
-              </tr>
+              </Tr>
             );
           })}
-        </tbody>
-      </table>
+        </TBody>
+      </Table>
     </div>
   );
 }

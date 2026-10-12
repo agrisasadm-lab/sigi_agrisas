@@ -1,4 +1,5 @@
 import { EmptyState } from "../../../_components/molecules/EmptyState/EmptyState";
+import { Button } from "../../../_components/atoms/Button/Button";
 
 interface UsersEmptyProps {
   filtered?: boolean;
@@ -12,13 +13,14 @@ export function UsersEmpty({ filtered, onClearFilters }: UsersEmptyProps) {
         icon="search"
         title="Ningún usuario coincide con los filtros"
         action={
-          <button
+          <Button
             type="button"
+            variant="text"
             onClick={onClearFilters}
-            className="text-label-lg text-primary underline underline-offset-2"
+            className="text-label-lg underline underline-offset-2"
           >
             Limpiar filtros
-          </button>
+          </Button>
         }
       />
     );

@@ -140,12 +140,6 @@ const RAW_ELEMENT_ALLOWLIST = new Set([
   "app/(private)/sales/_blocks/PrintableTicket.tsx", // único <table> de layout de impresión térmica del ticket (estilos inline, colSpan) — no es tabla de datos de negocio, fuera de alcance de shrink-design-debt-allowlist-sales-flow
   "app/(private)/settings/_blocks/PricingSettingsForm.tsx",
   "app/(private)/settings/_blocks/TicketSettingsForm.tsx",
-  "app/(private)/users/_blocks/UserEditModal.tsx",
-  "app/(private)/users/_blocks/UsersEmpty.tsx",
-  "app/(private)/users/_blocks/UsersError.tsx",
-  "app/(private)/users/_blocks/UsersPagination.tsx",
-  "app/(private)/users/_blocks/UsersTable.tsx",
-  "app/(private)/users/_blocks/UsersToolbar.tsx",
 ]);
 
 describe("design-system tokens — sin elementos crudos nuevos en _blocks/", () => {
