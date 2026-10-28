@@ -27,6 +27,7 @@ export function NetCashCard({ cash }: { cash: SalesCutReportDto["cash"] }) {
       <Line label="Ventas" value={money(cash.grossSales)} />
       <Line label="+ Abonos cobrados" value={money(cash.paymentsReceived)} />
       <Line label="− Devoluciones" value={money(cash.returnsRefunded)} />
+      <Line label="− Gastos" value={money(cash.expensesTotal)} />
       <div className="border-t border-outline-variant pt-2">
         <Line label="Neto" value={money(cash.netCash)} strong />
       </div>

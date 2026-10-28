@@ -4,6 +4,7 @@ import {
   InMemCutSale,
   InMemCutPayment,
   InMemCutReturn,
+  InMemCutExpense,
 } from "@/modules/reports/infrastructure/repositories/InMemorySalesCutRepository";
 
 const GEN = { userId: "u1", email: "op@test.com" };
@@ -19,8 +20,17 @@ function sale(over: Partial<InMemCutSale> = {}): InMemCutSale {
   };
 }
 
-function base(sales: InMemCutSale[], payments: InMemCutPayment[] = [], returns: InMemCutReturn[] = []) {
-  return new GetSalesCutReportUseCase(new InMemorySalesCutRepository(sales, payments, returns));
+function base(
+  sales: InMemCutSale[],
+  payments: InMemCutPayment[] = [],
+  returns: InMemCutReturn[] = [],
+  expenses: InMemCutExpense[] = []
+) {
+  return new GetSalesCutReportUseCase(new InMemorySalesCutRepository(sales, payments, returns, expenses));
+}
+
+function expense(over: Partial<InMemCutExpense> = {}): InMemCutExpense {
+  return { amount: 50, isActive: true, branchId: "b1", expenseDate: new Date("2026-07-08T00:00:00.000Z"), ...over };
 }
 
 const req = (over = {}) => ({
@@ -47,6 +57,50 @@ describe("GetSalesCutReportUseCase", () => {
     expect(dto.cash.paymentsReceived).toBe("200.0000");
     expect(dto.cash.returnsRefunded).toBe("100.0000");
     expect(dto.cash.netCash).toBe("600.0000");
+  });
+
+  it("neto de caja resta los gastos activos de la sucursal", async () => {
+    const dto = await base(
+      [sale({ total: 500 })],
+      [{ amount: 200, status: "completed", branchId: "b1", createdAt: new Date("2026-07-06T10:00:00Z") }],
+      [{ refundTotal: 100, status: "completed", branchId: "b1", returnedAt: new Date("2026-07-07T10:00:00Z") }],
+      [expense({ amount: 50 }), expense({ amount: 25.5 })]
+    ).execute(req({ branchId: "b1" }));
+    expect(dto.cash.expensesTotal).toBe("75.5000");
+    expect(dto.cash.netCash).toBe("524.5000"); // 500 + 200 − 100 − 75.5
+  });
+
+  it("gastos inactivos, de otra sucursal o fuera de rango no restan", async () => {
+    const dto = await base(
+      [sale({ total: 500 })],
+      [],
+      [],
+      [
+        expense({ isActive: false }),
+        expense({ branchId: "b2" }),
+        expense({ expenseDate: new Date("2026-06-30T00:00:00.000Z") }),
+        expense({ expenseDate: new Date("2026-08-01T00:00:00.000Z") }),
+      ]
+    ).execute(req({ branchId: "b1" }));
+    expect(dto.cash.expensesTotal).toBe("0.0000");
+    expect(dto.cash.netCash).toBe("500.0000");
+  });
+
+  it("sin gastos, expensesTotal es 0 y el neto no cambia", async () => {
+    const dto = await base([sale({ total: 300 })]).execute(req());
+    expect(dto.cash.expensesTotal).toBe("0.0000");
+    expect(dto.cash.netCash).toBe("300.0000");
+  });
+
+  it("filtros de cajero/método no excluyen gastos de la sucursal", async () => {
+    const dto = await base(
+      [sale({ id: "a", cashierId: "c1", total: 100 }), sale({ id: "b", cashierId: "c2", total: 200 })],
+      [],
+      [],
+      [expense({ amount: 30 })]
+    ).execute(req({ cashierId: "c1", paymentMethodId: "pm1" }));
+    expect(dto.cash.expensesTotal).toBe("30.0000");
+    expect(dto.cash.netCash).toBe("70.0000"); // 100 − 30
   });
 
   it("canceladas aparte; abonos/devoluciones cancelados no cuentan", async () => {

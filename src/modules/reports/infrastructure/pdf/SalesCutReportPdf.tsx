@@ -160,6 +160,10 @@ export function SalesCutReportPdf({ data, issuer }: Props) {
             <Text style={s.totalsValue}>{data.cash.returnsRefunded}</Text>
           </View>
           <View style={s.totalsRow}>
+            <Text style={s.totalsLabel}>− Gastos</Text>
+            <Text style={s.totalsValue}>{data.cash.expensesTotal}</Text>
+          </View>
+          <View style={s.totalsRow}>
             <Text style={s.totalsLabel}>= Neto</Text>
             <Text style={s.totalsValue}>{data.cash.netCash}</Text>
           </View>

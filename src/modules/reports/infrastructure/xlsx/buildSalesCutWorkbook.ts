@@ -38,6 +38,7 @@ export function buildSalesCutWorkbook(data: SalesCutReportResponseDto): Buffer {
     ["Ventas", data.cash.grossSales],
     ["+ Abonos cobrados", data.cash.paymentsReceived],
     ["- Devoluciones", data.cash.returnsRefunded],
+    ["- Gastos", data.cash.expensesTotal],
     ["= Neto", data.cash.netCash],
   ];
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(totalsRows), "Totales");

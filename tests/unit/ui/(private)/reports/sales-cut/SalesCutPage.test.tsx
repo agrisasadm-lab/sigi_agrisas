@@ -47,7 +47,7 @@ describe("SalesCutPage — desgloses por departamento y producto", () => {
         filters: { branchId: null, cashierId: null, paymentMethodId: null, from: "2026-08-02", to: "2026-08-02" },
         totals: { grossSales: "116.0000", ticketCount: 1, subtotal: "100.0000", taxTotal: "16.0000", ivaTotal: "16.0000", iepsTotal: "0.0000" },
         cancelled: { count: 0, total: "0.0000" },
-        cash: { grossSales: "116.0000", paymentsReceived: "0.0000", returnsRefunded: "0.0000", netCash: "116.0000" },
+        cash: { grossSales: "116.0000", paymentsReceived: "0.0000", returnsRefunded: "0.0000", expensesTotal: "20.0000", netCash: "96.0000" },
         byPaymentMethod: [row("Efectivo")],
         byDay: [row("2026-08-02")],
         byCashier: [row("Admin")],
@@ -75,5 +75,31 @@ describe("SalesCutPage — desgloses por departamento y producto", () => {
     expect(screen.getByText("Por producto")).toBeInTheDocument();
     expect(screen.getByText("Fertilizante (F1)")).toBeInTheDocument();
     expect(screen.getByText("Piezas")).toBeInTheDocument();
+  });
+
+  it("NetCashCard muestra la línea '− Gastos' antes del neto", () => {
+    mockUseSalesCut.mockReturnValue({
+      report: {
+        generatedAt: "2026-08-02T00:00:00.000Z",
+        generatedBy: { userId: "u1", email: "admin@test.com" },
+        filters: { branchId: null, cashierId: null, paymentMethodId: null, from: "2026-08-02", to: "2026-08-02" },
+        totals: { grossSales: "116.0000", ticketCount: 1, subtotal: "100.0000", taxTotal: "16.0000", ivaTotal: "16.0000", iepsTotal: "0.0000" },
+        cancelled: { count: 0, total: "0.0000" },
+        cash: { grossSales: "116.0000", paymentsReceived: "0.0000", returnsRefunded: "0.0000", expensesTotal: "20.0000", netCash: "96.0000" },
+        byPaymentMethod: [], byDay: [], byCashier: [], byBranch: [], byDepartment: [], byProduct: [], salesList: [],
+      },
+      isLoading: false,
+      error: null,
+      isExporting: false,
+      isExportingXlsx: false,
+      exportError: null,
+      refresh: jest.fn(),
+      exportPdf: jest.fn(),
+      exportXlsx: jest.fn(),
+    });
+
+    render(<SalesCutPage />);
+
+    expect(screen.getByText("− Gastos")).toBeInTheDocument();
   });
 });

@@ -39,6 +39,7 @@ export interface SalesCutReportDto {
     grossSales: string;
     paymentsReceived: string;
     returnsRefunded: string;
+    expensesTotal: string;
     netCash: string;
   };
   byPaymentMethod: SalesCutBreakdownRowDto[];
