@@ -19,6 +19,7 @@ interface KardexFiltersProps {
   onProductChange: (productId: string, product: ProductOptionDto | null) => void;
   branchId: string;
   onBranchIdChange: (v: string) => void;
+  productSearchBranchId?: string;
   branches: BranchOption[];
   showAllBranchesOption: boolean;
   from: string;
@@ -37,6 +38,7 @@ export function KardexFilters({
   onProductChange,
   branchId,
   onBranchIdChange,
+  productSearchBranchId,
   branches,
   showAllBranchesOption,
   from,
@@ -48,7 +50,7 @@ export function KardexFilters({
 }: KardexFiltersProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 300);
-  const { items, isLoading } = useProductSearch(debouncedSearch);
+  const { items, isLoading } = useProductSearch(debouncedSearch, productSearchBranchId);
 
   const options = items.map((p) => ({ value: p.id, label: `${p.code} · ${p.name}`, product: p }));
 

@@ -1071,6 +1071,7 @@ describe("ReportsController - getSalesCutReport", () => {
     expect(body.totals.ticketCount).toBe(1);
     expect(body.cancelled.count).toBe(1);
     expect(body.cancelled.total).toBe("50.0000");
+    expect(body.cash.expensesTotal).toBe("0.0000");
     expect(body.cash.netCash).toBe("116.0000");
     expect(body.byPaymentMethod).toHaveLength(1);
     expect(body.byPaymentMethod[0].label).toBe("Efectivo");

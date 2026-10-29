@@ -58,4 +58,17 @@ describe("searchProducts (payments)", () => {
     await searchProducts({}, fetch as never);
     expect((fetch as jest.Mock).mock.calls[0][0] as string).toContain("includeInactive=false");
   });
+
+  it("no agrega branchId al query string cuando no se pasa", async () => {
+    const fetch = mockFetch(200, { items: [], total: 0 });
+    await searchProducts({ search: "flor" }, fetch as never);
+    expect((fetch as jest.Mock).mock.calls[0][0] as string).not.toContain("branchId=");
+  });
+
+  it("agrega branchId al query string cuando se pasa", async () => {
+    const fetch = mockFetch(200, { items: [makeProductBody()], total: 1 });
+    const result = await searchProducts({ search: "flor", branchId: "branch-1" }, fetch as never);
+    expect((fetch as jest.Mock).mock.calls[0][0] as string).toContain("branchId=branch-1");
+    expect(result.items).toHaveLength(1);
+  });
 });

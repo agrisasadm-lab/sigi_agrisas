@@ -6,6 +6,7 @@ import type { ProductSearchResultDto } from "../types/api";
 
 interface UseProductSearchParams {
   search: string;
+  branchId?: string;
   page?: number;
   pageSize?: number;
 }
@@ -20,6 +21,7 @@ interface UseProductSearchResult {
 
 export function useProductSearch({
   search,
+  branchId,
   page = 1,
   pageSize = 20,
 }: UseProductSearchParams): UseProductSearchResult {
@@ -34,7 +36,7 @@ export function useProductSearch({
     setIsLoading(true);
     setError(null);
 
-    searchProducts({ search, page, pageSize, signal: controller.signal })
+    searchProducts({ search, branchId, page, pageSize, signal: controller.signal })
       .then((result) => {
         setItems(result.items);
         setTotal(result.total);
@@ -47,7 +49,7 @@ export function useProductSearch({
       });
 
     return () => controller.abort();
-  }, [search, page, pageSize, tick]);
+  }, [search, branchId, page, pageSize, tick]);
 
   const refresh = useCallback(() => setTick((t) => t + 1), []);
 

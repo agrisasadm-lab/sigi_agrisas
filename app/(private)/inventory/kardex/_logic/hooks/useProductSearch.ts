@@ -4,7 +4,10 @@ import { useState, useEffect } from "react";
 import { searchProducts } from "../services/searchProducts";
 import type { ProductOptionDto } from "../types/api";
 
-export function useProductSearch(search: string): { items: ProductOptionDto[]; isLoading: boolean } {
+export function useProductSearch(
+  search: string,
+  branchId?: string
+): { items: ProductOptionDto[]; isLoading: boolean } {
   const [items, setItems] = useState<ProductOptionDto[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -12,7 +15,7 @@ export function useProductSearch(search: string): { items: ProductOptionDto[]; i
     const controller = new AbortController();
     setIsLoading(true);
 
-    searchProducts({ search, signal: controller.signal })
+    searchProducts({ search, branchId, signal: controller.signal })
       .then((result) => setItems(result.items))
       .catch((err: Error) => {
         if (err.name === "AbortError") return;
@@ -21,7 +24,7 @@ export function useProductSearch(search: string): { items: ProductOptionDto[]; i
       .finally(() => setIsLoading(false));
 
     return () => controller.abort();
-  }, [search]);
+  }, [search, branchId]);
 
   return { items, isLoading };
 }

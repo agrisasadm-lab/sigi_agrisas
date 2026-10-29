@@ -65,6 +65,7 @@ export class PrismaSalesCutRepository implements SalesCutRepository {
       productRows,
       paymentsAgg,
       returnsAgg,
+      expensesAgg,
       salesListRows,
     ] = await Promise.all([
       this.prisma.sale.aggregate({
@@ -182,6 +183,17 @@ export class PrismaSalesCutRepository implements SalesCutRepository {
         _sum: { refundTotal: true },
         _count: { _all: true },
       }),
+      // Gastos: sólo sucursal + fechas (no tienen cajero ni método de pago).
+      // `expenseDate` es DATE, `from`/`to` a medianoche UTC bastan.
+      this.prisma.expense.aggregate({
+        where: {
+          isActive: true,
+          expenseDate: { gte: from, lte: filters.to },
+          ...branchWhere,
+        },
+        _sum: { amount: true },
+        _count: { _all: true },
+      }),
       this.prisma.sale.findMany({
         where: activeWhere,
         select: {
@@ -291,6 +303,10 @@ export class PrismaSalesCutRepository implements SalesCutRepository {
       returnsRefunded: {
         count: returnsAgg._count._all,
         total: Number(returnsAgg._sum.refundTotal ?? 0),
+      },
+      expenses: {
+        count: expensesAgg._count._all,
+        total: Number(expensesAgg._sum.amount ?? 0),
       },
       salesList: salesListRows.map((r) => ({
         saleId: r.id,

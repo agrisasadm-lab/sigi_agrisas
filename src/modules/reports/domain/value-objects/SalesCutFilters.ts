@@ -54,6 +54,12 @@ export interface ReturnsAgg {
   total: number;
 }
 
+/** Agregado de gastos activos (expenses isActive) de la sucursal en el periodo. */
+export interface ExpensesAgg {
+  count: number;
+  total: number;
+}
+
 /** Fila del detalle ticket-por-ticket (una fila por venta activa del periodo/filtros). `createdAt` solo se usa para ordenar, no se expone en el DTO. */
 export interface SaleListRow {
   saleId: string;
@@ -77,5 +83,6 @@ export interface SalesCutAggregates {
   byProduct: ProductBreakdownRow[];
   paymentsReceived: PaymentsAgg;
   returnsRefunded: ReturnsAgg;
+  expenses: ExpensesAgg;
   salesList: SaleListRow[];
 }

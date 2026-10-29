@@ -3,18 +3,20 @@ import type { ProductSearchResultDto } from "../types/api";
 
 export interface SearchProductsParams {
   search?: string;
+  branchId?: string;
   page?: number;
   pageSize?: number;
   signal?: AbortSignal;
 }
 
 export async function searchProducts(
-  { search, page = 1, pageSize = 20, signal }: SearchProductsParams,
+  { search, branchId, page = 1, pageSize = 20, signal }: SearchProductsParams,
   fetchImpl = authFetch,
 ): Promise<{ items: ProductSearchResultDto[]; total: number }> {
   const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize), includeInactive: "false" });
   const trimmed = search?.trim();
   if (trimmed) params.set("search", trimmed);
+  if (branchId) params.set("branchId", branchId);
 
   let res: Response;
   try {

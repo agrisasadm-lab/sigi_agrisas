@@ -52,6 +52,13 @@ export interface InMemCutReturn {
   returnedAt: Date;
 }
 
+export interface InMemCutExpense {
+  amount: number;
+  isActive: boolean;
+  branchId: string;
+  expenseDate: Date;
+}
+
 const ACTIVE = ["completed", "edited"];
 
 function endOfDay(date: Date): Date {
@@ -64,7 +71,8 @@ export class InMemorySalesCutRepository implements SalesCutRepository {
   constructor(
     private readonly sales: InMemCutSale[],
     private readonly payments: InMemCutPayment[] = [],
-    private readonly returns: InMemCutReturn[] = []
+    private readonly returns: InMemCutReturn[] = [],
+    private readonly expenses: InMemCutExpense[] = []
   ) {}
 
   async getAggregates(f: SalesCutFilters): Promise<SalesCutAggregates> {
@@ -153,6 +161,11 @@ export class InMemorySalesCutRepository implements SalesCutRepository {
       (r) => inPeriod(r.returnedAt) && r.status === "completed" && (!f.branchId || r.branchId === f.branchId)
     );
 
+    // Gastos: sólo sucursal + fechas (sin cajero/método de pago).
+    const expenses = this.expenses.filter(
+      (e) => e.isActive && inPeriod(e.expenseDate) && (!f.branchId || e.branchId === f.branchId)
+    );
+
     return {
       active: {
         grossSales: sum(active, (s) => s.total),
@@ -181,6 +194,10 @@ export class InMemorySalesCutRepository implements SalesCutRepository {
       returnsRefunded: {
         count: returns.length,
         total: returns.reduce((a, r) => a + r.refundTotal, 0),
+      },
+      expenses: {
+        count: expenses.length,
+        total: expenses.reduce((a, e) => a + e.amount, 0),
       },
       salesList: [...active]
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())

@@ -15,6 +15,7 @@ export interface AssembledSalesCut {
     grossSales: number;
     paymentsReceived: number;
     returnsRefunded: number;
+    expensesTotal: number;
     netCash: number;
   };
   byPaymentMethod: BreakdownRow[];
@@ -29,7 +30,7 @@ export interface AssembledSalesCut {
 /**
  * Servicio de dominio puro (sin I/O). Ensambla el corte a partir de los
  * agregados crudos: calcula `netCash = grossSales + paymentsReceived −
- * returnsRefunded` y ordena los desgloses. Redondeo banker's a 4 decimales
+ * returnsRefunded − expensesTotal` y ordena los desgloses. Redondeo banker's a 4 decimales
  * (decimal.js), consistente con los `*TotalsCalculator`.
  */
 export class SalesCutAssembler {
@@ -50,7 +51,8 @@ export class SalesCutAssembler {
     const grossSales = new Decimal(agg.active.grossSales);
     const paymentsReceived = new Decimal(agg.paymentsReceived.total);
     const returnsRefunded = new Decimal(agg.returnsRefunded.total);
-    const netCash = grossSales.plus(paymentsReceived).minus(returnsRefunded);
+    const expensesTotal = new Decimal(agg.expenses.total);
+    const netCash = grossSales.plus(paymentsReceived).minus(returnsRefunded).minus(expensesTotal);
 
     return {
       totals: {
@@ -69,6 +71,7 @@ export class SalesCutAssembler {
         grossSales: this.round(agg.active.grossSales),
         paymentsReceived: this.round(agg.paymentsReceived.total),
         returnsRefunded: this.round(agg.returnsRefunded.total),
+        expensesTotal: this.round(agg.expenses.total),
         netCash: netCash.toDecimalPlaces(4).toNumber(),
       },
       byPaymentMethod: this.sortByTotalDesc(agg.byPaymentMethod),

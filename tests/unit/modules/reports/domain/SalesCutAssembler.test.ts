@@ -26,17 +26,25 @@ function agg(over: Partial<SalesCutAggregates> = {}): SalesCutAggregates {
     byProduct: [],
     paymentsReceived: { count: 2, total: 300 },
     returnsRefunded: { count: 1, total: 120 },
+    expenses: { count: 0, total: 0 },
     salesList: [],
     ...over,
   };
 }
 
 describe("SalesCutAssembler", () => {
-  it("netCash = grossSales + paymentsReceived − returnsRefunded", () => {
-    const out = SalesCutAssembler.assemble(agg());
+  it("netCash = grossSales + paymentsReceived − returnsRefunded − expensesTotal", () => {
+    const out = SalesCutAssembler.assemble(agg({ expenses: { count: 2, total: 50 } }));
     expect(out.cash.grossSales).toBe(1000);
     expect(out.cash.paymentsReceived).toBe(300);
     expect(out.cash.returnsRefunded).toBe(120);
+    expect(out.cash.expensesTotal).toBe(50);
+    expect(out.cash.netCash).toBe(1130); // 1000 + 300 − 120 − 50
+  });
+
+  it("sin gastos → expensesTotal 0 y neto igual al cálculo previo", () => {
+    const out = SalesCutAssembler.assemble(agg());
+    expect(out.cash.expensesTotal).toBe(0);
     expect(out.cash.netCash).toBe(1180); // 1000 + 300 − 120
   });
 
@@ -87,5 +95,18 @@ describe("SalesCutAssembler", () => {
       })
     );
     expect(out.cash.netCash).toBe(0.3);
+  });
+
+  it("sin drift en decimales al restar gastos", () => {
+    const out = SalesCutAssembler.assemble(
+      agg({
+        active: { grossSales: 0.3, ticketCount: 1, subtotal: 0.3, taxTotal: 0 },
+        paymentsReceived: { count: 0, total: 0 },
+        returnsRefunded: { count: 0, total: 0 },
+        expenses: { count: 1, total: 0.1 },
+      })
+    );
+    expect(out.cash.expensesTotal).toBe(0.1);
+    expect(out.cash.netCash).toBe(0.2);
   });
 });

@@ -88,6 +88,7 @@ export class GetSalesCutReportUseCase {
         grossSales: money(cut.cash.grossSales),
         paymentsReceived: money(cut.cash.paymentsReceived),
         returnsRefunded: money(cut.cash.returnsRefunded),
+        expensesTotal: money(cut.cash.expensesTotal),
         netCash: money(cut.cash.netCash),
       },
       byPaymentMethod: cut.byPaymentMethod.map(rowDto),

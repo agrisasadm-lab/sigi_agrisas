@@ -67,8 +67,9 @@ export function PaymentsHistoryToolbar({
   onExportXlsx,
   onReset,
 }: PaymentsHistoryToolbarProps) {
-  const { can } = useCurrentUser();
+  const { can, branchId: userBranchId } = useCurrentUser();
   const isBypass = can("branches:access_all");
+  const productSearchBranchId = isBypass === true ? (branchId || undefined) : (userBranchId ?? undefined);
 
   const [customerQuery, setCustomerQuery] = useState("");
   const debouncedCustomerQuery = useDebounce(customerQuery, 300);
@@ -80,7 +81,10 @@ export function PaymentsHistoryToolbar({
 
   const [productQuery, setProductQuery] = useState("");
   const debouncedProductQuery = useDebounce(productQuery, 300);
-  const { items: productResults, isLoading: isLoadingProducts } = useProductSearch({ search: debouncedProductQuery });
+  const { items: productResults, isLoading: isLoadingProducts } = useProductSearch({
+    search: debouncedProductQuery,
+    branchId: productSearchBranchId,
+  });
   const productOptions = productResults.map((p) => ({ value: p.id, label: `${p.name} · ${p.code}` }));
 
   return (
