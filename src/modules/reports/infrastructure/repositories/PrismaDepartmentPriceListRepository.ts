@@ -39,7 +39,7 @@ export class PrismaDepartmentPriceListRepository implements DepartmentPriceListR
     const stockRows = await this.prisma.$queryRaw<Array<{ product_id: string; qty: string }>>`
       SELECT product_id, COALESCE(SUM(quantity), 0) AS qty
       FROM branch_inventory
-      WHERE ${filters.branchId ? Prisma.sql`branch_id = ${filters.branchId}` : Prisma.sql`TRUE`}
+      WHERE ${scopeBranchId ? Prisma.sql`branch_id = ${scopeBranchId}` : Prisma.sql`FALSE`}
       GROUP BY product_id
     `;
     const stockMap = new Map(stockRows.map((r) => [r.product_id, new Decimal(r.qty)]));

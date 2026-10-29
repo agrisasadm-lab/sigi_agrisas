@@ -32,7 +32,7 @@ interface KardexPageProps {
 }
 
 export function KardexPage({ initialProductId, initialBranchId }: KardexPageProps) {
-  const { can } = useCurrentUser();
+  const { can, branchId: userBranchId } = useCurrentUser();
   const canRead = can("inventory:kardex_read");
   const canWrite = can("inventory:write");
   const isBypass = can("branches:access_all");
@@ -41,6 +41,7 @@ export function KardexPage({ initialProductId, initialBranchId }: KardexPageProp
   const [productId, setProductId] = useState(initialProductId ?? "");
   const [selectedProduct, setSelectedProduct] = useState<ProductOptionDto | null>(null);
   const [branchId, setBranchId] = useState(initialBranchId ?? "");
+  const productSearchBranchId = isBypass === true ? (branchId || undefined) : (userBranchId ?? undefined);
   const [from, setFrom] = useState(firstDayOfMonthIso());
   const [to, setTo] = useState(todayIso());
   const [tab, setTab] = useState<KardexTab>("kardex");
@@ -100,6 +101,7 @@ export function KardexPage({ initialProductId, initialBranchId }: KardexPageProp
         onProductChange={(id, product) => { setProductId(id); setSelectedProduct(product); }}
         branchId={branchId}
         onBranchIdChange={setBranchId}
+        productSearchBranchId={productSearchBranchId}
         branches={branches}
         showAllBranchesOption={isBypass === true}
         from={from}
